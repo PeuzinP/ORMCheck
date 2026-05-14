@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Processando | OMRCheck Web</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=41">
+</head>
+<body>
+    <main class="page">
+        <section class="card progress-card">
+            <h2>Log do processamento</h2>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+            </div>
+
+            <p id="linha-log" class="progress-message">
+                0% | Iniciando leitura OMR...
+            </p>
+
+            <p id="arquivo-atual" class="muted"></p>
+
+            <div id="erro-box" class="erro-box" style="display: none;">
+                <strong>Erro:</strong>
+                <p id="erro-texto"></p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const JOB_ID = "{{ job_id }}";
+
+        async function consultarStatus() {
+            const resposta = await fetch(`/status-processamento/${JOB_ID}`);
+            const dados = await resposta.json();
+
+            const percentual = dados.percentual || 0;
+            const mensagem = dados.mensagem || "Processando...";
+
+            document.getElementById("progress-fill").style.width = `${percentual}%`;
+            document.getElementById("linha-log").textContent = `${percentual}% | ${mensagem}`;
+
+            if (dados.arquivo_atual) {
+                document.getElementById("arquivo-atual").textContent = `Arquivo atual: ${dados.arquivo_atual}`;
+            }
+
+            if (dados.status === "concluido") {
+                window.location.href = `/processamento/${dados.nome_processamento}`;
+                return;
+            }
+
+            if (dados.status === "erro") {
+                document.getElementById("erro-box").style.display = "block";
+                document.getElementById("erro-texto").textContent = dados.erro || "Erro desconhecido.";
+                return;
+            }
+
+            setTimeout(consultarStatus, 700);
+        }
+
+        consultarStatus();
+    </script>
+</body>
+</html>

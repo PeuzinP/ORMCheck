@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Validação Cadastral | OMRCheck Web</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=41">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">OMR</div>
+            <div class="brand-text">
+                <strong>OMRCheck Web</strong>
+                <span>Validação cadastral dos cartões</span>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
+        </div>
+    </header>
+
+    <main class="page full">
+        <section class="hero hero-shell compact-hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Validação cadastral</span>
+                <h1>Controle de identificação dos cartões</h1>
+                <p>{{ nome_processamento }}</p>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span>Cartões</span>
+                    <strong>{{ resumo.total }}</strong>
+                    <p>Total de registros processados nesta execução.</p>
+                </div>
+                <div class="hero-stat">
+                    <span>Prontos</span>
+                    <strong>{{ resumo.validados }}</strong>
+                    <p>Itens com identificação concluída e prontos para exportação segura.</p>
+                </div>
+                <div class="hero-stat">
+                    <span>Pendências</span>
+                    <strong>{{ resumo.pendentes }}</strong>
+                    <p>Registros que ainda exigem atenção operacional.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span>Total de cartões</span>
+                <strong>{{ resumo.total }}</strong>
+            </div>
+
+            <div class="stat-card success">
+                <span>Prontos para CSV</span>
+                <strong>{{ resumo.validados }}</strong>
+            </div>
+
+            <div class="stat-card danger">
+                <span>Pendentes</span>
+                <strong>{{ resumo.pendentes }}</strong>
+            </div>
+        </section>
+
+        <section class="stats-grid compact-stats">
+            <div class="stat-card">
+                <span>ID vindo do cartão</span>
+                <strong>{{ resumo.com_id_cartao }}</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>ID vindo da API pelo RA</span>
+                <strong>{{ resumo.com_id_api }}</strong>
+            </div>
+
+            <div class="stat-card danger">
+                <span>Sem identificação</span>
+                <strong>{{ resumo.sem_identificacao }}</strong>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Consolidação</span>
+                    <h2>Geração do CSV final</h2>
+                </div>
+                <span class="section-badge">
+                    {% if resumo.pendentes == 0 %}Pronto para exportação{% else %}Aguardando ajustes{% endif %}
+                </span>
+            </div>
+            <p class="card-description">
+                O CSV final será gerado no padrão KeepEdu usando o código de barras final validado.
+                Se ainda houver pendências, você pode exportar mesmo assim, deixando os campos não resolvidos em branco.
+            </p>
+
+            {% if resumo.pendentes == 0 %}
+                <button class="btn-primary link-btn btn-gerar-csv" data-forcar="false">
+                    Gerar CSV Final
+                </button>
+            {% else %}
+                <div class="actions">
+                    <button class="btn-secondary" disabled>
+                        Existem {{ resumo.pendentes }} pendência(s)
+                    </button>
+                    <button
+                        class="btn-primary link-btn btn-gerar-csv"
+                        data-forcar="true"
+                    >
+                        Gerar CSV Mesmo Assim
+                    </button>
+                </div>
+            {% endif %}
+            <p id="csv-export-status" class="muted" style="margin-top: 12px;"></p>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Registros</span>
+                    <h2>Cartões processados</h2>
+                </div>
+                <span class="section-badge">{{ validacoes|length }} item(ns)</span>
+            </div>
+            <p class="card-description">
+                O CSV final precisa do ID do aluno. Cartões nominais podem trazer o ID diretamente.
+                Quando isso não acontece, o sistema usa o RA para consultar a API e completar a identificação.
+            </p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Imagem</th>
+                            <th>ID detectado</th>
+                            <th>RA detectado</th>
+                            <th>ID final</th>
+                            <th>Origem do ID</th>
+                            <th>Status</th>
+                            <th>Motivo</th>
+                            <th>Correção manual</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for nome, item in validacoes.items() %}
+                            <tr class="{% if item.precisa_validacao_manual %}linha-pendente{% else %}linha-validada{% endif %}">
+                                <td>{{ item.arquivo_original }}</td>
+                                <td>{{ item.id_detectado or "-" }}</td>
+                                <td>{{ item.ra_detectado or "-" }}</td>
+                                <td><strong>{{ item.id_final or "-" }}</strong></td>
+                                <td>{{ item.origem_id or "-" }}</td>
+                                <td>
+                                    <span class="status-badge {% if item.precisa_validacao_manual %}status-pendente{% else %}status-validado{% endif %}">
+                                        {{ item.status_validacao }}
+                                    </span>
+                                </td>
+                                <td>{{ item.motivo }}</td>
+                                <td>
+                                    {% if item.precisa_validacao_manual %}
+                                        <form class="manual-form" action="/validacao/manual/{{ nome_processamento }}" method="post">
+                                            <input type="hidden" name="nome_imagem" value="{{ item.imagem }}">
+
+                                            <input
+                                                type="text"
+                                                name="id_aluno_manual"
+                                                placeholder="ID ou código completo"
+                                                required
+                                            >
+
+                                            <button type="submit" class="btn-primary">
+                                                Salvar
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="muted">Resolvido</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <div id="confirmacao-csv-modal" class="app-modal hidden" aria-hidden="true">
+        <div class="app-modal-backdrop" data-close-modal="true"></div>
+        <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmacao-csv-titulo">
+            <div class="app-modal-header">
+                <div>
+                    <span class="section-kicker">Confirmação</span>
+                    <h3 id="confirmacao-csv-titulo">Finalizar validação com pendências?</h3>
+                </div>
+                <button type="button" class="app-modal-close" id="confirmacao-csv-fechar" aria-label="Fechar">
+                    x
+                </button>
+            </div>
+            <p class="app-modal-text">
+                Você quer finalizar a validação mesmo com pendências? Os cartões sem identificação final irão para o CSV com o código de barras em branco.
+            </p>
+            <div class="app-modal-actions">
+                <button type="button" class="btn-secondary" id="confirmacao-csv-cancelar">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-primary" id="confirmacao-csv-confirmar">
+                    Gerar CSV Mesmo Assim
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
+
+        const modalConfirmacaoCsv = document.getElementById("confirmacao-csv-modal");
+        const modalConfirmacaoCsvConfirmar = document.getElementById("confirmacao-csv-confirmar");
+        const modalConfirmacaoCsvCancelar = document.getElementById("confirmacao-csv-cancelar");
+        const modalConfirmacaoCsvFechar = document.getElementById("confirmacao-csv-fechar");
+
+        function abrirModalConfirmacaoCsv() {
+            return new Promise((resolve) => {
+                const concluir = (confirmado) => {
+                    modalConfirmacaoCsv.classList.add("hidden");
+                    modalConfirmacaoCsv.setAttribute("aria-hidden", "true");
+                    modalConfirmacaoCsvConfirmar.removeEventListener("click", onConfirmar);
+                    modalConfirmacaoCsvCancelar.removeEventListener("click", onCancelar);
+                    modalConfirmacaoCsvFechar.removeEventListener("click", onCancelar);
+                    modalConfirmacaoCsv.removeEventListener("click", onBackdrop);
+                    document.removeEventListener("keydown", onEscape);
+                    resolve(confirmado);
+                };
+
+                const onConfirmar = () => concluir(true);
+                const onCancelar = () => concluir(false);
+                const onBackdrop = (event) => {
+                    if (event.target?.dataset?.closeModal === "true") {
+                        concluir(false);
+                    }
+                };
+                const onEscape = (event) => {
+                    if (event.key === "Escape") {
+                        concluir(false);
+                    }
+                };
+
+                modalConfirmacaoCsv.classList.remove("hidden");
+                modalConfirmacaoCsv.setAttribute("aria-hidden", "false");
+
+                modalConfirmacaoCsvConfirmar.addEventListener("click", onConfirmar);
+                modalConfirmacaoCsvCancelar.addEventListener("click", onCancelar);
+                modalConfirmacaoCsvFechar.addEventListener("click", onCancelar);
+                modalConfirmacaoCsv.addEventListener("click", onBackdrop);
+                document.addEventListener("keydown", onEscape);
+
+                modalConfirmacaoCsvConfirmar.focus();
+            });
+        }
+
+        function nomeArquivoDoHeader(contentDisposition, nomePadrao) {
+            if (!contentDisposition) {
+                return nomePadrao;
+            }
+
+            const matchUtf8 = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+            if (matchUtf8?.[1]) {
+                return decodeURIComponent(matchUtf8[1]);
+            }
+
+            const matchSimples = contentDisposition.match(/filename="?([^"]+)"?/i);
+            if (matchSimples?.[1]) {
+                return matchSimples[1];
+            }
+
+            return nomePadrao;
+        }
+
+        async function salvarBlobComEscolha(blob, nomeArquivo) {
+            if ("showSaveFilePicker" in window) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: nomeArquivo,
+                    types: [
+                        {
+                            description: "Arquivo CSV",
+                            accept: {
+                                "text/csv": [".csv"]
+                            }
+                        }
+                    ]
+                });
+
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = nomeArquivo;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        async function gerarCsvFinal(forcar) {
+            const status = document.getElementById("csv-export-status");
+            const botoes = document.querySelectorAll(".btn-gerar-csv");
+            const nomeProcessamento = window.NOME_PROCESSAMENTO;
+
+            if (forcar) {
+                const confirmou = await abrirModalConfirmacaoCsv();
+
+                if (!confirmou) {
+                    return;
+                }
+            }
+
+            status.textContent = "Gerando CSV final...";
+            botoes.forEach((botao) => {
+                botao.disabled = true;
+            });
+
+            try {
+                const resposta = await fetch(
+                    `/gerar-csv/${encodeURIComponent(nomeProcessamento)}${forcar ? "?forcar=true" : ""}`
+                );
+
+                if (!resposta.ok) {
+                    const erro = await resposta.json().catch(() => ({}));
+                    throw new Error(erro.motivo || erro.erro || erro.mensagem || "Não foi possível gerar o CSV.");
+                }
+
+                const blob = await resposta.blob();
+                const nomeArquivo = nomeArquivoDoHeader(
+                    resposta.headers.get("content-disposition"),
+                    `${nomeProcessamento}_csv_final_keepedu.csv`
+                );
+
+                await salvarBlobComEscolha(blob, nomeArquivo);
+                status.textContent = "CSV final gerado com sucesso.";
+            } catch (error) {
+                status.textContent = `Erro ao gerar CSV: ${error.message}`;
+            } finally {
+                botoes.forEach((botao) => {
+                    botao.disabled = false;
+                });
+            }
+        }
+
+        document.querySelectorAll(".btn-gerar-csv").forEach((botao) => {
+            botao.addEventListener("click", () => {
+                gerarCsvFinal(botao.dataset.forcar === "true");
+            });
+        });
+    </script>
+</body>
+</html>

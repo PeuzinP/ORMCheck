@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>OMRCheck Web</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=41">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">OMR</div>
+            <div class="brand-text">
+                <strong>OMRCheck Web</strong>
+                <span>Correção inteligente de cartões-resposta</span>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <a class="btn-light" href="/">Início</a>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="hero hero-shell">
+            <div class="hero-copy">
+                <span class="eyebrow">Plataforma Institucional OMR</span>
+                <h1>Leitura, conferência e validação de cartões-resposta</h1>
+                <p>Centralize o processamento dos cartões com mais clareza operacional, revisão visual segura e geração padronizada dos resultados finais.</p>
+
+                <div class="hero-highlights">
+                    <span class="highlight-pill">Leitura por template</span>
+                    <span class="highlight-pill">Conferência manual assistida</span>
+                    <span class="highlight-pill">Geração pronta para CSV</span>
+                </div>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span>Fluxo</span>
+                    <strong>4 Etapas</strong>
+                    <p>Da importação das imagens à geração do arquivo final.</p>
+                </div>
+                <div class="hero-stat">
+                    <span>Entrada</span>
+                    <strong>JPG, JPEG, PNG</strong>
+                    <p>Envio múltiplo com seleção visual mais adequada ao operacional.</p>
+                </div>
+                <div class="hero-stat">
+                    <span>Foco</span>
+                    <strong>Confiabilidade</strong>
+                    <p>Projetado para reduzir retrabalho e apoiar conferência escolar em escala.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="start-grid">
+            <div class="card">
+                <div class="section-head">
+                    <div>
+                        <span class="section-kicker">Operação</span>
+                        <h2>Novo processamento</h2>
+                    </div>
+                    <span class="section-badge">Entrada de cartões</span>
+                </div>
+
+                <p class="card-description">
+                    Selecione os ficheiros de imagem dos cartões-resposta. Os arquivos serão usados temporariamente durante o processamento.
+                </p>
+
+                <form id="form-processamento" class="form-grid" action="/processar-ajax" method="post" enctype="multipart/form-data">
+                    <div class="upload-picker">
+                        <input
+                            id="input-arquivos"
+                            type="file"
+                            name="arquivos"
+                            accept=".jpg,.jpeg,.png"
+                            multiple
+                            required
+                            hidden
+                        >
+
+                        <div id="upload-dropzone" class="upload-box upload-dropzone" tabindex="0" role="button" aria-label="Selecionar ficheiros dos cartões-resposta">
+                            <span>Adicionar ficheiros dos cartões-resposta</span>
+                            <small>Arraste imagens para aqui ou clique para escolher ficheiros `.jpg`, `.jpeg` ou `.png`.</small>
+
+                            <div class="upload-actions">
+                                <button type="button" id="btn-escolher-arquivos" class="btn-secondary">
+                                    Escolher ficheiros
+                                </button>
+                                <div class="upload-meta">
+                                    <strong id="upload-contagem">Nenhum ficheiro selecionado</strong>
+                                    <p id="upload-resumo">Pode selecionar vários ficheiros de uma vez.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="upload-lista" class="upload-lista" style="display: none;"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full">
+                        Processar ficheiros selecionados
+                    </button>
+
+                    <div id="log-processamento" class="log-processamento" style="display: none;">
+                        <div class="log-topo">
+                            <strong>Log do processamento</strong>
+                            <span id="log-percentual">0%</span>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="log-barra" style="width: 0%;"></div>
+                        </div>
+
+                        <p id="log-mensagem">0% | Aguardando início...</p>
+                        <p id="log-arquivo" class="muted"></p>
+
+                        <div id="log-erro" class="erro-box" style="display: none;">
+                            <strong>Erro:</strong>
+                            <p id="log-erro-texto"></p>
+                        </div>
+
+                        <a id="abrir-processamento" class="btn-primary link-btn" href="#" style="display: none;">
+                            Abrir processamento
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <aside class="info-panel">
+                <span class="panel-kicker">Fluxo recomendado</span>
+                <h2>Operação simples e controlada</h2>
+                <p>
+                    O OMRCheck lê os cartões pelo template, identifica marcações,
+                    permite conferência visual e prepara a geração segura do CSV final.
+                </p>
+
+                <div class="info-list">
+                    <div class="info-item">1. Selecione os ficheiros dos cartões</div>
+                    <div class="info-item">2. Processe a leitura OMR</div>
+                    <div class="info-item">3. Revise marcações no painel</div>
+                    <div class="info-item">4. Gere o CSV final</div>
+                </div>
+            </aside>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Histórico</span>
+                    <h2>Processamentos recentes</h2>
+                </div>
+                <span class="section-badge">{{ processamentos|length }} registro(s)</span>
+            </div>
+
+            {% if processamentos %}
+                <div class="lista">
+                    {% for item in processamentos %}
+                        <a class="lista-item" href="/processamento/{{ item.nome }}">
+                            <strong>{{ item.nome }}</strong>
+                            <span>Abrir processamento</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="muted">Nenhum processamento encontrado.</p>
+            {% endif %}
+        </section>
+    </main>
+        <script>
+        const formProcessamento = document.getElementById("form-processamento");
+        const logBox = document.getElementById("log-processamento");
+        const logPercentual = document.getElementById("log-percentual");
+        const logBarra = document.getElementById("log-barra");
+        const logMensagem = document.getElementById("log-mensagem");
+        const logArquivo = document.getElementById("log-arquivo");
+        const logErro = document.getElementById("log-erro");
+        const logErroTexto = document.getElementById("log-erro-texto");
+        const abrirProcessamento = document.getElementById("abrir-processamento");
+        const inputArquivos = document.getElementById("input-arquivos");
+        const btnEscolherArquivos = document.getElementById("btn-escolher-arquivos");
+        const uploadDropzone = document.getElementById("upload-dropzone");
+        const uploadContagem = document.getElementById("upload-contagem");
+        const uploadResumo = document.getElementById("upload-resumo");
+        const uploadLista = document.getElementById("upload-lista");
+
+        function atualizarResumoArquivos(files) {
+            const listaArquivos = Array.from(files || []);
+
+            if (!listaArquivos.length) {
+                uploadContagem.textContent = "Nenhum ficheiro selecionado";
+                uploadResumo.textContent = "Pode selecionar vários ficheiros de uma vez.";
+                uploadLista.style.display = "none";
+                uploadLista.innerHTML = "";
+                return;
+            }
+
+            const totalImagens = listaArquivos.length;
+            const primeirosNomes = listaArquivos.slice(0, 6);
+
+            uploadContagem.textContent = `${totalImagens} ficheiro(s) selecionado(s)`;
+            uploadResumo.textContent = `Pronto para enviar ${totalImagens} imagem(ns) do cartão-resposta.`;
+            uploadLista.style.display = "grid";
+            uploadLista.innerHTML = primeirosNomes
+                .map((arquivo) => `<div class="upload-item">${arquivo.name}</div>`)
+                .join("");
+
+            if (totalImagens > primeirosNomes.length) {
+                uploadLista.innerHTML += `<div class="upload-item upload-item-more">+${totalImagens - primeirosNomes.length} ficheiro(s)</div>`;
+            }
+        }
+
+        function abrirSeletorArquivos() {
+            inputArquivos?.click();
+        }
+
+        btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
+
+        uploadDropzone?.addEventListener("click", (event) => {
+            if (event.target.closest("button")) {
+                return;
+            }
+
+            abrirSeletorArquivos();
+        });
+
+        uploadDropzone?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                abrirSeletorArquivos();
+            }
+        });
+
+        inputArquivos?.addEventListener("change", () => {
+            atualizarResumoArquivos(inputArquivos.files);
+        });
+
+        ["dragenter", "dragover"].forEach((nomeEvento) => {
+            uploadDropzone?.addEventListener(nomeEvento, (event) => {
+                event.preventDefault();
+                uploadDropzone.classList.add("dragover");
+            });
+        });
+
+        ["dragleave", "drop"].forEach((nomeEvento) => {
+            uploadDropzone?.addEventListener(nomeEvento, (event) => {
+                event.preventDefault();
+                uploadDropzone.classList.remove("dragover");
+            });
+        });
+
+        uploadDropzone?.addEventListener("drop", (event) => {
+            const arquivos = event.dataTransfer?.files;
+
+            if (!arquivos?.length || !inputArquivos) {
+                return;
+            }
+
+            const transferencia = new DataTransfer();
+
+            Array.from(arquivos).forEach((arquivo) => {
+                const nome = arquivo.name.toLowerCase();
+
+                if (nome.endsWith(".jpg") || nome.endsWith(".jpeg") || nome.endsWith(".png")) {
+                    transferencia.items.add(arquivo);
+                }
+            });
+
+            inputArquivos.files = transferencia.files;
+            atualizarResumoArquivos(inputArquivos.files);
+        });
+
+        async function consultarStatus(jobId) {
+            try {
+                const resposta = await fetch(`/status-processamento/${jobId}`);
+                const dados = await resposta.json();
+
+                const percentual = dados.percentual || 0;
+
+                logPercentual.textContent = `${percentual}%`;
+                logBarra.style.width = `${percentual}%`;
+                logMensagem.textContent = `${percentual}% | ${dados.mensagem || "Processando..."}`;
+
+                if (dados.arquivo_atual) {
+                    logArquivo.textContent = `Arquivo atual: ${dados.arquivo_atual}`;
+                }
+
+                if (dados.status === "concluido") {
+                    logMensagem.textContent = "100% | Processamento concluído.";
+                    abrirProcessamento.href = `/processamento/${dados.nome_processamento}`;
+                    abrirProcessamento.style.display = "inline-flex";
+                    return;
+                }
+
+                if (dados.status === "erro") {
+                    logErro.style.display = "block";
+                    logErroTexto.textContent = dados.erro || "Erro desconhecido.";
+                    return;
+                }
+
+                setTimeout(() => consultarStatus(jobId), 700);
+
+            } catch (error) {
+                logMensagem.textContent = "Erro ao consultar status do processamento.";
+                setTimeout(() => consultarStatus(jobId), 1500);
+            }
+        }
+
+        if (formProcessamento) {
+            formProcessamento.addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                logBox.style.display = "block";
+                logErro.style.display = "none";
+                abrirProcessamento.style.display = "none";
+
+                logPercentual.textContent = "0%";
+                logBarra.style.width = "0%";
+                logMensagem.textContent = "0% | Enviando arquivos...";
+                logArquivo.textContent = "";
+
+                const formData = new FormData(formProcessamento);
+
+                try {
+                    const resposta = await fetch("/processar-ajax", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (dados.status !== "ok") {
+                        logErro.style.display = "block";
+                        logErroTexto.textContent = dados.mensagem || "Erro ao iniciar processamento.";
+                        return;
+                    }
+
+                    consultarStatus(dados.job_id);
+
+                } catch (error) {
+                    logErro.style.display = "block";
+                    logErroTexto.textContent = "Erro ao enviar arquivos para processamento.";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

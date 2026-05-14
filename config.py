@@ -1,0 +1,1 @@
+URL_BASE_ALUNOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqXgvDfOKG3DDBi1KZaL7gX3vc7lBmC9gLKhJUvNagtn0dZcVFTHAY0Zf4zDNJeo9PuYlXE-aDgqaC/pub?gid=1676004024&&output=csv"

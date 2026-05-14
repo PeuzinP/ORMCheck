@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+uploads_temp/
+logs/
+processamentos/
+docker-data/
+base/
+.vscode/
+.trae/

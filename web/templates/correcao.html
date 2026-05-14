@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Correção | OMRCheck Web</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=41">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">OMR</div>
+            <div class="brand-text">
+                <strong>OMRCheck Web</strong>
+                <span>Painel de correção OMR</span>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
+        </div>
+    </header>
+
+    <main class="page full page-correcao">
+        <section class="hero compact hero-correcao">
+            <h1>Painel de Correção OMR</h1>
+            <p>{{ nome_processamento }}</p>
+        </section>
+
+        <section class="card toolbar">
+            <div>
+                <label>Filtro</label>
+                <select id="filtro">
+                    <option value="todos">Todos</option>
+                    <option value="duvidosas">Duvidosas</option>
+                    <option value="em_branco">Em branco</option>
+                    <option value="multiplas">Múltiplas</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Pesquisar</label>
+                <input type="text" id="busca" placeholder="RA, imagem ou questão">
+            </div>
+
+            <div>
+                <label>Tipo de marcação</label>
+                <select id="tipo-marcacao">
+                    <option value="verde">Verde</option>
+                    <option value="vermelho">Vermelho</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Zoom</label>
+                <select id="zoom-select">
+                    <option value="0.35">35%</option>
+                    <option value="0.45">45%</option>
+                    <option value="0.60">60%</option>
+                    <option value="0.75">75%</option>
+                    <option value="1">100%</option>
+                    <option value="1.25">125%</option>
+                    <option value="1.50">150%</option>
+                    <option value="fit-width" selected>Adaptar à largura</option>
+                    <option value="fit-window">Adaptar à janela</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" id="btn-salvar">
+                Salvar marcações
+            </button>
+        </section>
+
+        <section class="layout-correcao">
+            <aside class="sidebar card">
+                <h2>Imagens</h2>
+
+                {% if imagens_debug %}
+                    <div class="lista-imagens">
+                        {% for imagem in imagens_debug %}
+                            <button class="item-imagem" data-imagem="{{ imagem }}">
+                                {{ imagem }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="muted">Nenhuma imagem encontrada.</p>
+                {% endif %}
+            </aside>
+
+            <section class="viewer card">
+                <div class="viewer-header">
+                    <div>
+                        <strong id="nome-imagem">Selecione uma imagem</strong>
+                        <p class="viewer-help">
+                            Botão esquerdo adiciona marcação | Botão direito remove a marcação mais próxima
+                        </p>
+                    </div>
+
+                    <div class="viewer-actions">
+                        <button class="btn-secondary" id="imagem-anterior">
+                            ← Anterior
+                        </button>
+
+                        <button class="btn-primary" id="proxima-imagem">
+                            Próxima →
+                        </button>
+
+                        <button class="btn-secondary" id="zoom-menos">
+                            Zoom -
+                        </button>
+
+                        <button class="btn-secondary" id="zoom-mais">
+                            Zoom +
+                        </button>
+                    </div>
+                </div>
+
+                <div class="image-area" id="image-area">
+                    <div id="image-wrapper" class="image-wrapper">
+                        <img id="imagem-principal" src="" alt="">
+                        <div id="overlay-marcacoes"></div>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
+    </script>
+    <script src="/static/js/correcao.js?v=40"></script>
+</body>
+</html>

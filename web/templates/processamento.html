@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Processamento | OMRCheck Web</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=41">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">OMR</div>
+            <div class="brand-text">
+                <strong>OMRCheck Web</strong>
+                <span>Processamento de cartões-resposta</span>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <a class="btn-light" href="/">Voltar ao início</a>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="hero hero-shell compact-hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Processamento concluído</span>
+                <h1>Conferência pronta para revisão</h1>
+                <p>{{ nome_processamento }}</p>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span>Status</span>
+                    <strong>Finalizado</strong>
+                    <p>As próximas etapas já podem ser iniciadas pelo operador.</p>
+                </div>
+                <div class="hero-stat">
+                    <span>Imagens</span>
+                    <strong>{{ imagens_debug|length }}</strong>
+                    <p>Arquivos de debug disponíveis para conferência visual.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Ações</span>
+                    <h2>Próximos passos</h2>
+                </div>
+            </div>
+
+            <div class="actions action-grid">
+                <a class="btn-primary link-btn" href="/correcao/{{ nome_processamento }}">
+                    Abrir painel de correção
+                </a>
+                <a class="btn-secondary link-btn" href="/validacao/{{ nome_processamento }}">
+                    Abrir validação cadastral
+                </a>
+                <a class="btn-secondary link-btn" href="/leituras/{{ nome_processamento }}" target="_blank">
+                    Ver leituras OMR
+                </a>
+
+                <a class="btn-secondary link-btn" href="/download-log/{{ nome_processamento }}">
+                    Baixar log
+                </a>
+
+                <a class="btn-light link-btn" href="/">
+                    Novo processamento
+                </a>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Conferência</span>
+                    <h2>Imagens de debug</h2>
+                </div>
+                <span class="section-badge">{{ imagens_debug|length }} imagem(ns)</span>
+            </div>
+
+            {% if imagens_debug %}
+                <p class="card-description">{{ imagens_debug|length }} imagem(ns) de debug encontrada(s).</p>
+
+                <div class="grid-imagens">
+                    {% for imagem in imagens_debug %}
+                        <a href="/imagem/{{ nome_processamento }}/{{ imagem }}" target="_blank">
+                            <img src="/imagem/{{ nome_processamento }}/{{ imagem }}" alt="{{ imagem }}">
+                            <span>{{ imagem }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="muted">Nenhuma imagem de debug encontrada.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
