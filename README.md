@@ -24,6 +24,8 @@ O sistema permite:
 - Exportação do CSV final mesmo com pendências, mediante confirmação
 - Healthcheck para monitoramento em `/healthz`
 - Execução local e via Docker
+- Proxy reverso com Caddy para uso em servidor
+- Autenticação HTTP básica opcional para acesso interno
 
 ## Stack Utilizada
 
@@ -68,7 +70,7 @@ Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
 Exemplo:
 
 ```env
-KEEPEDU_BUSCAR_ID_URL=https://develop.keepedu.com.br/gestor/alunos/buscar-id-aluno
+KEEPEDU_BUSCAR_ID_URL=https://develop.keepedu.com.br/SEU-ENDPOINT
 KEEPEDU_API_KEY=COLOQUE_SUA_API_KEY_AQUI
 KEEPEDU_INSTITUTE=COLOQUE_O_INSTITUTE_AQUI
 ID_PROVA_KEEPEDU=
@@ -76,6 +78,14 @@ ID_PROVA_KEEPEDU=
 APP_DATA_DIR=/data
 HOST=0.0.0.0
 PORT=8000
+APP_ALLOWED_HOSTS=localhost,127.0.0.1
+
+APP_ENABLE_AUTH=true
+APP_BASIC_AUTH_USER=operador
+APP_BASIC_AUTH_PASSWORD=troque-esta-senha
+
+APP_DOMAIN=localhost
+ACME_EMAIL=
 
 MAX_UPLOAD_FILES=300
 MAX_FILE_SIZE_MB=15
@@ -86,6 +96,10 @@ MAX_TOTAL_UPLOAD_SIZE_MB=512
 
 - `KEEPEDU_API_KEY` e `KEEPEDU_INSTITUTE` são obrigatórios para a validação via API
 - `APP_DATA_DIR` define onde uploads, processamentos e runtime serão persistidos
+- `APP_ALLOWED_HOSTS` limita quais hosts podem servir a aplicação
+- `APP_ENABLE_AUTH`, `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD` controlam a proteção por login HTTP básico
+- `APP_DOMAIN` define o domínio atendido pelo proxy reverso
+- `ACME_EMAIL` é usado pelo Caddy para emissão/gestão de certificados HTTPS
 - em ambiente local sem Docker, você pode ajustar `APP_DATA_DIR` para um caminho local ou remover essa variável
 
 ## Execução Local
@@ -144,18 +158,31 @@ Copy-Item .env.example .env
 
 Preencha os valores reais antes de subir.
 
-### 2. Subir os containers
+### 2. Ajustar credenciais e domínio
+
+Antes de subir em servidor, preencha no `.env`:
+
+- `APP_BASIC_AUTH_USER`
+- `APP_BASIC_AUTH_PASSWORD`
+- `APP_ALLOWED_HOSTS`
+- `APP_DOMAIN`
+- `ACME_EMAIL`
+
+Se estiver em produção com domínio público, use o domínio real em `APP_DOMAIN`.
+
+### 3. Subir os containers
 
 ```powershell
 docker compose up --build -d
 ```
 
-### 3. Acessar a aplicação
+### 4. Acessar a aplicação
 
-- Aplicação: [http://localhost:8000](http://localhost:8000)
+- Aplicação via proxy: [http://localhost](http://localhost)
+- Aplicação direta no host local: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 - Healthcheck: [http://localhost:8000/healthz](http://localhost:8000/healthz)
 
-### 4. Comandos úteis
+### 5. Comandos úteis
 
 Ver status:
 
@@ -181,6 +208,15 @@ Rebuild completo:
 docker compose build --no-cache
 docker compose up -d
 ```
+
+### 6. Arquitetura de produção
+
+No modo atual, o projeto sobe com dois serviços:
+
+- `omrcheck-web`: aplicação FastAPI/Uvicorn
+- `caddy`: proxy reverso responsável por entrada HTTP/HTTPS e headers de borda
+
+O `uvicorn` fica exposto apenas em `127.0.0.1:8000` no host, enquanto o acesso externo deve ocorrer pelo `Caddy` nas portas `80` e `443`.
 
 ## Fluxo De Uso
 
@@ -252,6 +288,8 @@ Antes de publicar ou compartilhar o projeto:
 - nunca envie processamentos reais ou dados operacionais
 - use apenas o `.env.example` como referência
 - rotacione credenciais se houver suspeita de exposição anterior
+- troque a senha padrão de `APP_BASIC_AUTH_PASSWORD` antes de qualquer deploy
+- configure `APP_ALLOWED_HOSTS` com o domínio real do servidor
 
 ## Situação Atual Do Projeto
 
@@ -263,10 +301,10 @@ O projeto está preparado para:
 
 Ainda pode evoluir futuramente com:
 
-- autenticação
 - HTTPS com proxy reverso
 - backup automatizado
 - observabilidade mais robusta
+- fila de processamento separada da aplicação web
 
 ## Licença
 
