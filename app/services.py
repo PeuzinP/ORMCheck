@@ -1,10 +1,17 @@
 import os
+import csv
+import json
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 from app.settings import PASTA_PROCESSAMENTOS, PASTA_UPLOADS_TEMP
-from omr_reader import processar_imagens_omr
-from app.progresso import atualizar_job
+from omr_reader import (
+    processar_imagens_omr,
+    detectar_respostas_por_template,
+    caminho_modelo_omr_padrao
+)
+from app.progresso import atualizar_job, registrar_evento_job
 
 
 EXTENSOES_IMAGEM = [".jpg", ".jpeg", ".png"]
@@ -110,8 +117,241 @@ def caminho_correcoes_web(nome_processamento: str):
 
     return pasta_manual / "correcoes_web.json"
 
+
+def caminho_pasta_processamento(nome_processamento: str):
+    return PASTA_PROCESSAMENTOS / nome_processamento
+
+
+def caminho_originais(nome_processamento: str):
+    pasta = caminho_pasta_processamento(nome_processamento) / "originais"
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta
+
+
+def caminho_manual_arquivo(nome_processamento: str, nome_arquivo: str):
+    pasta_manual = caminho_pasta_processamento(nome_processamento) / "manual_omr"
+    pasta_manual.mkdir(parents=True, exist_ok=True)
+    nome_json = f"{os.path.splitext(nome_arquivo)[0]}.json"
+    return pasta_manual / nome_json
+
+
+def normalizar_nome_arquivo_debug(nome_imagem: str):
+    return nome_imagem[9:] if nome_imagem.startswith("template_") else nome_imagem
+
+
+def carregar_json(caminho, padrao):
+    if not caminho.exists():
+        return padrao
+
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def salvar_json(caminho, dados):
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+
+def pontos_cantos_para_lista(pontos_cantos):
+    if not pontos_cantos:
+        return None
+
+    chaves = ["TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"]
+    pontos = []
+
+    for chave in chaves:
+        ponto = pontos_cantos.get(chave) if isinstance(pontos_cantos, dict) else None
+
+        if not ponto:
+            return None
+
+        pontos.append([float(ponto["x"]), float(ponto["y"])])
+
+    return pontos
+
+
+def localizar_imagem_original(nome_processamento: str, nome_imagem: str, leituras: dict):
+    nome_arquivo = normalizar_nome_arquivo_debug(nome_imagem)
+    candidatos = [
+        caminho_originais(nome_processamento) / nome_arquivo,
+        caminho_pasta_processamento(nome_processamento) / "pendencias" / nome_arquivo,
+    ]
+
+    leitura_atual = leituras.get(nome_imagem, {})
+    caminho_salvo = leitura_atual.get("caminho_original_processamento", "")
+
+    if caminho_salvo:
+        candidatos.append(caminho_salvo)
+
+    caminho_manual = caminho_manual_arquivo(nome_processamento, nome_arquivo)
+
+    if caminho_manual.exists():
+        dados_manual = carregar_json(caminho_manual, {})
+        candidatos.extend([
+            dados_manual.get("caminho_imagem_pendencia", ""),
+            dados_manual.get("caminho_imagem", "")
+        ])
+
+    for candidato in candidatos:
+        if not candidato:
+            continue
+
+        caminho = candidato if hasattr(candidato, "exists") else Path(str(candidato))
+
+        if caminho.exists():
+            return caminho
+
+    return None
+
+
+def atualizar_log_processamento(nome_processamento: str, nome_arquivo: str, resultado: dict, detalhe: str, caminho_manual: str):
+    caminho = caminho_log(nome_processamento)
+
+    if not caminho.exists():
+        return
+
+    with open(caminho, "r", encoding="utf-8-sig", newline="") as f:
+        leitor = csv.DictReader(f, delimiter=";")
+        linhas = list(leitor)
+        cabecalho = leitor.fieldnames or []
+
+    if not cabecalho:
+        return
+
+    erros = resultado.get("erros", []) or []
+    precisa_correcao_manual = "SIM" if erros else "NÃO"
+
+    atualizacao = {
+        "arquivo": nome_arquivo,
+        "status": "OK",
+        "registro_academico": resultado.get("registro_academico", ""),
+        "codigo_barras": resultado.get("codigo_barras", ""),
+        "total_perguntas_modelo": str(resultado.get("total_perguntas_modelo", 0)),
+        "total_respostas_lidas": str(resultado.get("total_respostas_lidas", 0)),
+        "total_erros": str(len(erros)),
+        "correcao_manual": precisa_correcao_manual,
+        "arquivo_manual": caminho_manual,
+        "erros": " | ".join(erros),
+        "debug_bolhas": resultado.get("debug_bolhas", ""),
+        "debug_cantos": resultado.get("debug_cantos", ""),
+        "detalhe": detalhe
+    }
+
+    linha_encontrada = False
+
+    for linha in linhas:
+        if linha.get("arquivo") == nome_arquivo:
+            linha.update(atualizacao)
+            linha_encontrada = True
+            break
+
+    if not linha_encontrada:
+        nova_linha = {coluna: "" for coluna in cabecalho}
+        nova_linha.update(atualizacao)
+        linhas.append(nova_linha)
+
+    with open(caminho, "w", encoding="utf-8-sig", newline="") as f:
+        escritor = csv.DictWriter(f, fieldnames=cabecalho, delimiter=";")
+        escritor.writeheader()
+        escritor.writerows(linhas)
+
+
+def reprocessar_imagem_processamento(nome_processamento: str, nome_imagem: str, pontos_cantos: dict | None = None):
+    caminho_leitura = caminho_leituras(nome_processamento)
+    leituras = carregar_json(caminho_leitura, {})
+
+    caminho_imagem = localizar_imagem_original(nome_processamento, nome_imagem, leituras)
+
+    if caminho_imagem is None:
+        raise FileNotFoundError(
+            "Nao foi possivel localizar a imagem original deste processamento. "
+            "Gere um novo processamento para habilitar o reprocessamento por cantos."
+        )
+
+    caminho_modelo = caminho_modelo_omr_padrao()
+
+    if not os.path.exists(caminho_modelo):
+        raise FileNotFoundError(f"Modelo .xtmpl nao encontrado: {caminho_modelo}")
+
+    pontos_override = pontos_cantos_para_lista(pontos_cantos)
+    pasta_debug = caminho_pasta_processamento(nome_processamento) / "debug_omr"
+    pasta_debug.mkdir(parents=True, exist_ok=True)
+
+    resultado, detalhe = detectar_respostas_por_template(
+        str(caminho_imagem),
+        caminho_modelo,
+        str(pasta_debug),
+        pontos_imagem_override=pontos_override
+    )
+
+    if not resultado:
+        raise ValueError(detalhe)
+
+    nome_arquivo = normalizar_nome_arquivo_debug(nome_imagem)
+    leitura_atual = leituras.get(nome_imagem, {})
+    leitura_atual.update({
+        "arquivo_original": nome_arquivo,
+        "caminho_original_processamento": str(caminho_imagem),
+        "respostas": resultado.get("respostas", {}),
+        "pontos_mapeados": resultado.get("pontos_mapeados", {}),
+        "pontos_cantos": resultado.get("pontos_cantos", {}),
+        "origem_cantos": resultado.get("origem_cantos", "AUTO"),
+        "registro_academico": resultado.get("registro_academico", ""),
+        "codigo_barras": resultado.get("codigo_barras", ""),
+        "debug_bolhas": resultado.get("debug_bolhas", ""),
+        "erros": resultado.get("erros", []),
+        "confianca_questoes": resultado.get("confianca_questoes", {}),
+        "pendencias_confianca": resultado.get("pendencias_confianca", []),
+        "total_pendencias_confianca": resultado.get("total_pendencias_confianca", 0)
+    })
+    leituras[nome_imagem] = leitura_atual
+    salvar_json(caminho_leitura, leituras)
+
+    caminho_manual = caminho_manual_arquivo(nome_processamento, nome_arquivo)
+    erros = resultado.get("erros", []) or []
+
+    if erros:
+        salvar_json(caminho_manual, {
+            "arquivo": nome_arquivo,
+            "caminho_imagem": str(caminho_imagem),
+            "caminho_imagem_pendencia": str(caminho_pasta_processamento(nome_processamento) / "pendencias" / nome_arquivo),
+            "registro_academico": resultado.get("registro_academico", ""),
+            "codigo_barras": resultado.get("codigo_barras", ""),
+            "respostas": resultado.get("respostas", {}),
+            "erros": erros,
+            "pontos_mapeados": resultado.get("pontos_mapeados", {}),
+            "corrigido_manualmente": resultado.get("origem_cantos", "") == "MANUAL"
+        })
+        caminho_manual_str = str(caminho_manual)
+    else:
+        if caminho_manual.exists():
+            caminho_manual.unlink()
+        caminho_manual_str = ""
+
+    atualizar_log_processamento(
+        nome_processamento,
+        nome_arquivo,
+        resultado,
+        detalhe,
+        caminho_manual_str
+    )
+
+    return {
+        "status": "ok",
+        "nome_imagem": nome_imagem,
+        "arquivo_original": nome_arquivo,
+        "detalhe": detalhe,
+        "resultado": resultado
+    }
+
 def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
     try:
+        registrar_evento_job(
+            job_id,
+            tipo="info",
+            titulo="Processamento iniciado",
+            descricao="Arquivos recebidos e fila de leitura preparada."
+        )
         atualizar_job(
             job_id,
             status="processando",
@@ -140,11 +380,21 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
                 arquivo_atual=nome_arquivo
             )
 
+        def evento_callback(tipo, titulo, descricao="", arquivo=""):
+            registrar_evento_job(
+                job_id,
+                tipo=tipo,
+                titulo=titulo,
+                descricao=descricao,
+                arquivo=arquivo
+            )
+
         try:
             resultado = processar_imagens_omr(
                 str(pasta_upload),
                 pasta_saida=str(PASTA_PROCESSAMENTOS),
-                progresso_callback=progresso_callback
+                progresso_callback=progresso_callback,
+                evento_callback=evento_callback
             )
 
         except TypeError:
@@ -169,8 +419,20 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
             mensagem="Processamento concluído.",
             nome_processamento=nome_processamento
         )
+        registrar_evento_job(
+            job_id,
+            tipo="success",
+            titulo="Processamento concluído",
+            descricao="Os arquivos já podem ser revisados no painel."
+        )
 
     except Exception as e:
+        registrar_evento_job(
+            job_id,
+            tipo="error",
+            titulo="Erro durante o processamento",
+            descricao=str(e)
+        )
         atualizar_job(
             job_id,
             status="erro",

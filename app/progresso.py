@@ -47,6 +47,7 @@ def criar_job(total_arquivos=0):
             "arquivo_atual": "",
             "nome_processamento": "",
             "erro": "",
+            "eventos": [],
             "atualizado_em": datetime.now().isoformat()
         }
         _salvar_jobs(jobs)
@@ -61,7 +62,8 @@ def atualizar_job(
     mensagem=None,
     arquivo_atual=None,
     nome_processamento=None,
-    erro=None
+    erro=None,
+    eventos=None
 ):
     with JOBS_LOCK:
         jobs = _carregar_jobs()
@@ -88,6 +90,36 @@ def atualizar_job(
         if erro is not None:
             job["erro"] = erro
 
+        if eventos is not None:
+            job["eventos"] = eventos
+
+        job["atualizado_em"] = datetime.now().isoformat()
+        jobs[job_id] = job
+        _salvar_jobs(jobs)
+
+
+def registrar_evento_job(job_id, tipo, titulo, descricao="", arquivo=""):
+    with JOBS_LOCK:
+        jobs = _carregar_jobs()
+        job = jobs.get(job_id)
+
+        if not job:
+            return
+
+        eventos = list(job.get("eventos", []))
+        evento = {
+            "tipo": str(tipo or "info"),
+            "titulo": str(titulo or "").strip(),
+            "descricao": str(descricao or "").strip(),
+            "arquivo": str(arquivo or "").strip(),
+            "criado_em": datetime.now().isoformat()
+        }
+
+        # Evita duplicidade em polling quando a mesma mensagem se repete.
+        if not eventos or eventos[-1] != evento:
+            eventos.append(evento)
+
+        job["eventos"] = eventos[-20:]
         job["atualizado_em"] = datetime.now().isoformat()
         jobs[job_id] = job
         _salvar_jobs(jobs)
@@ -105,5 +137,6 @@ def obter_job(job_id):
         "total_arquivos": 0,
         "arquivo_atual": "",
         "nome_processamento": "",
-        "erro": "Job não encontrado."
+        "erro": "Job não encontrado.",
+        "eventos": []
     })

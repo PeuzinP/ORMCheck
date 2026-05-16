@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>OMRCheck Web</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=41">
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=44">
 </head>
 <body>
     <header class="topbar">
-        <div class="brand">
-            <div class="brand-mark">OMR</div>
+        <a class="brand brand-link" href="/" aria-label="Voltar para o início">
+            <div class="brand-logo">
+                <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-logo-image">
+            </div>
+            <span class="brand-divider" aria-hidden="true"></span>
             <div class="brand-text">
                 <strong>OMRCheck Web</strong>
                 <span>Correção inteligente de cartões-resposta</span>
             </div>
-        </div>
-
-        <div class="topbar-actions">
-            <a class="btn-light" href="/">Início</a>
-        </div>
+        </a>
     </header>
 
     <main class="page">
@@ -54,7 +54,7 @@
         </section>
 
         <section class="start-grid">
-            <div class="card">
+            <div class="card start-main-card">
                 <div class="section-head">
                     <div>
                         <span class="section-kicker">Operação</span>
@@ -67,7 +67,7 @@
                     Selecione os ficheiros de imagem dos cartões-resposta. Os arquivos serão usados temporariamente durante o processamento.
                 </p>
 
-                <form id="form-processamento" class="form-grid" action="/processar-ajax" method="post" enctype="multipart/form-data">
+                <form id="form-processamento" class="form-grid start-main-form" action="/processar-ajax" method="post" enctype="multipart/form-data">
                     <div class="upload-picker">
                         <input
                             id="input-arquivos"
@@ -126,21 +126,43 @@
                 </form>
             </div>
 
-            <aside class="info-panel">
-                <span class="panel-kicker">Fluxo recomendado</span>
-                <h2>Operação simples e controlada</h2>
-                <p>
-                    O OMRCheck lê os cartões pelo template, identifica marcações,
-                    permite conferência visual e prepara a geração segura do CSV final.
-                </p>
+            <div class="start-side">
+                <aside class="info-panel">
+                    <span class="panel-kicker">Fluxo recomendado</span>
+                    <h2>Operação simples e controlada</h2>
+                    <p>
+                        O OMRCheck lê os cartões pelo template, identifica marcações,
+                        permite conferência visual e prepara a geração segura do CSV final.
+                    </p>
 
-                <div class="info-list">
-                    <div class="info-item">1. Selecione os ficheiros dos cartões</div>
-                    <div class="info-item">2. Processe a leitura OMR</div>
-                    <div class="info-item">3. Revise marcações no painel</div>
-                    <div class="info-item">4. Gere o CSV final</div>
-                </div>
-            </aside>
+                    <div class="info-list">
+                        <div class="info-item">1. Selecione os ficheiros dos cartões</div>
+                        <div class="info-item">2. Processe a leitura OMR</div>
+                        <div class="info-item">3. Revise marcações no painel</div>
+                        <div class="info-item">4. Gere o CSV final</div>
+                    </div>
+                </aside>
+
+                <section class="event-log-panel" id="event-log-panel">
+                    <div class="section-head event-log-head">
+                        <div>
+                            <span class="section-kicker">Leitura</span>
+                            <h2>Eventos do processamento</h2>
+                        </div>
+                        <span class="section-badge" id="event-log-badge">0 evento(s)</span>
+                    </div>
+
+                    <p class="event-log-description">
+                        Avisos e erros das imagens aparecem aqui durante a leitura.
+                    </p>
+
+                    <div class="event-log-list" id="event-log-list">
+                        <div class="event-log-empty">
+                            Nenhum evento de leitura ainda.
+                        </div>
+                    </div>
+                </section>
+            </div>
         </section>
 
         <section class="card">
@@ -182,6 +204,45 @@
         const uploadContagem = document.getElementById("upload-contagem");
         const uploadResumo = document.getElementById("upload-resumo");
         const uploadLista = document.getElementById("upload-lista");
+        const eventLogList = document.getElementById("event-log-list");
+        const eventLogBadge = document.getElementById("event-log-badge");
+
+        function renderizarEventos(eventos) {
+            const lista = Array.isArray(eventos) ? eventos : [];
+
+            if (!eventLogList || !eventLogBadge) {
+                return;
+            }
+
+            eventLogBadge.textContent = `${lista.length} evento(s)`;
+
+            if (!lista.length) {
+                eventLogList.innerHTML = `<div class="event-log-empty">Nenhum evento de leitura ainda.</div>`;
+                return;
+            }
+
+            const icones = {
+                info: "i",
+                warning: "!",
+                error: "×",
+                success: "✓"
+            };
+
+            eventLogList.innerHTML = lista
+                .slice()
+                .reverse()
+                .map((evento) => `
+                    <article class="event-log-item ${evento.tipo || "info"}">
+                        <span class="event-log-icon">${icones[evento.tipo] || "i"}</span>
+                        <div class="event-log-body">
+                            <strong>${evento.titulo || "Evento"}</strong>
+                            ${evento.arquivo ? `<span class="event-log-file">${evento.arquivo}</span>` : ""}
+                            ${evento.descricao ? `<p>${evento.descricao}</p>` : ""}
+                        </div>
+                    </article>
+                `)
+                .join("");
+        }
 
         function atualizarResumoArquivos(files) {
             const listaArquivos = Array.from(files || []);
@@ -284,6 +345,8 @@
                     logArquivo.textContent = `Arquivo atual: ${dados.arquivo_atual}`;
                 }
 
+                renderizarEventos(dados.eventos);
+
                 if (dados.status === "concluido") {
                     logMensagem.textContent = "100% | Processamento concluído.";
                     abrirProcessamento.href = `/processamento/${dados.nome_processamento}`;
@@ -317,6 +380,7 @@
                 logBarra.style.width = "0%";
                 logMensagem.textContent = "0% | Enviando arquivos...";
                 logArquivo.textContent = "";
+                renderizarEventos([]);
 
                 const formData = new FormData(formProcessamento);
 

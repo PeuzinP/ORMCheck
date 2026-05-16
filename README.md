@@ -70,11 +70,6 @@ Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
 Exemplo:
 
 ```env
-KEEPEDU_BUSCAR_ID_URL=https://develop.keepedu.com.br/SEU-ENDPOINT
-KEEPEDU_API_KEY=COLOQUE_SUA_API_KEY_AQUI
-KEEPEDU_INSTITUTE=COLOQUE_O_INSTITUTE_AQUI
-ID_PROVA_KEEPEDU=
-
 APP_DATA_DIR=/data
 HOST=0.0.0.0
 PORT=8000

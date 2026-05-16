@@ -52,6 +52,66 @@ def salvar_imagem(caminho_saida, imagem):
     return False
 
 
+def salvar_debug_falha_leitura(caminho_imagem, pasta_debug, mensagem="Falha na leitura"):
+    os.makedirs(pasta_debug, exist_ok=True)
+
+    nome_base = os.path.basename(caminho_imagem)
+    caminho_saida = os.path.join(pasta_debug, "template_" + nome_base)
+    imagem = ler_imagem(caminho_imagem)
+
+    if imagem is None:
+        return caminho_saida
+
+    debug = imagem.copy()
+    altura, largura = debug.shape[:2]
+    faixa_altura = min(120, max(76, altura // 8))
+
+    overlay = debug.copy()
+    cv2.rectangle(
+        overlay,
+        (0, 0),
+        (largura, faixa_altura),
+        (255, 245, 245),
+        -1
+    )
+    cv2.addWeighted(overlay, 0.88, debug, 0.12, 0, debug)
+
+    cv2.putText(
+        debug,
+        "CORRECAO MANUAL NECESSARIA",
+        (22, 34),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (25, 25, 180),
+        2
+    )
+
+    texto = str(mensagem or "Falha na leitura")
+    if len(texto) > 70:
+        texto = texto[:67] + "..."
+
+    cv2.putText(
+        debug,
+        texto,
+        (22, 68),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.62,
+        (60, 60, 60),
+        2
+    )
+
+    cv2.rectangle(
+        debug,
+        (8, 8),
+        (largura - 8, altura - 8),
+        (0, 0, 255),
+        2
+    )
+
+    salvar_imagem(caminho_saida, debug)
+    return caminho_saida
+
+
 def carregar_modelo_xtmpl_completo(caminho_modelo):
     """
     Lê o modelo .xtmpl completo do FormScanner.
@@ -325,6 +385,84 @@ def detectar_cantos_na_imagem(imagem):
     return pontos_imagem, debug
 
 
+def desenhar_cantos_na_imagem(imagem, pontos, titulo="CANTOS AJUSTADOS MANUALMENTE"):
+    debug = imagem.copy()
+
+    if pontos is None:
+        cv2.putText(
+            debug,
+            "CANTOS NAO INFORMADOS",
+            (50, 80),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            3
+        )
+        return debug
+
+    pontos = np.array(pontos, dtype=np.float32)
+    rotulos = ["SE", "SD", "IE", "ID"]
+
+    for indice, (x, y) in enumerate(pontos):
+        cv2.circle(
+            debug,
+            (int(x), int(y)),
+            14,
+            (0, 255, 255),
+            -1
+        )
+        cv2.circle(
+            debug,
+            (int(x), int(y)),
+            20,
+            (0, 0, 255),
+            3
+        )
+        cv2.putText(
+            debug,
+            rotulos[indice],
+            (int(x) + 8, int(y) - 8),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 0, 0),
+            2
+        )
+
+    cv2.polylines(
+        debug,
+        [np.array([
+            pontos[0],
+            pontos[1],
+            pontos[3],
+            pontos[2]
+        ], dtype=np.int32)],
+        isClosed=True,
+        color=(0, 255, 0),
+        thickness=3
+    )
+
+    cv2.putText(
+        debug,
+        titulo,
+        (50, 80),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 255, 0),
+        3
+    )
+
+    return debug
+
+
+def caminho_modelo_omr_padrao():
+    pasta_projeto = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(
+        pasta_projeto,
+        "templates",
+        "modelo_cartao.xtmpl"
+    )
+
+
 def transformar_ponto(matriz, x, y):
     """
     Aplica homografia em um ponto do template para encontrar sua posicao na imagem.
@@ -380,7 +518,9 @@ def analisar_bolha_por_ponto(imagem_cinza, x, y, raio=10):
             "percentual_escuro": 0,
             "maior_componente": 0,
             "percentual_componente": 0,
-            "escurecimento_medio": 0
+            "escurecimento_medio": 0,
+            "percentual_nucleo_escuro": 0,
+            "percentual_anel_escuro": 0
         }
 
     recorte = cv2.GaussianBlur(recorte, (3, 3), 0)
@@ -391,7 +531,11 @@ def analisar_bolha_por_ponto(imagem_cinza, x, y, raio=10):
 
     yy, xx = np.ogrid[:h, :w]
 
-    mascara = ((xx - cx) ** 2 + (yy - cy) ** 2) <= raio_leitura ** 2
+    dist2 = ((xx - cx) ** 2 + (yy - cy) ** 2)
+    mascara = dist2 <= raio_leitura ** 2
+    raio_nucleo = max(4, int(raio_leitura * 0.55))
+    mascara_nucleo = dist2 <= raio_nucleo ** 2
+    mascara_anel = mascara & (~mascara_nucleo)
 
     pixels = recorte[mascara]
 
@@ -431,6 +575,16 @@ def analisar_bolha_por_ponto(imagem_cinza, x, y, raio=10):
         np.count_nonzero(binaria[mascara]) / area_mascara
     ) * 100 if area_mascara else 0
 
+    area_nucleo = np.count_nonzero(mascara_nucleo)
+    percentual_nucleo_escuro = (
+        np.count_nonzero(binaria[mascara_nucleo]) / area_nucleo
+    ) * 100 if area_nucleo else 0
+
+    area_anel = np.count_nonzero(mascara_anel)
+    percentual_anel_escuro = (
+        np.count_nonzero(binaria[mascara_anel]) / area_anel
+    ) * 100 if area_anel else 0
+
     percentual_componente = (
         maior_componente / area_mascara
     ) * 100 if area_mascara else 0
@@ -448,7 +602,9 @@ def analisar_bolha_por_ponto(imagem_cinza, x, y, raio=10):
         "percentual_escuro": float(percentual_escuro),
         "maior_componente": float(maior_componente),
         "percentual_componente": float(percentual_componente),
-        "escurecimento_medio": float(escurecimento_medio)
+        "escurecimento_medio": float(escurecimento_medio),
+        "percentual_nucleo_escuro": float(percentual_nucleo_escuro),
+        "percentual_anel_escuro": float(percentual_anel_escuro)
     }
 
 def analisar_question_por_template(question_data, cinza, matriz, raio=10):
@@ -507,6 +663,11 @@ def estimar_compensacao_por_alternativa(analises_por_pergunta):
     for alternativa, baseline in baseline_por_alternativa.items():
         excesso = max(0.0, baseline - baseline_referencia)
         compensacao[alternativa] = min(excesso, 12.0)
+
+    # A alternativa B ainda costuma herdar viés do impresso em alguns cartões.
+    # Adiciona uma correção extra, mas pequena, para não inviabilizar marcações reais.
+    if "B" in compensacao and compensacao["B"] > 0:
+        compensacao["B"] = min(compensacao["B"] + 2.5, 14.0)
 
     return compensacao
     
@@ -700,6 +861,9 @@ def ler_question_por_template(question_data, cinza, matriz, raio=10, analises=No
         diferenca_minima_segundo += 4
         diferenca_minima_media += 4
 
+    percentual_anel = float(melhor.get("percentual_anel_escuro", 0))
+    percentual_nucleo = float(melhor.get("percentual_nucleo_escuro", 0))
+
     massa_real = (
         melhor_score_bruto >= score_minimo
         and melhor["percentual_escuro"] >= percentual_escuro_minimo
@@ -712,7 +876,17 @@ def ler_question_por_template(question_data, cinza, matriz, raio=10, analises=No
         and diferenca_media >= diferenca_minima_media
     )
 
-    if massa_real and destaque_real:
+    dispersao_real = True
+
+    if melhor_resposta == "B":
+        # O "B" impresso costuma concentrar escurecimento no miolo.
+        # Exigimos alguma massa também fora do núcleo para reduzir falsos positivos.
+        dispersao_real = (
+            percentual_anel >= 6.5
+            and percentual_anel >= (percentual_nucleo * 0.22)
+        )
+
+    if massa_real and destaque_real and dispersao_real:
         return melhor_resposta, scores, ""
 
     return "", scores, "vazia ou ilegivel"
@@ -1079,7 +1253,12 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
         "scores": scores
     }
 
-def detectar_respostas_por_template(caminho_imagem, caminho_modelo, pasta_debug):
+def detectar_respostas_por_template(
+    caminho_imagem,
+    caminho_modelo,
+    pasta_debug,
+    pontos_imagem_override=None
+):
     """
     Le o cartao usando o .xtmpl completo, no padrao FormScanner:
     - Pergunta001 a Pergunta006 = RA
@@ -1104,7 +1283,14 @@ def detectar_respostas_por_template(caminho_imagem, caminho_modelo, pasta_debug)
     debug = imagem.copy()
 
     pontos_template = ordenar_cantos_template(modelo["corners"])
-    pontos_imagem, debug_cantos = detectar_cantos_na_imagem(imagem)
+
+    if pontos_imagem_override is not None:
+        pontos_imagem = np.array(pontos_imagem_override, dtype=np.float32)
+        debug_cantos = desenhar_cantos_na_imagem(imagem, pontos_imagem)
+        detalhe_cantos = "Leitura por template com cantos ajustados manualmente"
+    else:
+        pontos_imagem, debug_cantos = detectar_cantos_na_imagem(imagem)
+        detalhe_cantos = "Leitura por template completo concluida"
 
     nome_base = os.path.basename(caminho_imagem)
 
@@ -1241,12 +1427,19 @@ def detectar_respostas_por_template(caminho_imagem, caminho_modelo, pasta_debug)
         "respostas": respostas,
         "erros": erros,
         "pontos_mapeados": pontos_mapeados,
+        "pontos_cantos": {
+            "TOP_LEFT": {"x": float(pontos_imagem[0][0]), "y": float(pontos_imagem[0][1])},
+            "TOP_RIGHT": {"x": float(pontos_imagem[1][0]), "y": float(pontos_imagem[1][1])},
+            "BOTTOM_LEFT": {"x": float(pontos_imagem[2][0]), "y": float(pontos_imagem[2][1])},
+            "BOTTOM_RIGHT": {"x": float(pontos_imagem[3][0]), "y": float(pontos_imagem[3][1])}
+        },
+        "origem_cantos": "MANUAL" if pontos_imagem_override is not None else "AUTO",
         "confianca_questoes": confianca_questoes,
         "pendencias_confianca": pendencias_confianca,
         "total_pendencias_confianca": len(pendencias_confianca),
         "debug_bolhas": caminho_saida,
         "debug_cantos": caminho_debug_cantos,
-    }, "Leitura por template completo concluida"
+    }, detalhe_cantos
 
 def ordenar_chaves_pergunta(chaves):
     """
@@ -1512,7 +1705,12 @@ def montar_codigo_barras_por_ra(registro_academico, mapa_ra_para_id, codigo_prov
 
     return f"{codigo_prova}A{id_aluno}"
        
-def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback=None):
+def processar_imagens_omr(
+    pasta_imagens,
+    pasta_saida="saida",
+    progresso_callback=None,
+    evento_callback=None
+):
     """
     Processa todas as imagens de uma pasta usando o modelo .xtmpl.
 
@@ -1542,6 +1740,9 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
     pasta_manual = os.path.join(pasta_execucao, "manual_omr")
     os.makedirs(pasta_manual, exist_ok=True)
 
+    pasta_originais = os.path.join(pasta_execucao, "originais")
+    os.makedirs(pasta_originais, exist_ok=True)
+
     pasta_pendencias = os.path.join(pasta_execucao, "pendencias")
     os.makedirs(pasta_pendencias, exist_ok=True)
 
@@ -1559,13 +1760,7 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
             "Iniciando leitura OMR..."
         )
 
-    pasta_projeto = os.path.dirname(os.path.abspath(__file__))
-
-    caminho_modelo = os.path.join(
-        pasta_projeto,
-        "templates",
-        "modelo_cartao.xtmpl"
-    )
+    caminho_modelo = caminho_modelo_omr_padrao()
 
     if not os.path.exists(caminho_modelo):
         raise FileNotFoundError(
@@ -1585,6 +1780,14 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
             )
         caminho_imagem = os.path.join(pasta_imagens, imagem)
 
+        caminho_original_processamento = os.path.join(pasta_originais, imagem)
+
+        if not os.path.exists(caminho_original_processamento):
+            try:
+                shutil.copy2(caminho_imagem, caminho_original_processamento)
+            except Exception:
+                caminho_original_processamento = caminho_imagem
+
         try:
             resultado, detalhe = detectar_respostas_por_template(
                 caminho_imagem,
@@ -1594,12 +1797,18 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
 
             status = "OK" if resultado else "ERRO"
             respostas = resultado.get("respostas", {}) if resultado else {}
-            erros = resultado.get("erros", []) if resultado else []
+            erros = (
+                resultado.get("erros", [])
+                if resultado
+                else [str(detalhe or "Falha desconhecida durante a leitura.")]
+            )
 
             codigo_prova = extrair_codigo_prova_do_nome_ou_modelo(
                 imagem,
                 codigo_padrao="12479"
             )
+            debug_bolhas_log = ""
+            debug_cantos_log = ""
 
             if resultado:
                 codigo_barras_atual = str(
@@ -1637,13 +1846,24 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
                             "para identificação automática."
                         )
 
+                if erros and evento_callback:
+                    evento_callback(
+                        tipo="warning",
+                        titulo="Leitura com pendência",
+                        descricao=" | ".join(erros[:2]),
+                        arquivo=imagem
+                    )
+
                 # Salva a leitura completa para o painel de correção manual
                 nome_debug = "template_" + os.path.basename(caminho_imagem)
 
                 leituras_omr[nome_debug] = {
                     "arquivo_original": os.path.basename(caminho_imagem),
+                    "caminho_original_processamento": caminho_original_processamento,
                     "respostas": respostas,
                     "pontos_mapeados": resultado.get("pontos_mapeados", {}),
+                    "pontos_cantos": resultado.get("pontos_cantos", []),
+                    "origem_cantos": resultado.get("origem_cantos", "AUTO"),
                     "registro_academico": resultado.get("registro_academico", ""),
                     "codigo_barras": resultado.get("codigo_barras", ""),
                     "debug_bolhas": resultado.get("debug_bolhas", ""),
@@ -1652,6 +1872,46 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
                     "pendencias_confianca": resultado.get("pendencias_confianca", []),
                     "total_pendencias_confianca": resultado.get("total_pendencias_confianca", 0)
                 }
+                debug_bolhas_log = resultado.get("debug_bolhas", "")
+                debug_cantos_log = resultado.get("debug_cantos", "")
+            else:
+                nome_debug = "template_" + os.path.basename(caminho_imagem)
+                caminho_debug_falha = salvar_debug_falha_leitura(
+                    caminho_imagem,
+                    pasta_debug,
+                    detalhe
+                )
+                caminho_debug_cantos = os.path.join(
+                    pasta_debug,
+                    "cantos_" + os.path.basename(caminho_imagem)
+                )
+
+                leituras_omr[nome_debug] = {
+                    "arquivo_original": os.path.basename(caminho_imagem),
+                    "caminho_original_processamento": caminho_original_processamento,
+                    "respostas": {},
+                    "pontos_mapeados": {},
+                    "pontos_cantos": [],
+                    "origem_cantos": "AUTO",
+                    "registro_academico": "",
+                    "codigo_barras": "",
+                    "debug_bolhas": caminho_debug_falha,
+                    "debug_cantos": caminho_debug_cantos if os.path.exists(caminho_debug_cantos) else "",
+                    "erros": erros,
+                    "confianca_questoes": {},
+                    "pendencias_confianca": [],
+                    "total_pendencias_confianca": 0
+                }
+                debug_bolhas_log = caminho_debug_falha
+                debug_cantos_log = caminho_debug_cantos if os.path.exists(caminho_debug_cantos) else ""
+
+                if evento_callback:
+                    evento_callback(
+                        tipo="error",
+                        titulo="Imagem não lida",
+                        descricao=str(detalhe or "Falha desconhecida durante a leitura."),
+                        arquivo=imagem
+                    )
 
             precisa_correcao_manual = status == "ERRO" or len(erros) > 0
 
@@ -1715,8 +1975,8 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
                 "correcao_manual": "SIM" if precisa_correcao_manual else "NÃO",
                 "arquivo_manual": caminho_json_manual,
                 "erros": " | ".join(erros),
-                "debug_bolhas": resultado.get("debug_bolhas", "") if resultado else "",
-                "debug_cantos": resultado.get("debug_cantos", "") if resultado else "",
+                "debug_bolhas": debug_bolhas_log,
+                "debug_cantos": debug_cantos_log,
                 "detalhe": detalhe
             })
             
@@ -1728,6 +1988,13 @@ def processar_imagens_omr(pasta_imagens, pasta_saida="saida", progresso_callback
                 )
 
         except Exception as e:
+            if evento_callback:
+                evento_callback(
+                    tipo="error",
+                    titulo="Falha na leitura da imagem",
+                    descricao=str(e),
+                    arquivo=imagem
+                )
             log.append({
                 "arquivo": imagem,
                 "status": "ERRO",

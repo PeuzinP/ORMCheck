@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Correção | OMRCheck Web</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=41">
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=44">
 </head>
 <body>
     <header class="topbar">
-        <div class="brand">
-            <div class="brand-mark">OMR</div>
+        <a class="brand brand-link" href="/" aria-label="Voltar para o início">
+            <div class="brand-logo">
+                <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-logo-image">
+            </div>
+            <span class="brand-divider" aria-hidden="true"></span>
             <div class="brand-text">
                 <strong>OMRCheck Web</strong>
                 <span>Painel de correção OMR</span>
             </div>
-        </div>
+        </a>
 
         <div class="topbar-actions">
             <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
@@ -28,26 +32,8 @@
 
         <section class="card toolbar">
             <div>
-                <label>Filtro</label>
-                <select id="filtro">
-                    <option value="todos">Todos</option>
-                    <option value="duvidosas">Duvidosas</option>
-                    <option value="em_branco">Em branco</option>
-                    <option value="multiplas">Múltiplas</option>
-                </select>
-            </div>
-
-            <div>
                 <label>Pesquisar</label>
                 <input type="text" id="busca" placeholder="RA, imagem ou questão">
-            </div>
-
-            <div>
-                <label>Tipo de marcação</label>
-                <select id="tipo-marcacao">
-                    <option value="verde">Verde</option>
-                    <option value="vermelho">Vermelho</option>
-                </select>
             </div>
 
             <div>
@@ -91,9 +77,32 @@
                 <div class="viewer-header">
                     <div>
                         <strong id="nome-imagem">Selecione uma imagem</strong>
-                        <p class="viewer-help">
+                        <p class="viewer-help" id="viewer-help">
                             Botão esquerdo adiciona marcação | Botão direito remove a marcação mais próxima
                         </p>
+                        <div class="corner-toolbar">
+                            <div class="corner-toolbar-group">
+                                <label for="modo-edicao">Modo</label>
+                                <select id="modo-edicao">
+                                    <option value="marcacoes">Marcações</option>
+                                    <option value="cantos">Ajuste de cantos</option>
+                                </select>
+                            </div>
+                            <div class="corner-toolbar-group marker-toolbar-group" id="marker-toolbar-group">
+                                <label for="tipo-marcacao-viewer">Tipo</label>
+                                <select id="tipo-marcacao-viewer">
+                                    <option value="verde">Verde</option>
+                                    <option value="vermelho">Vermelho</option>
+                                </select>
+                            </div>
+                            <div class="corner-toolbar-group corner-pills" id="corner-pills-group">
+                                <button class="btn-secondary corner-btn" data-corner="TOP_LEFT" title="Canto superior esquerdo">SE</button>
+                                <button class="btn-secondary corner-btn" data-corner="TOP_RIGHT" title="Canto superior direito">SD</button>
+                                <button class="btn-secondary corner-btn" data-corner="BOTTOM_LEFT" title="Canto inferior esquerdo">IE</button>
+                                <button class="btn-secondary corner-btn" data-corner="BOTTOM_RIGHT" title="Canto inferior direito">ID</button>
+                            </div>
+                            <button class="btn-secondary icon-action-btn" id="reprocessar-imagem" title="Reprocessar imagem" aria-label="Reprocessar imagem">↻</button>
+                        </div>
                     </div>
 
                     <div class="viewer-actions">
@@ -125,9 +134,11 @@
         </section>
     </main>
 
+    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
     <script>
         window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
     </script>
-    <script src="/static/js/correcao.js?v=40"></script>
+    <script src="/static/js/correcao.js?v=45"></script>
 </body>
 </html>
