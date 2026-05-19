@@ -4,156 +4,261 @@
     <meta charset="UTF-8">
     <title>OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=44">
+    <link rel="stylesheet" href="/static/css/style.css?v=65">
 </head>
 <body>
     <header class="topbar">
-        <a class="brand brand-link" href="/" aria-label="Voltar para o início">
-            <div class="brand-logo">
-                <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-logo-image">
-            </div>
-            <span class="brand-divider" aria-hidden="true"></span>
-            <div class="brand-text">
-                <strong>OMRCheck Web</strong>
-                <span>Correção inteligente de cartões-resposta</span>
-            </div>
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
         </a>
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Leitura, revisão e exportação de cartões em um fluxo claro e confiável</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
+        </div>
     </header>
 
-    <main class="page">
-        <section class="hero hero-shell">
-            <div class="hero-copy">
-                <span class="eyebrow">Plataforma Institucional OMR</span>
-                <h1>Leitura, conferência e validação de cartões-resposta</h1>
-                <p>Centralize o processamento dos cartões com mais clareza operacional, revisão visual segura e geração padronizada dos resultados finais.</p>
+    <main class="page page-home">
+        <section class="home-hero">
+            <div class="home-hero-main">
+                <span class="eyebrow">Início</span>
+                <h1>Central de processamento OMR</h1>
+                <p>Envie novos lotes, acompanhe a leitura em tempo real e retome os processamentos recentes no mesmo painel.</p>
 
-                <div class="hero-highlights">
-                    <span class="highlight-pill">Leitura por template</span>
-                    <span class="highlight-pill">Conferência manual assistida</span>
-                    <span class="highlight-pill">Geração pronta para CSV</span>
+                <div class="home-hero-actions">
+                    <a class="btn-primary" href="#novo-processamento">Novo processamento</a>
+                    <a class="btn-secondary" href="/bernoulli">Simulado Bernoulli</a>
+                    <a class="btn-light" href="#processamentos-recentes">Ver histórico</a>
+                </div>
+
+                <div class="home-hero-metrics">
+                    <article class="home-metric-card">
+                        <span>Leitura</span>
+                        <strong>Template + auditoria</strong>
+                        <p>Leitura alinhada ao group010 do CSV.</p>
+                    </article>
+                    <article class="home-metric-card">
+                        <span>Correção</span>
+                        <strong>Ajuste manual assistido</strong>
+                        <p>Correção manual sem sair do lote.</p>
+                    </article>
+                    <article class="home-metric-card">
+                        <span>Saída</span>
+                        <strong>Compatível com KeepEdu</strong>
+                        <p>Saída pronta para seguir no fluxo.</p>
+                    </article>
                 </div>
             </div>
 
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <span>Fluxo</span>
-                    <strong>4 Etapas</strong>
-                    <p>Da importação das imagens à geração do arquivo final.</p>
+            <aside class="home-hero-side">
+                <div class="home-hero-panel">
+                    <span class="panel-kicker">Fluxo</span>
+                    <h2>Como funciona</h2>
+                    <p>Um fluxo simples para leitura, revisão e exportação do lote.</p>
+
+                    <div class="home-flow-list">
+                        <div class="home-flow-item">
+                            <strong>1. Importar imagens</strong>
+                            <span>Entrada em lote de .jpg, .jpeg e .png.</span>
+                        </div>
+                        <div class="home-flow-item">
+                            <strong>2. Processar</strong>
+                            <span>Leitura com progresso e eventos em tempo real.</span>
+                        </div>
+                        <div class="home-flow-item">
+                            <strong>3. Revisar</strong>
+                            <span>Correção visual dos cartões que pedirem atenção.</span>
+                        </div>
+                        <div class="home-flow-item">
+                            <strong>4. Validar e exportar</strong>
+                            <span>Concluir identificação e gerar a saída final.</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="hero-stat">
-                    <span>Entrada</span>
-                    <strong>JPG, JPEG, PNG</strong>
-                    <p>Envio múltiplo com seleção visual mais adequada ao operacional.</p>
-                </div>
-                <div class="hero-stat">
-                    <span>Foco</span>
-                    <strong>Confiabilidade</strong>
-                    <p>Projetado para reduzir retrabalho e apoiar conferência escolar em escala.</p>
-                </div>
-            </div>
+            </aside>
         </section>
 
-        <section class="start-grid">
-            <div class="card start-main-card">
-                <div class="section-head">
-                    <div>
-                        <span class="section-kicker">Operação</span>
-                        <h2>Novo processamento</h2>
-                    </div>
-                    <span class="section-badge">Entrada de cartões</span>
-                </div>
-
-                <p class="card-description">
-                    Selecione os ficheiros de imagem dos cartões-resposta. Os arquivos serão usados temporariamente durante o processamento.
-                </p>
-
-                <form id="form-processamento" class="form-grid start-main-form" action="/processar-ajax" method="post" enctype="multipart/form-data">
-                    <div class="upload-picker">
-                        <input
-                            id="input-arquivos"
-                            type="file"
-                            name="arquivos"
-                            accept=".jpg,.jpeg,.png"
-                            multiple
-                            required
-                            hidden
-                        >
-
-                        <div id="upload-dropzone" class="upload-box upload-dropzone" tabindex="0" role="button" aria-label="Selecionar ficheiros dos cartões-resposta">
-                            <span>Adicionar ficheiros dos cartões-resposta</span>
-                            <small>Arraste imagens para aqui ou clique para escolher ficheiros `.jpg`, `.jpeg` ou `.png`.</small>
-
-                            <div class="upload-actions">
-                                <button type="button" id="btn-escolher-arquivos" class="btn-secondary">
-                                    Escolher ficheiros
-                                </button>
-                                <div class="upload-meta">
-                                    <strong id="upload-contagem">Nenhum ficheiro selecionado</strong>
-                                    <p id="upload-resumo">Pode selecionar vários ficheiros de uma vez.</p>
-                                </div>
-                            </div>
+        <section class="home-dashboard">
+            <div class="home-main-column">
+                <section class="card upload-command-card" id="novo-processamento">
+                    <div class="section-head upload-command-head">
+                        <div>
+                            <span class="section-kicker">Novo processamento</span>
+                            <h2>Novo lote</h2>
                         </div>
-
-                        <div id="upload-lista" class="upload-lista" style="display: none;"></div>
                     </div>
 
-                    <button type="submit" class="btn-primary btn-full">
-                        Processar ficheiros selecionados
-                    </button>
-
-                    <div id="log-processamento" class="log-processamento" style="display: none;">
-                        <div class="log-topo">
-                            <strong>Log do processamento</strong>
-                            <span id="log-percentual">0%</span>
-                        </div>
-
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="log-barra" style="width: 0%;"></div>
-                        </div>
-
-                        <p id="log-mensagem">0% | Aguardando início...</p>
-                        <p id="log-arquivo" class="muted"></p>
-
-                        <div id="log-erro" class="erro-box" style="display: none;">
-                            <strong>Erro:</strong>
-                            <p id="log-erro-texto"></p>
-                        </div>
-
-                        <a id="abrir-processamento" class="btn-primary link-btn" href="#" style="display: none;">
-                            Abrir processamento
-                        </a>
-                    </div>
-                </form>
-            </div>
-
-            <div class="start-side">
-                <aside class="info-panel">
-                    <span class="panel-kicker">Fluxo recomendado</span>
-                    <h2>Operação simples e controlada</h2>
-                    <p>
-                        O OMRCheck lê os cartões pelo template, identifica marcações,
-                        permite conferência visual e prepara a geração segura do CSV final.
+                    <p class="card-description">
+                        Selecione as imagens do cartão-resposta para iniciar uma nova leitura OMR.
                     </p>
 
-                    <div class="info-list">
-                        <div class="info-item">1. Selecione os ficheiros dos cartões</div>
-                        <div class="info-item">2. Processe a leitura OMR</div>
-                        <div class="info-item">3. Revise marcações no painel</div>
-                        <div class="info-item">4. Gere o CSV final</div>
-                    </div>
-                </aside>
+                    <form id="form-processamento" class="form-grid upload-command-form" action="/processar-ajax" method="post" enctype="multipart/form-data">
+                        <div class="upload-picker">
+                            <input
+                                id="input-arquivos"
+                                type="file"
+                                name="arquivos"
+                                accept=".jpg,.jpeg,.png"
+                                multiple
+                                required
+                                hidden
+                            >
 
-                <section class="event-log-panel" id="event-log-panel">
+                            <div id="upload-dropzone" class="upload-box upload-dropzone upload-dropzone-home" tabindex="0" role="button" aria-label="Selecionar arquivos dos cartões-resposta">
+                                <div class="upload-dropzone-copy">
+                                    <span>Adicionar imagens</span>
+                                <small>Arraste os cartões para cá ou clique para selecionar os arquivos do lote.</small>
+                                </div>
+
+                                <div class="upload-actions">
+                                    <button type="button" id="btn-escolher-arquivos" class="btn-secondary">
+                                        Escolher arquivos
+                                    </button>
+                                    <div class="upload-meta">
+                                        <strong id="upload-contagem">Nenhum arquivo selecionado</strong>
+                                        <p id="upload-resumo">Você pode enviar várias imagens de uma vez.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="upload-lista" class="upload-lista" style="display: none;"></div>
+                        </div>
+
+                        <div class="upload-command-footer">
+                            <button type="submit" class="btn-primary">
+                                Iniciar processamento
+                            </button>
+                            <p class="upload-command-note">
+                                O lote fica disponível no histórico assim que a leitura for iniciada.
+                            </p>
+                        </div>
+
+                        <div id="log-processamento" class="log-processamento log-processamento-home" style="display: none;">
+                            <div class="log-topo">
+                                <strong>Andamento do processamento</strong>
+                                <span id="log-percentual">0%</span>
+                            </div>
+
+                            <div class="log-summary" id="log-summary">
+                                <div class="log-summary-item">
+                                    <span>Total</span>
+                                    <strong id="log-total-imagens">0</strong>
+                                </div>
+                                <div class="log-summary-item">
+                                    <span>Com erro</span>
+                                    <strong id="log-total-erros">0</strong>
+                                </div>
+                                <div class="log-summary-item">
+                                    <span>Manuais</span>
+                                    <strong id="log-total-manuais">0</strong>
+                                </div>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="log-barra" style="width: 0%;"></div>
+                            </div>
+
+                            <p id="log-mensagem">0% | Aguardando início...</p>
+                            <p id="log-arquivo" class="muted"></p>
+
+                            <div id="log-erro" class="erro-box" style="display: none;">
+                                <strong>Erro:</strong>
+                                <p id="log-erro-texto"></p>
+                            </div>
+
+                            <a id="abrir-processamento" class="btn-primary link-btn" href="#" style="display: none;">
+                                Abrir lote processado
+                            </a>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card home-history-card" id="processamentos-recentes">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Histórico</span>
+                            <h2>Processamentos recentes</h2>
+                        </div>
+                        <span class="section-badge">{{ processamentos|length }} lote(s)</span>
+                    </div>
+
+                    {% if processamentos %}
+                        <div class="home-history-list" id="home-history-list">
+                            {% for item in processamentos %}
+                                <a class="home-history-item" href="/processamento/{{ item.nome }}">
+                                    <div class="home-history-copy">
+                                        <div class="home-history-meta">
+                                            <strong>{{ item.titulo }}</strong>
+                                            <span class="home-history-tag">{{ item.rotulo }}</span>
+                                        </div>
+                                        <span>Processamento realizado em {{ item.data }} às {{ item.hora }}.</span>
+                                    </div>
+                                    <span class="home-history-action">Abrir</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        <div class="table-pagination home-history-pagination">
+                            <button type="button" class="btn-light" id="home-history-prev">Anterior</button>
+                            <span class="table-pagination-info" id="home-history-page-info">Página 1 de 1</span>
+                            <button type="button" class="btn-light" id="home-history-next">Próxima</button>
+                        </div>
+                    {% else %}
+                        <p class="muted">Nenhum processamento encontrado.</p>
+                    {% endif %}
+                </section>
+            </div>
+
+            <div class="home-side-column">
+                <section class="home-ops-card">
+                    <div class="home-ops-head">
+                        <span class="section-kicker">Checklist</span>
+                        <h2>Antes de começar</h2>
+                    </div>
+
+                    <div class="home-ops-list">
+                        <div class="home-ops-item">
+                            <strong>Padronize o lote</strong>
+                            <p>Use imagens nítidas e mantenha a mesma prova agrupada.</p>
+                        </div>
+                        <div class="home-ops-item">
+                            <strong>Acompanhe os eventos</strong>
+                            <p>Falhas e cartões problemáticos aparecem em tempo real.</p>
+                        </div>
+                        <div class="home-ops-item">
+                            <strong>Revise antes de exportar</strong>
+                            <p>Entre na correção sempre que houver erro de leitura.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="home-ops-card home-tool-card">
+                    <div class="home-ops-head">
+                        <span class="section-kicker">Bernoulli</span>
+                        <h2>Simulado Bernoulli</h2>
+                    </div>
+
+                    <p class="card-description">Converter arquivo KeepEdu para o layout final de importação do Bernoulli.</p>
+
+                    <a class="btn-secondary link-btn" href="/bernoulli">
+                        Abrir Simulado Bernoulli
+                    </a>
+                </section>
+
+                <section class="event-log-panel home-event-panel" id="event-log-panel">
                     <div class="section-head event-log-head">
                         <div>
-                            <span class="section-kicker">Leitura</span>
-                            <h2>Eventos do processamento</h2>
+                            <span class="section-kicker">Monitoramento</span>
+                            <h2>Eventos recentes</h2>
                         </div>
                         <span class="section-badge" id="event-log-badge">0 evento(s)</span>
                     </div>
 
                     <p class="event-log-description">
-                        Avisos e erros das imagens aparecem aqui durante a leitura.
+                        Avisos, falhas técnicas e imagens com necessidade de revisão aparecem aqui durante o lote.
                     </p>
 
                     <div class="event-log-list" id="event-log-list">
@@ -163,29 +268,6 @@
                     </div>
                 </section>
             </div>
-        </section>
-
-        <section class="card">
-            <div class="section-head">
-                <div>
-                    <span class="section-kicker">Histórico</span>
-                    <h2>Processamentos recentes</h2>
-                </div>
-                <span class="section-badge">{{ processamentos|length }} registro(s)</span>
-            </div>
-
-            {% if processamentos %}
-                <div class="lista">
-                    {% for item in processamentos %}
-                        <a class="lista-item" href="/processamento/{{ item.nome }}">
-                            <strong>{{ item.nome }}</strong>
-                            <span>Abrir processamento</span>
-                        </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="muted">Nenhum processamento encontrado.</p>
-            {% endif %}
         </section>
     </main>
         <script>
@@ -198,6 +280,9 @@
         const logErro = document.getElementById("log-erro");
         const logErroTexto = document.getElementById("log-erro-texto");
         const abrirProcessamento = document.getElementById("abrir-processamento");
+        const logTotalImagens = document.getElementById("log-total-imagens");
+        const logTotalErros = document.getElementById("log-total-erros");
+        const logTotalManuais = document.getElementById("log-total-manuais");
         const inputArquivos = document.getElementById("input-arquivos");
         const btnEscolherArquivos = document.getElementById("btn-escolher-arquivos");
         const uploadDropzone = document.getElementById("upload-dropzone");
@@ -206,8 +291,28 @@
         const uploadLista = document.getElementById("upload-lista");
         const eventLogList = document.getElementById("event-log-list");
         const eventLogBadge = document.getElementById("event-log-badge");
+        const homeHistoryItems = Array.from(document.querySelectorAll("#home-history-list .home-history-item"));
+        const homeHistoryPrev = document.getElementById("home-history-prev");
+        const homeHistoryNext = document.getElementById("home-history-next");
+        const homeHistoryPageInfo = document.getElementById("home-history-page-info");
+        const homeHistoryPorPagina = 8;
+        let homeHistoryPaginaAtual = 1;
 
-        function renderizarEventos(eventos) {
+        function atualizarResumoProcessamento(resumo) {
+            const dados = resumo || {};
+
+            if (logTotalImagens) {
+                logTotalImagens.textContent = `${dados.total_imagens || 0}`;
+            }
+            if (logTotalErros) {
+                logTotalErros.textContent = `${dados.total_erro || 0}`;
+            }
+            if (logTotalManuais) {
+                logTotalManuais.textContent = `${dados.total_manual || 0}`;
+            }
+        }
+
+        function renderizarEventos(eventos, nomeProcessamento = "") {
             const lista = Array.isArray(eventos) ? eventos : [];
 
             if (!eventLogList || !eventLogBadge) {
@@ -231,16 +336,28 @@
             eventLogList.innerHTML = lista
                 .slice()
                 .reverse()
-                .map((evento) => `
+                .map((evento) => {
+                    const nomeImagemDebug = evento.arquivo ? `template_${evento.arquivo}` : "";
+                    const hrefEvento = nomeProcessamento && nomeImagemDebug
+                        ? `/correcao/${nomeProcessamento}?imagem=${encodeURIComponent(nomeImagemDebug)}`
+                        : "";
+                    const arquivoHtml = evento.arquivo
+                        ? (hrefEvento
+                            ? `<a class="event-log-file event-log-link" href="${hrefEvento}">${evento.arquivo}</a>`
+                            : `<span class="event-log-file">${evento.arquivo}</span>`)
+                        : "";
+
+                    return `
                     <article class="event-log-item ${evento.tipo || "info"}">
                         <span class="event-log-icon">${icones[evento.tipo] || "i"}</span>
                         <div class="event-log-body">
                             <strong>${evento.titulo || "Evento"}</strong>
-                            ${evento.arquivo ? `<span class="event-log-file">${evento.arquivo}</span>` : ""}
+                            ${arquivoHtml}
                             ${evento.descricao ? `<p>${evento.descricao}</p>` : ""}
                         </div>
                     </article>
-                `)
+                `;
+                })
                 .join("");
         }
 
@@ -248,8 +365,8 @@
             const listaArquivos = Array.from(files || []);
 
             if (!listaArquivos.length) {
-                uploadContagem.textContent = "Nenhum ficheiro selecionado";
-                uploadResumo.textContent = "Pode selecionar vários ficheiros de uma vez.";
+                uploadContagem.textContent = "Nenhum arquivo selecionado";
+                uploadResumo.textContent = "Você pode selecionar várias imagens de uma vez.";
                 uploadLista.style.display = "none";
                 uploadLista.innerHTML = "";
                 return;
@@ -258,7 +375,7 @@
             const totalImagens = listaArquivos.length;
             const primeirosNomes = listaArquivos.slice(0, 6);
 
-            uploadContagem.textContent = `${totalImagens} ficheiro(s) selecionado(s)`;
+            uploadContagem.textContent = `${totalImagens} arquivo(s) selecionado(s)`;
             uploadResumo.textContent = `Pronto para enviar ${totalImagens} imagem(ns) do cartão-resposta.`;
             uploadLista.style.display = "grid";
             uploadLista.innerHTML = primeirosNomes
@@ -266,7 +383,35 @@
                 .join("");
 
             if (totalImagens > primeirosNomes.length) {
-                uploadLista.innerHTML += `<div class="upload-item upload-item-more">+${totalImagens - primeirosNomes.length} ficheiro(s)</div>`;
+                uploadLista.innerHTML += `<div class="upload-item upload-item-more">+${totalImagens - primeirosNomes.length} arquivo(s)</div>`;
+            }
+        }
+
+        function renderizarPaginacaoHistorico() {
+            if (!homeHistoryItems.length) {
+                return;
+            }
+
+            const totalPaginas = Math.max(1, Math.ceil(homeHistoryItems.length / homeHistoryPorPagina));
+            homeHistoryPaginaAtual = Math.min(homeHistoryPaginaAtual, totalPaginas);
+
+            const inicio = (homeHistoryPaginaAtual - 1) * homeHistoryPorPagina;
+            const fim = inicio + homeHistoryPorPagina;
+
+            homeHistoryItems.forEach((item, indice) => {
+                item.style.display = indice >= inicio && indice < fim ? "" : "none";
+            });
+
+            if (homeHistoryPageInfo) {
+                homeHistoryPageInfo.textContent = `Página ${homeHistoryPaginaAtual} de ${totalPaginas}`;
+            }
+
+            if (homeHistoryPrev) {
+                homeHistoryPrev.disabled = homeHistoryPaginaAtual <= 1;
+            }
+
+            if (homeHistoryNext) {
+                homeHistoryNext.disabled = homeHistoryPaginaAtual >= totalPaginas;
             }
         }
 
@@ -275,6 +420,20 @@
         }
 
         btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
+        homeHistoryPrev?.addEventListener("click", () => {
+            if (homeHistoryPaginaAtual > 1) {
+                homeHistoryPaginaAtual -= 1;
+                renderizarPaginacaoHistorico();
+            }
+        });
+        homeHistoryNext?.addEventListener("click", () => {
+            const totalPaginas = Math.max(1, Math.ceil(homeHistoryItems.length / homeHistoryPorPagina));
+
+            if (homeHistoryPaginaAtual < totalPaginas) {
+                homeHistoryPaginaAtual += 1;
+                renderizarPaginacaoHistorico();
+            }
+        });
 
         uploadDropzone?.addEventListener("click", (event) => {
             if (event.target.closest("button")) {
@@ -345,7 +504,8 @@
                     logArquivo.textContent = `Arquivo atual: ${dados.arquivo_atual}`;
                 }
 
-                renderizarEventos(dados.eventos);
+                atualizarResumoProcessamento(dados.resumo);
+                renderizarEventos(dados.eventos, dados.nome_processamento || "");
 
                 if (dados.status === "concluido") {
                     logMensagem.textContent = "100% | Processamento concluído.";
@@ -380,6 +540,7 @@
                 logBarra.style.width = "0%";
                 logMensagem.textContent = "0% | Enviando arquivos...";
                 logArquivo.textContent = "";
+                atualizarResumoProcessamento({});
                 renderizarEventos([]);
 
                 const formData = new FormData(formProcessamento);
@@ -406,6 +567,8 @@
                 }
             });
         }
+
+        renderizarPaginacaoHistorico();
     </script>
 </body>
 </html>

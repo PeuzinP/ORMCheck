@@ -4,33 +4,33 @@
     <meta charset="UTF-8">
     <title>Correção | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=44">
+    <link rel="stylesheet" href="/static/css/style.css?v=64">
 </head>
 <body>
     <header class="topbar">
-        <a class="brand brand-link" href="/" aria-label="Voltar para o início">
-            <div class="brand-logo">
-                <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-logo-image">
-            </div>
-            <span class="brand-divider" aria-hidden="true"></span>
-            <div class="brand-text">
-                <strong>OMRCheck Web</strong>
-                <span>Painel de correção OMR</span>
-            </div>
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
         </a>
-
-        <div class="topbar-actions">
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Revisão visual das leituras e ajustes manuais</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
             <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
         </div>
     </header>
 
     <main class="page full page-correcao">
-        <section class="hero compact hero-correcao">
-            <h1>Painel de Correção OMR</h1>
+        <section class="hero compact hero-correcao hero-correcao-shell">
+            <span class="eyebrow">Correção visual</span>
+            <h1>Correção do lote</h1>
             <p>{{ nome_processamento }}</p>
         </section>
 
-        <section class="card toolbar">
+        <section class="card toolbar correcao-toolbar-card">
             <div>
                 <label>Pesquisar</label>
                 <input type="text" id="busca" placeholder="RA, imagem ou questão">
@@ -57,8 +57,38 @@
         </section>
 
         <section class="layout-correcao">
-            <aside class="sidebar card">
-                <h2>Imagens</h2>
+            <aside class="sidebar card correcao-sidebar">
+                <div class="sidebar-head">
+                    <div class="sidebar-head-copy">
+                        <span class="section-kicker">Navegação</span>
+                        <h2>Imagens do lote</h2>
+                        <p class="sidebar-description">
+                            Navegue pelas imagens do lote e concentre a revisão nos cartões com erro ou ajuste manual.
+                        </p>
+                    </div>
+                    <span class="section-badge" id="sidebar-total">0 imagens</span>
+                </div>
+
+                <div class="sidebar-summary" id="sidebar-summary">
+                    <div class="sidebar-stat">
+                        <span>Erro</span>
+                        <strong id="count-erro">0</strong>
+                    </div>
+                    <div class="sidebar-stat">
+                        <span>OK</span>
+                        <strong id="count-ok">0</strong>
+                    </div>
+                    <div class="sidebar-stat">
+                        <span>Manual</span>
+                        <strong id="count-manual">0</strong>
+                    </div>
+                </div>
+
+                <div class="sidebar-filters">
+                    <button class="sidebar-filter-btn ativo" data-filter="todos" type="button">Todas</button>
+                    <button class="sidebar-filter-btn" data-filter="erro" type="button">Erros</button>
+                    <button class="sidebar-filter-btn" data-filter="manual" type="button">Corrigidas</button>
+                </div>
 
                 {% if imagens_debug %}
                     <div class="lista-imagens">
@@ -68,15 +98,22 @@
                             </button>
                         {% endfor %}
                     </div>
+                    <div class="sidebar-empty" id="sidebar-empty" hidden>
+                        Nenhuma imagem corresponde ao filtro atual.
+                    </div>
                 {% else %}
                     <p class="muted">Nenhuma imagem encontrada.</p>
                 {% endif %}
             </aside>
 
-            <section class="viewer card">
+            <section class="viewer card correcao-viewer">
                 <div class="viewer-header">
                     <div>
                         <strong id="nome-imagem">Selecione uma imagem</strong>
+                        <div class="viewer-meta-row">
+                            <span id="viewer-status" class="status-badge viewer-status-badge">Sem seleção</span>
+                            <span id="viewer-meta" class="viewer-meta"></span>
+                        </div>
                         <p class="viewer-help" id="viewer-help">
                             Botão esquerdo adiciona marcação | Botão direito remove a marcação mais próxima
                         </p>
@@ -106,6 +143,10 @@
                     </div>
 
                     <div class="viewer-actions">
+                        <button class="btn-light" id="proxima-com-erro">
+                            Próx. erro
+                        </button>
+
                         <button class="btn-secondary" id="imagem-anterior">
                             ← Anterior
                         </button>
@@ -139,6 +180,6 @@
     <script>
         window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
     </script>
-    <script src="/static/js/correcao.js?v=45"></script>
+    <script src="/static/js/correcao.js?v=49"></script>
 </body>
 </html>

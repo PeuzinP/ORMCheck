@@ -10,6 +10,12 @@ __pycache__
 processamentos
 uploads_temp
 docker-data
+logs
+backups
+base
+runtime
+tmp
+temp
 venv
 .venv
 node_modules

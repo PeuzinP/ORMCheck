@@ -3,12 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <title>Processando | OMRCheck Web</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=41">
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=64">
 </head>
 <body>
-    <main class="page">
-        <section class="card progress-card">
-            <h2>Log do processamento</h2>
+    <header class="topbar">
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
+        </a>
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Acompanhamento da leitura em tempo real</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
+            <a class="btn-light" href="/">Voltar</a>
+        </div>
+    </header>
+    <main class="page page-processando">
+        <section class="hero hero-shell compact-hero processando-hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Execução em andamento</span>
+                <h1>Processando o lote</h1>
+                <p>Acompanhe o percentual, o arquivo atual e eventuais falhas durante a leitura.</p>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span>Status</span>
+                    <strong>Em andamento</strong>
+                    <p>O sistema atualiza o progresso automaticamente até a conclusão do lote.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card progress-card processando-progress-card">
+            <h2>Andamento do lote</h2>
 
             <div class="progress-bar">
                 <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>

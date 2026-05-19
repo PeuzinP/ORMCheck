@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulado Bernoulli | OMRCheck Web</title>
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=64">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
+        </a>
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Conversão de planilhas KeepEdu para importação Bernoulli</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
+            <a class="btn-light" href="/">Voltar</a>
+        </div>
+    </header>
+
+    <main class="page bernoulli-page">
+        <section class="bernoulli-hero card">
+            <div class="bernoulli-hero-copy">
+                <span class="section-kicker">Bernoulli</span>
+                <h1>Gerar arquivo do Simulado Bernoulli</h1>
+                <p>Envie a planilha do KeepEdu, consulte o RMB e gere o arquivo final pronto para importação.</p>
+            </div>
+            <div class="bernoulli-hero-meta">
+                <div class="bernoulli-meta-item">
+                    <strong>Entrada</strong>
+                    <span>CSV, XLSX ou XLS</span>
+                </div>
+                <div class="bernoulli-meta-item">
+                    <strong>Consulta</strong>
+                    <span>RMB via API do Bernoulli</span>
+                </div>
+                <div class="bernoulli-meta-item">
+                    <strong>Saída</strong>
+                    <span>XLSX final pronto para uso</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="bernoulli-layout">
+            <div class="bernoulli-main-column">
+                <section class="card bernoulli-form-card">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Conversão</span>
+                            <h2>Gerar arquivo Bernoulli</h2>
+                        </div>
+                    </div>
+
+                    <div class="bernoulli-mini-grid">
+                        <div class="bernoulli-mini-card">
+                            <strong>1. Enviar</strong>
+                            <span>Planilha exportada do KeepEdu</span>
+                        </div>
+                        <div class="bernoulli-mini-card">
+                            <strong>2. Consultar</strong>
+                            <span>RMB localizado pelo RA</span>
+                        </div>
+                        <div class="bernoulli-mini-card">
+                            <strong>3. Baixar</strong>
+                            <span>Arquivo final em .xlsx</span>
+                        </div>
+                    </div>
+
+                    <div class="bernoulli-day-toggle" role="group" aria-label="Selecionar dia do simulado">
+                        <button type="button" class="bernoulli-day-btn active" data-dia="1">1° Dia</button>
+                        <button type="button" class="bernoulli-day-btn" data-dia="2">2° Dia</button>
+                    </div>
+
+                    <form
+                        id="bernoulli-form"
+                        class="bernoulli-form"
+                        action="/bernoulli/processar-ajax"
+                        method="post"
+                        enctype="multipart/form-data"
+                    >
+                        <input type="hidden" name="dia" id="bernoulli-dia" value="1">
+                        <label class="field-block">
+                            <span>Arquivo do KeepEdu</span>
+                            <div class="bernoulli-upload-box">
+                                <input id="bernoulli-arquivo" type="file" name="arquivo_keepedu" accept=".csv,.xlsx,.xls" required>
+                                <div class="bernoulli-upload-copy">
+                                    <strong id="bernoulli-file-name">Nenhum arquivo selecionado</strong>
+                                    <small>Use a planilha com RA, Nome, Lingua Estrangeira e questões.</small>
+                                </div>
+                            </div>
+                        </label>
+
+                        <div class="bernoulli-actions">
+                            <button type="submit" class="btn-primary" id="bernoulli-submit">Gerar Simulado Bernoulli</button>
+                            <a class="btn-light" href="/">Voltar para a home</a>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card bernoulli-log-card">
+                    <div>
+                        <span class="section-kicker">Resumo</span>
+                        <h2>Processamento</h2>
+                    </div>
+                    <p class="card-description">Indicadores da conversão atual e liberação do arquivo final.</p>
+
+                    <div class="bernoulli-log-summary" id="bernoulli-log-summary">
+                        <div class="bernoulli-log-stat">
+                            <span>Linhas</span>
+                            <strong id="bernoulli-total-linhas">0</strong>
+                        </div>
+                        <div class="bernoulli-log-stat">
+                            <span>RMB</span>
+                            <strong id="bernoulli-total-rmb">0</strong>
+                        </div>
+                        <div class="bernoulli-log-stat">
+                            <span>Pendentes</span>
+                            <strong id="bernoulli-total-pendentes">0</strong>
+                        </div>
+                        <div class="bernoulli-log-stat">
+                            <span>Questões</span>
+                            <strong id="bernoulli-total-questoes">0</strong>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="bernoulli-side-column">
+                <section class="card bernoulli-help-card">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Saída</span>
+                            <h2>Saída padrão</h2>
+                        </div>
+                    </div>
+
+                    <div class="bernoulli-rule-list compact">
+                        <div class="bernoulli-rule-item">
+                            <strong>Colunas</strong>
+                            <p id="bernoulli-regra-colunas">RMB, RA, Nome, Lingua Estrangeira e q1...q90.</p>
+                        </div>
+                        <div class="bernoulli-rule-item">
+                            <strong>RMB</strong>
+                            <p>Buscado pela API do Bernoulli usando o RA.</p>
+                        </div>
+                        <div class="bernoulli-rule-item">
+                            <strong>Língua Estrangeira</strong>
+                            <p id="bernoulli-regra-lingua">Mantém o valor vindo do arquivo do KeepEdu.</p>
+                        </div>
+                        <div class="bernoulli-rule-item">
+                            <strong>Marcação</strong>
+                            <p>Branco e dupla marcação saem como *.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card bernoulli-track-card">
+                    <div>
+                        <span class="section-kicker">Andamento</span>
+                        <h2>Andamento do arquivo</h2>
+                    </div>
+                    <p class="card-description">Status, progresso e eventos da geração do arquivo final.</p>
+
+                    <div class="bernoulli-status-banner" id="bernoulli-status-banner">
+                        <strong>Aguardando arquivo</strong>
+                        <span>O log aparece aqui durante a geração.</span>
+                    </div>
+
+                    <div class="log-processamento bernoulli-progress-box" id="bernoulli-progress-box">
+                        <div class="log-topo">
+                            <strong>Andamento da conversão</strong>
+                            <span id="bernoulli-percentual">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bernoulli-barra" style="width: 0%;"></div>
+                        </div>
+                        <p id="bernoulli-mensagem">0% | Aguardando início...</p>
+                        <p id="bernoulli-arquivo" class="muted"></p>
+                    </div>
+
+                    <div class="event-log-list bernoulli-log-list" id="bernoulli-log-list">
+                        <div class="event-log-empty">Nenhum processamento iniciado.</div>
+                    </div>
+
+                    <div class="bernoulli-result-actions" id="bernoulli-result-actions" style="display: none;">
+                        <a id="bernoulli-download" class="btn-primary link-btn" href="#">Baixar arquivo final</a>
+                    </div>
+                </section>
+            </aside>
+        </section>
+    </main>
+
+    <script>
+        const bernoulliForm = document.getElementById("bernoulli-form");
+        const bernoulliFileInput = document.getElementById("bernoulli-arquivo");
+        const bernoulliFileName = document.getElementById("bernoulli-file-name");
+        const bernoulliSubmit = document.getElementById("bernoulli-submit");
+        const bernoulliStatusBanner = document.getElementById("bernoulli-status-banner");
+        const bernoulliLogList = document.getElementById("bernoulli-log-list");
+        const bernoulliResultActions = document.getElementById("bernoulli-result-actions");
+        const bernoulliDownload = document.getElementById("bernoulli-download");
+        const bernoulliTotalLinhas = document.getElementById("bernoulli-total-linhas");
+        const bernoulliTotalRmb = document.getElementById("bernoulli-total-rmb");
+        const bernoulliTotalPendentes = document.getElementById("bernoulli-total-pendentes");
+        const bernoulliTotalQuestoes = document.getElementById("bernoulli-total-questoes");
+        const bernoulliPercentual = document.getElementById("bernoulli-percentual");
+        const bernoulliBarra = document.getElementById("bernoulli-barra");
+        const bernoulliMensagem = document.getElementById("bernoulli-mensagem");
+        const bernoulliArquivoAtual = document.getElementById("bernoulli-arquivo");
+        const bernoulliDiaInput = document.getElementById("bernoulli-dia");
+        const bernoulliDayButtons = document.querySelectorAll(".bernoulli-day-btn");
+        const bernoulliRegraColunas = document.getElementById("bernoulli-regra-colunas");
+        const bernoulliRegraLingua = document.getElementById("bernoulli-regra-lingua");
+        let bernoulliDownloadUrl = "";
+        let bernoulliDownloadNome = "simulado_bernoulli.xlsx";
+
+        function obterDiaBernoulli() {
+            return bernoulliDiaInput?.value === "2" ? "2" : "1";
+        }
+
+        function atualizarModoBernoulli() {
+            const dia = obterDiaBernoulli();
+            bernoulliDayButtons.forEach((botao) => {
+                botao.classList.toggle("active", botao.dataset.dia === dia);
+            });
+
+            if (bernoulliRegraColunas) {
+                bernoulliRegraColunas.textContent = dia === "2"
+                    ? "RMB, RA, Nome, Lingua Estrangeira e q91...q180."
+                    : "RMB, RA, Nome, Lingua Estrangeira e q1...q90.";
+            }
+
+            if (bernoulliRegraLingua) {
+                bernoulliRegraLingua.textContent = dia === "2"
+                    ? "No 2° Dia, esse campo sai automaticamente como N/A."
+                    : "Mantém o valor vindo do arquivo do KeepEdu.";
+            }
+        }
+
+        function atualizarArquivoBernoulli() {
+            const arquivo = bernoulliFileInput?.files?.[0];
+            bernoulliFileName.textContent = arquivo ? arquivo.name : "Nenhum arquivo selecionado";
+        }
+
+        function atualizarResumoBernoulli(resumo = {}) {
+            bernoulliTotalLinhas.textContent = `${resumo.linhas || 0}`;
+            bernoulliTotalRmb.textContent = `${resumo.rmb_encontrados || 0}`;
+            bernoulliTotalPendentes.textContent = `${resumo.sem_rmb || 0}`;
+            bernoulliTotalQuestoes.textContent = `${resumo.questoes_encontradas_no_keepedu || 0}`;
+        }
+
+        function atualizarStatusBernoulli(titulo, descricao, tipo = "info") {
+            bernoulliStatusBanner.className = `bernoulli-status-banner ${tipo}`;
+            bernoulliStatusBanner.innerHTML = `<strong>${titulo}</strong><span>${descricao}</span>`;
+        }
+
+        async function baixarArquivoBernoulli() {
+            if (!bernoulliDownloadUrl) {
+                atualizarStatusBernoulli("Download indisponivel", "O arquivo final ainda nao foi liberado.", "error");
+                return;
+            }
+
+            try {
+                const resposta = await fetch(bernoulliDownloadUrl);
+
+                if (!resposta.ok) {
+                    throw new Error("Nao foi possivel baixar o arquivo final.");
+                }
+
+                const blob = await resposta.blob();
+
+                if (window.showSaveFilePicker) {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: bernoulliDownloadNome,
+                        types: [
+                            {
+                                description: "Planilha Excel",
+                                accept: {
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+                                }
+                            }
+                        ]
+                    });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } else {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = blobUrl;
+                    link.download = bernoulliDownloadNome;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } catch (erro) {
+                if (erro?.name === "AbortError") {
+                    return;
+                }
+
+                atualizarStatusBernoulli(
+                    "Falha no download",
+                    erro.message || "Nao foi possivel salvar o arquivo final.",
+                    "error"
+                );
+            }
+        }
+
+        function atualizarProgressoBernoulli(percentual = 0, mensagem = "Aguardando inicio...", arquivoAtual = "") {
+            bernoulliPercentual.textContent = `${percentual}%`;
+            bernoulliBarra.style.width = `${percentual}%`;
+            bernoulliMensagem.textContent = `${percentual}% | ${mensagem}`;
+            bernoulliArquivoAtual.textContent = arquivoAtual ? `Arquivo atual: ${arquivoAtual}` : "";
+        }
+
+        function renderizarLogBernoulli(eventos = []) {
+            const lista = Array.isArray(eventos) ? eventos : [];
+            const icones = {
+                info: "i",
+                success: "✓",
+                error: "×",
+                warning: "!"
+            };
+
+            if (!lista.length) {
+                bernoulliLogList.innerHTML = `<div class="event-log-empty">Nenhum processamento iniciado.</div>`;
+                return;
+            }
+
+            bernoulliLogList.innerHTML = lista.map((evento) => `
+                <article class="event-log-item ${evento.tipo || "info"}">
+                    <span class="event-log-icon">${icones[evento.tipo] || "i"}</span>
+                    <div class="event-log-body">
+                        <strong>${evento.titulo || "Etapa"}</strong>
+                        ${evento.descricao ? `<p>${evento.descricao}</p>` : ""}
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        function prepararLogBernoulli(nomeArquivo) {
+            atualizarResumoBernoulli({});
+            bernoulliResultActions.style.display = "none";
+            bernoulliDownloadUrl = "";
+            bernoulliDownloadNome = "simulado_bernoulli.xlsx";
+            renderizarLogBernoulli([
+                {
+                    tipo: "info",
+                    titulo: "Arquivo recebido",
+                    descricao: nomeArquivo || "Aguardando envio do arquivo."
+                }
+            ]);
+            atualizarProgressoBernoulli(0, "Enviando arquivo...", nomeArquivo || "");
+            atualizarStatusBernoulli("Processando", "Aguarde enquanto o arquivo final é gerado.", "processing");
+        }
+
+        async function consultarStatusBernoulli(jobId) {
+            try {
+                const resposta = await fetch(`/status-processamento/${jobId}`);
+                const dados = await resposta.json();
+                const percentual = dados.percentual || 0;
+                const resultado = dados.resultado?.resultado || {};
+
+                atualizarProgressoBernoulli(
+                    percentual,
+                    dados.mensagem || "Processando...",
+                    dados.arquivo_atual || ""
+                );
+                atualizarResumoBernoulli(resultado);
+                renderizarLogBernoulli(dados.eventos || []);
+
+                if (dados.status === "concluido") {
+                    atualizarProgressoBernoulli(100, "Simulado Bernoulli gerado com sucesso.", dados.arquivo_atual || "");
+                    atualizarStatusBernoulli(
+                        "Arquivo pronto",
+                        `${resultado.rmb_encontrados || 0} RMB(s) localizado(s) e arquivo liberado para download.`,
+                        "success"
+                    );
+                    bernoulliDownloadUrl = dados.resultado?.download_url || "";
+                    bernoulliDownloadNome = dados.resultado?.nome_arquivo_download || "simulado_bernoulli.xlsx";
+                    bernoulliDownload.href = bernoulliDownloadUrl || "#";
+                    bernoulliDownload.setAttribute("download", bernoulliDownloadNome);
+                    bernoulliResultActions.style.display = "flex";
+                    return;
+                }
+
+                if (dados.status === "erro") {
+                    atualizarStatusBernoulli(
+                        "Erro na conversão",
+                        dados.erro || dados.mensagem || "Revise o arquivo e tente novamente.",
+                        "error"
+                    );
+                    return;
+                }
+
+                setTimeout(() => consultarStatusBernoulli(jobId), 700);
+            } catch (erro) {
+                atualizarStatusBernoulli("Falha na consulta", "Tentando atualizar o andamento novamente...", "error");
+                setTimeout(() => consultarStatusBernoulli(jobId), 1500);
+            }
+        }
+
+        bernoulliFileInput?.addEventListener("change", atualizarArquivoBernoulli);
+        bernoulliDayButtons.forEach((botao) => {
+            botao.addEventListener("click", () => {
+                if (bernoulliDiaInput) {
+                    bernoulliDiaInput.value = botao.dataset.dia || "1";
+                }
+                atualizarModoBernoulli();
+            });
+        });
+        bernoulliDownload?.addEventListener("click", async (event) => {
+            event.preventDefault();
+            await baixarArquivoBernoulli();
+        });
+        atualizarModoBernoulli();
+
+        bernoulliForm?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const arquivo = bernoulliFileInput?.files?.[0];
+            if (!arquivo) {
+                atualizarStatusBernoulli("Arquivo obrigatorio", "Selecione a planilha antes de continuar.", "error");
+                return;
+            }
+
+            prepararLogBernoulli(arquivo.name);
+            bernoulliSubmit.disabled = true;
+            bernoulliSubmit.textContent = "Gerando...";
+
+            try {
+                const formData = new FormData(bernoulliForm);
+                const resposta = await fetch(bernoulliForm.action, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok || dados.status !== "ok") {
+                    throw new Error(dados.mensagem || "Erro ao gerar o arquivo.");
+                }
+                await consultarStatusBernoulli(dados.job_id);
+            } catch (erro) {
+                renderizarLogBernoulli([
+                    {
+                        tipo: "error",
+                        titulo: "Falha na conversao",
+                        descricao: erro.message || "Nao foi possivel gerar o Simulado Bernoulli."
+                    }
+                ]);
+                atualizarStatusBernoulli("Erro na conversao", erro.message || "Revise o arquivo e tente novamente.", "error");
+                atualizarProgressoBernoulli(100, erro.message || "Nao foi possivel gerar o Simulado Bernoulli.", arquivo.name);
+            } finally {
+                bernoulliSubmit.disabled = false;
+                bernoulliSubmit.textContent = "Gerar Simulado Bernoulli";
+            }
+        });
+    </script>
+</body>
+</html>

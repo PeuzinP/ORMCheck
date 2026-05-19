@@ -5,10 +5,11 @@ import json
 import re
 import glob
 import shutil
-from datetime import datetime
 import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
+
+from app.time_utils import agora_local
 
 try:
     from pyzbar.pyzbar import decode as pyzbar_decode
@@ -110,6 +111,103 @@ def salvar_debug_falha_leitura(caminho_imagem, pasta_debug, mensagem="Falha na l
 
     salvar_imagem(caminho_saida, debug)
     return caminho_saida
+
+
+def registrar_imagem_para_correcao_manual(
+    leituras_omr,
+    pasta_debug,
+    pasta_manual,
+    pasta_pendencias,
+    caminho_imagem,
+    caminho_original_processamento,
+    imagem,
+    respostas=None,
+    erros=None,
+    pontos_mapeados=None,
+    pontos_cantos=None,
+    origem_cantos="AUTO",
+    registro_academico="",
+    codigo_barras="",
+    debug_bolhas="",
+    debug_cantos="",
+    confianca_questoes=None,
+    pendencias_confianca=None,
+    total_pendencias_confianca=0
+):
+    respostas = respostas or {}
+    erros = erros or []
+    pontos_mapeados = pontos_mapeados or {}
+    pontos_cantos = pontos_cantos or []
+    confianca_questoes = confianca_questoes or {}
+    pendencias_confianca = pendencias_confianca or []
+
+    nome_debug = "template_" + os.path.basename(caminho_imagem)
+
+    if not debug_bolhas:
+        debug_bolhas = salvar_debug_falha_leitura(
+            caminho_imagem,
+            pasta_debug,
+            "Falha na leitura"
+        )
+
+    if not debug_cantos:
+        caminho_debug_cantos = os.path.join(
+            pasta_debug,
+            "cantos_" + os.path.basename(caminho_imagem)
+        )
+        debug_cantos = caminho_debug_cantos if os.path.exists(caminho_debug_cantos) else ""
+
+    leituras_omr[nome_debug] = {
+        "arquivo_original": os.path.basename(caminho_imagem),
+        "caminho_original_processamento": caminho_original_processamento,
+        "respostas": respostas,
+        "pontos_mapeados": pontos_mapeados,
+        "pontos_cantos": pontos_cantos,
+        "origem_cantos": origem_cantos,
+        "registro_academico": registro_academico,
+        "codigo_barras": codigo_barras,
+        "debug_bolhas": debug_bolhas,
+        "debug_cantos": debug_cantos,
+        "erros": erros,
+        "confianca_questoes": confianca_questoes,
+        "pendencias_confianca": pendencias_confianca,
+        "total_pendencias_confianca": total_pendencias_confianca
+    }
+
+    nome_sem_extensao = os.path.splitext(imagem)[0]
+    caminho_imagem_pendencia = os.path.join(pasta_pendencias, imagem)
+
+    try:
+        shutil.copy2(caminho_imagem, caminho_imagem_pendencia)
+    except Exception:
+        caminho_imagem_pendencia = caminho_imagem
+
+    caminho_json_manual = os.path.join(
+        pasta_manual,
+        nome_sem_extensao + ".json"
+    )
+
+    dados_manual = {
+        "arquivo": imagem,
+        "caminho_imagem": caminho_imagem,
+        "caminho_imagem_pendencia": caminho_imagem_pendencia,
+        "registro_academico": registro_academico,
+        "codigo_barras": codigo_barras,
+        "respostas": respostas,
+        "erros": erros,
+        "pontos_mapeados": pontos_mapeados,
+        "corrigido_manualmente": origem_cantos == "MANUAL"
+    }
+
+    with open(caminho_json_manual, "w", encoding="utf-8") as f:
+        json.dump(dados_manual, f, ensure_ascii=False, indent=4)
+
+    return {
+        "nome_debug": nome_debug,
+        "debug_bolhas": debug_bolhas,
+        "debug_cantos": debug_cantos,
+        "caminho_json_manual": caminho_json_manual
+    }
 
 
 def carregar_modelo_xtmpl_completo(caminho_modelo):
@@ -664,8 +762,11 @@ def estimar_compensacao_por_alternativa(analises_por_pergunta):
         excesso = max(0.0, baseline - baseline_referencia)
         compensacao[alternativa] = min(excesso, 12.0)
 
-    # A alternativa B ainda costuma herdar viés do impresso em alguns cartões.
-    # Adiciona uma correção extra, mas pequena, para não inviabilizar marcações reais.
+    # Algumas letras impressas podem herdar viés estrutural em certos cartões.
+    # A compensação extra precisa ser pequena para não inviabilizar marcações reais.
+    if "A" in compensacao and compensacao["A"] > 0:
+        compensacao["A"] = min(compensacao["A"] + 1.5, 13.0)
+
     if "B" in compensacao and compensacao["B"] > 0:
         compensacao["B"] = min(compensacao["B"] + 2.5, 14.0)
 
@@ -851,7 +952,16 @@ def ler_question_por_template(question_data, cinza, matriz, raio=10, analises=No
     diferenca_minima_segundo = 14  # Aumentado de 10
     diferenca_minima_media = 16  # Aumentado de 12
 
-    # A alternativa B tem mostrado viés estrutural no impresso.
+    # A alternativa A também pode herdar viés do impresso, mas em grau menor que B.
+    if melhor_resposta == "A":
+        score_minimo += 2
+        percentual_escuro_minimo += 1
+        maior_componente_minimo += 2
+        percentual_componente_minimo += 1
+        diferenca_minima_segundo += 2
+        diferenca_minima_media += 2
+
+    # A alternativa B tem mostrado viés estrutural mais forte no impresso.
     # Para reduzir falso positivo, ela precisa de evidência um pouco mais forte.
     if melhor_resposta == "B":
         score_minimo += 3
@@ -877,6 +987,14 @@ def ler_question_por_template(question_data, cinza, matriz, raio=10, analises=No
     )
 
     dispersao_real = True
+
+    if melhor_resposta == "A":
+        # O "A" impresso às vezes concentra mais massa no núcleo do círculo.
+        # Exige alguma presença fora do miolo para reduzir falso positivo.
+        dispersao_real = (
+            percentual_anel >= 5.0
+            and percentual_anel >= (percentual_nucleo * 0.16)
+        )
 
     if melhor_resposta == "B":
         # O "B" impresso costuma concentrar escurecimento no miolo.
@@ -910,7 +1028,10 @@ def desenhar_debug_pergunta(debug, question_data, matriz, resposta_detectada, ra
         else:
             cor = (0, 0, 255)
 
+        # Desenha uma marca mais limpa, sem halo branco, para manter
+        # verde/vermelho evidentes e mais proximos da leitura impressa.
         cv2.circle(debug, (x, y), raio, cor, 2)
+        cv2.circle(debug, (x, y), max(3, raio // 2), (18, 18, 18), -1)
 
 
 def montar_ra(respostas):
@@ -1091,7 +1212,7 @@ def extrair_numero_pergunta(nome_pergunta):
     return int(match.group(1))
 
 
-def classificar_confianca_questao(pergunta, resposta, scores, erro):
+def classificar_confianca_questao(pergunta, question_data, resposta, scores, erro):
     """
     Camada de auditoria da leitura OMR.
 
@@ -1099,8 +1220,8 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
     Ela apenas classifica a questão para facilitar a conferência manual.
     """
 
-    numero = extrair_numero_pergunta(pergunta)
-    eh_questao_objetiva = numero is not None and numero >= 9
+    grupo = str((question_data or {}).get("group", "")).strip().lower()
+    eh_questao_objetiva = grupo == "group010"
 
     if not eh_questao_objetiva:
         return {
@@ -1108,7 +1229,8 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "resposta": resposta,
             "status": "CAMPO_AUXILIAR",
             "pendencia": False,
-            "motivo": "Campo auxiliar, RA, idioma ou cor da capa.",
+            "motivo": "Campo auxiliar fora do group010 do CSV.",
+            "group": grupo,
             "scores": scores or {}
         }
 
@@ -1119,6 +1241,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "SEM_COORDENADAS",
             "pendencia": True,
             "motivo": "Não foi possível obter scores da questão.",
+            "group": grupo,
             "melhor_alternativa": "",
             "melhor_score": 0,
             "segunda_alternativa": "",
@@ -1156,6 +1279,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "EM_BRANCO",
             "pendencia": True,
             "motivo": "A leitura principal não identificou alternativa marcada.",
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1171,6 +1295,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "MULTIPLA_MARCACAO",
             "pendencia": True,
             "motivo": "Duas ou mais alternativas tiveram score alto.",
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1186,6 +1311,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "DUVIDOSA",
             "pendencia": True,
             "motivo": "Resposta lida com score baixo. Possível falso positivo.",
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1201,6 +1327,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "DUVIDOSA",
             "pendencia": True,
             "motivo": "A melhor alternativa ficou próxima da segunda.",
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1216,6 +1343,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "DUVIDOSA",
             "pendencia": True,
             "motivo": str(erro),
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1231,6 +1359,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
             "status": "CONFIAVEL",
             "pendencia": False,
             "motivo": "Leitura considerada segura.",
+            "group": grupo,
             "melhor_alternativa": melhor_alt,
             "melhor_score": float(melhor_score),
             "segunda_alternativa": segunda_alt,
@@ -1245,6 +1374,7 @@ def classificar_confianca_questao(pergunta, resposta, scores, erro):
         "status": "DUVIDOSA",
         "pendencia": True,
         "motivo": "Leitura intermediária. Recomendada conferência manual.",
+        "group": grupo,
         "melhor_alternativa": melhor_alt,
         "melhor_score": float(melhor_score),
         "segunda_alternativa": segunda_alt,
@@ -1361,6 +1491,7 @@ def detectar_respostas_por_template(
 
         analise_confianca = classificar_confianca_questao(
             pergunta,
+            question_data,
             resposta,
             scores,
             erro
@@ -1725,7 +1856,7 @@ def processar_imagens_omr(
     os.makedirs(pasta_saida, exist_ok=True)
 
     # Cria uma pasta exclusiva para esta execução
-    data_execucao = datetime.now().strftime("%Y%m%d_%H%M%S")
+    data_execucao = agora_local().strftime("%Y%m%d_%H%M%S")
     pasta_execucao = os.path.join(
         pasta_saida,
         f"processamento_{data_execucao}"
@@ -1875,35 +2006,22 @@ def processar_imagens_omr(
                 debug_bolhas_log = resultado.get("debug_bolhas", "")
                 debug_cantos_log = resultado.get("debug_cantos", "")
             else:
-                nome_debug = "template_" + os.path.basename(caminho_imagem)
-                caminho_debug_falha = salvar_debug_falha_leitura(
-                    caminho_imagem,
-                    pasta_debug,
-                    detalhe
+                dados_correcao_manual = registrar_imagem_para_correcao_manual(
+                    leituras_omr=leituras_omr,
+                    pasta_debug=pasta_debug,
+                    pasta_manual=pasta_manual,
+                    pasta_pendencias=pasta_pendencias,
+                    caminho_imagem=caminho_imagem,
+                    caminho_original_processamento=caminho_original_processamento,
+                    imagem=imagem,
+                    respostas={},
+                    erros=erros,
+                    pontos_mapeados={},
+                    pontos_cantos=[],
+                    origem_cantos="AUTO"
                 )
-                caminho_debug_cantos = os.path.join(
-                    pasta_debug,
-                    "cantos_" + os.path.basename(caminho_imagem)
-                )
-
-                leituras_omr[nome_debug] = {
-                    "arquivo_original": os.path.basename(caminho_imagem),
-                    "caminho_original_processamento": caminho_original_processamento,
-                    "respostas": {},
-                    "pontos_mapeados": {},
-                    "pontos_cantos": [],
-                    "origem_cantos": "AUTO",
-                    "registro_academico": "",
-                    "codigo_barras": "",
-                    "debug_bolhas": caminho_debug_falha,
-                    "debug_cantos": caminho_debug_cantos if os.path.exists(caminho_debug_cantos) else "",
-                    "erros": erros,
-                    "confianca_questoes": {},
-                    "pendencias_confianca": [],
-                    "total_pendencias_confianca": 0
-                }
-                debug_bolhas_log = caminho_debug_falha
-                debug_cantos_log = caminho_debug_cantos if os.path.exists(caminho_debug_cantos) else ""
+                debug_bolhas_log = dados_correcao_manual["debug_bolhas"]
+                debug_cantos_log = dados_correcao_manual["debug_cantos"]
 
                 if evento_callback:
                     evento_callback(
@@ -1927,37 +2045,28 @@ def processar_imagens_omr(
             }
 
             if precisa_correcao_manual:
-                nome_sem_extensao = os.path.splitext(imagem)[0]
-
-                caminho_imagem_pendencia = os.path.join(
-                    pasta_pendencias,
-                    imagem
+                dados_correcao_manual = registrar_imagem_para_correcao_manual(
+                    leituras_omr=leituras_omr,
+                    pasta_debug=pasta_debug,
+                    pasta_manual=pasta_manual,
+                    pasta_pendencias=pasta_pendencias,
+                    caminho_imagem=caminho_imagem,
+                    caminho_original_processamento=caminho_original_processamento,
+                    imagem=imagem,
+                    respostas=respostas,
+                    erros=erros,
+                    pontos_mapeados=resultado.get("pontos_mapeados", {}) if resultado else {},
+                    pontos_cantos=resultado.get("pontos_cantos", []) if resultado else [],
+                    origem_cantos=resultado.get("origem_cantos", "AUTO") if resultado else "AUTO",
+                    registro_academico=resultado.get("registro_academico", "") if resultado else "",
+                    codigo_barras=resultado.get("codigo_barras", "") if resultado else "",
+                    debug_bolhas=debug_bolhas_log,
+                    debug_cantos=debug_cantos_log,
+                    confianca_questoes=resultado.get("confianca_questoes", {}) if resultado else {},
+                    pendencias_confianca=resultado.get("pendencias_confianca", []) if resultado else [],
+                    total_pendencias_confianca=resultado.get("total_pendencias_confianca", 0) if resultado else 0
                 )
-
-                try:
-                    shutil.copy2(caminho_imagem, caminho_imagem_pendencia)
-                except Exception:
-                    caminho_imagem_pendencia = caminho_imagem
-
-                caminho_json_manual = os.path.join(
-                    pasta_manual,
-                    nome_sem_extensao + ".json"
-                )
-
-                dados_manual = {
-                    "arquivo": imagem,
-                    "caminho_imagem": caminho_imagem,
-                    "caminho_imagem_pendencia": caminho_imagem_pendencia,
-                    "registro_academico": resultado.get("registro_academico", "") if resultado else "",
-                    "codigo_barras": resultado.get("codigo_barras", "") if resultado else "",
-                    "respostas": respostas,
-                    "erros": erros,
-                    "pontos_mapeados": resultado.get("pontos_mapeados", {}) if resultado else {},
-                    "corrigido_manualmente": False
-                }
-
-                with open(caminho_json_manual, "w", encoding="utf-8") as f:
-                    json.dump(dados_manual, f, ensure_ascii=False, indent=4)
+                caminho_json_manual = dados_correcao_manual["caminho_json_manual"]
             else:
                 caminho_json_manual = ""
 
@@ -1988,6 +2097,20 @@ def processar_imagens_omr(
                 )
 
         except Exception as e:
+            dados_correcao_manual = registrar_imagem_para_correcao_manual(
+                leituras_omr=leituras_omr,
+                pasta_debug=pasta_debug,
+                pasta_manual=pasta_manual,
+                pasta_pendencias=pasta_pendencias,
+                caminho_imagem=caminho_imagem,
+                caminho_original_processamento=caminho_original_processamento,
+                imagem=imagem,
+                respostas={},
+                erros=[str(e)],
+                pontos_mapeados={},
+                pontos_cantos=[],
+                origem_cantos="AUTO"
+            )
             if evento_callback:
                 evento_callback(
                     tipo="error",
@@ -2004,10 +2127,10 @@ def processar_imagens_omr(
                 "total_respostas_lidas": 0,
                 "total_erros": 1,
                 "correcao_manual": "SIM",
-                "arquivo_manual": "",
+                "arquivo_manual": dados_correcao_manual["caminho_json_manual"],
                 "erros": str(e),
-                "debug_bolhas": "",
-                "debug_cantos": "",
+                "debug_bolhas": dados_correcao_manual["debug_bolhas"],
+                "debug_cantos": dados_correcao_manual["debug_cantos"],
                 "detalhe": "Erro ao processar imagem"
             })
             
@@ -2053,7 +2176,7 @@ def processar_imagens_omr(
     with open(caminho_resumo, "w", encoding="utf-8") as f:
         f.write("RESUMO DO PROCESSAMENTO OMR\n")
         f.write("==========================\n\n")
-        f.write(f"Data da execução: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+        f.write(f"Data da execução: {agora_local().strftime('%d/%m/%Y %H:%M:%S')}\n")
         f.write(f"Pasta de imagens: {pasta_imagens}\n")
         f.write(f"Pasta de saída: {pasta_execucao}\n")
         f.write(f"Modelo usado: {caminho_modelo}\n\n")

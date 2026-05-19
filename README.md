@@ -24,7 +24,6 @@ O sistema permite:
 - Exportação do CSV final mesmo com pendências, mediante confirmação
 - Healthcheck para monitoramento em `/healthz`
 - Execução local e via Docker
-- Proxy reverso com Caddy para uso em servidor
 - Autenticação HTTP básica opcional para acesso interno
 
 ## Stack Utilizada
@@ -50,9 +49,11 @@ OMRCheck-Web/
 │   └── templates/          # Templates HTML
 ├── main.py                 # Inicialização do FastAPI
 ├── omr_reader.py           # Motor principal de leitura OMR
-├── docker-compose.yml      # Orquestração do container
+├── docker-compose.yml      # Orquestração principal do ambiente implantado
 ├── Dockerfile              # Imagem Docker da aplicação
 ├── requirements-prod.txt   # Dependências de produção
+├── scripts/                # Rotinas operacionais
+├── CHECKLIST_IMPLANTACAO.md # Checklist curto de subida no setor
 └── .env.example            # Exemplo de configuração do ambiente
 ```
 
@@ -70,31 +71,63 @@ Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
 Exemplo:
 
 ```env
+APP_ENV=production
+APP_TIMEZONE=America/Sao_Paulo
+
+KEEPEDU_BUSCAR_ID_URL=https://develop.keepedu.com.br/api/customers/buscar-id-aluno
+KEEPEDU_API_KEY=
+KEEPEDU_INSTITUTE=
+ID_PROVA_KEEPEDU=
+
+BERNOULLI_USUARIOS_URL=http://api.bernoulli.com.br/api/gerenciar/acessos/usuarios/listar
+BERNOULLI_AUTHORIZATION=
+BERNOULLI_COOKIE=
+BERNOULLI_PAGE_SIZE=10
+BERNOULLI_GRUPO_USUARIO=5
+BERNOULLI_FRONT_VERSION=4.25.72
+BERNOULLI_PLATAFORMA=2
+BERNOULLI_ORIGIN=https://mb4.bernoulli.com.br
+BERNOULLI_REFERER=https://mb4.bernoulli.com.br/
+
 APP_DATA_DIR=/data
+APP_LOG_DIR=/data/logs
+APP_BACKUP_DIR=/data/backups
+APP_PROCESSAMENTOS_DIR=/data/processamentos
+APP_UPLOADS_TEMP_DIR=/data/uploads_temp
+APP_RUNTIME_DIR=/data/runtime
+
 HOST=0.0.0.0
 PORT=8000
-APP_ALLOWED_HOSTS=localhost,127.0.0.1
+APP_ALLOWED_HOSTS=localhost,127.0.0.1,SEU_IP_OU_HOST_INTERNO
 
 APP_ENABLE_AUTH=true
 APP_BASIC_AUTH_USER=operador
 APP_BASIC_AUTH_PASSWORD=troque-esta-senha
 
-APP_DOMAIN=localhost
-ACME_EMAIL=
-
 MAX_UPLOAD_FILES=300
 MAX_FILE_SIZE_MB=15
 MAX_TOTAL_UPLOAD_SIZE_MB=512
+
+APP_LOG_LEVEL=INFO
+APP_RETENTION_DAYS=45
+APP_UPLOAD_TEMP_RETENTION_HOURS=24
+APP_BACKUP_ENABLED=true
 ```
 
 ### Observações
 
 - `KEEPEDU_API_KEY` e `KEEPEDU_INSTITUTE` são obrigatórios para a validação via API
+- `BERNOULLI_AUTHORIZATION` e `BERNOULLI_COOKIE` são sensíveis e devem ficar apenas no `.env`
+- `APP_TIMEZONE` padroniza a exibição de datas e horários do sistema
 - `APP_DATA_DIR` define onde uploads, processamentos e runtime serão persistidos
+- `APP_LOG_DIR` define onde os logs operacionais serão gravados
+- `APP_BACKUP_DIR` define onde os backups compactados serão salvos
+- `APP_RUNTIME_DIR` define onde ficam arquivos transitórios do motor de jobs
 - `APP_ALLOWED_HOSTS` limita quais hosts podem servir a aplicação
 - `APP_ENABLE_AUTH`, `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD` controlam a proteção por login HTTP básico
-- `APP_DOMAIN` define o domínio atendido pelo proxy reverso
-- `ACME_EMAIL` é usado pelo Caddy para emissão/gestão de certificados HTTPS
+- `APP_RETENTION_DAYS` define a retenção de processamentos e logs antigos
+- `APP_UPLOAD_TEMP_RETENTION_HOURS` define a retenção dos uploads temporários
+- `APP_BACKUP_ENABLED` define se a rotina operacional deve gerar backup antes da limpeza
 - em ambiente local sem Docker, você pode ajustar `APP_DATA_DIR` para um caminho local ou remover essa variável
 
 ## Execução Local
@@ -153,31 +186,48 @@ Copy-Item .env.example .env
 
 Preencha os valores reais antes de subir.
 
-### 2. Ajustar credenciais e domínio
+### 2. Ajustar credenciais e acesso
 
 Antes de subir em servidor, preencha no `.env`:
 
 - `APP_BASIC_AUTH_USER`
 - `APP_BASIC_AUTH_PASSWORD`
 - `APP_ALLOWED_HOSTS`
-- `APP_DOMAIN`
-- `ACME_EMAIL`
 
-Se estiver em produção com domínio público, use o domínio real em `APP_DOMAIN`.
+Sem proxy reverso, inclua em `APP_ALLOWED_HOSTS` o IP interno ou host real que sera usado para acessar a aplicacao.
 
-### 3. Subir os containers
+### 3. Executar preflight
+
+Antes da subida, rode:
+
+```powershell
+python scripts/preflight.py
+```
+
+Esse script valida:
+
+- `.env`
+- `APP_ENV=production`
+- autenticação habilitada
+- senha não padrão
+- `APP_ALLOWED_HOSTS` ajustado para implantação
+- credenciais KeepEdu
+- template OMR
+- diretórios operacionais
+
+### 4. Subir os containers
 
 ```powershell
 docker compose up --build -d
 ```
 
-### 4. Acessar a aplicação
+### 5. Acessar a aplicação
 
-- Aplicação via proxy: [http://localhost](http://localhost)
-- Aplicação direta no host local: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- Healthcheck: [http://localhost:8000/healthz](http://localhost:8000/healthz)
+- Aplicação no servidor: `http://IP_DO_SERVIDOR:8000`
+- Aplicação local: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- Healthcheck: `http://IP_DO_SERVIDOR:8000/healthz`
 
-### 5. Comandos úteis
+### 6. Comandos úteis
 
 Ver status:
 
@@ -204,14 +254,11 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### 6. Arquitetura de produção
+### 7. Arquitetura de produção
 
-No modo atual, o projeto sobe com dois serviços:
+No modo atual, o projeto sobe com um servico:
 
-- `omrcheck-web`: aplicação FastAPI/Uvicorn
-- `caddy`: proxy reverso responsável por entrada HTTP/HTTPS e headers de borda
-
-O `uvicorn` fica exposto apenas em `127.0.0.1:8000` no host, enquanto o acesso externo deve ocorrer pelo `Caddy` nas portas `80` e `443`.
+- `omrcheck-web`: aplicação FastAPI/Uvicorn acessível diretamente na porta `8000`
 
 ## Fluxo De Uso
 
@@ -259,8 +306,73 @@ Os principais artefatos gerados pelo sistema são:
 - `processamentos/`
 - `uploads_temp/`
 - `runtime/jobs.json`
+- `logs/`
+- `backups/`
 
 No Docker, esses dados ficam persistidos em `docker-data/`.
+
+## Dados Sensíveis E Arquivos Não Versionados
+
+Para evitar vazamento de credenciais ou dados operacionais, o repositório deve manter fora do commit:
+
+- `.env` e qualquer variante local de ambiente
+- diretórios operacionais como `docker-data/`, `processamentos/`, `uploads_temp/`, `logs/`, `backups/`, `base/` e `runtime/`
+- certificados, chaves e arquivos de banco local como `*.pem`, `*.key`, `*.crt`, `*.p12`, `*.pfx`, `*.db` e `*.sqlite*`
+- caches locais e ambientes de desenvolvimento como `.venv/`, `venv/`, `.pytest_cache/`, `.mypy_cache/` e `.ruff_cache/`
+
+Integrações que exigem atenção especial:
+
+- `KEEPEDU_API_KEY`
+- `KEEPEDU_INSTITUTE`
+- `BERNOULLI_AUTHORIZATION`
+- `BERNOULLI_COOKIE`
+- `APP_BASIC_AUTH_PASSWORD`
+
+Se algum desses arquivos já tiver sido versionado no passado, remova do índice antes do próximo push:
+
+```powershell
+git rm --cached -r .env docker-data processamentos uploads_temp logs backups base runtime
+```
+
+Depois disso, confirme se o `.gitignore` cobre os caminhos corretos antes de gerar novo commit.
+
+## Backup E Retenção
+
+O projeto possui uma rotina operacional em `scripts/maintenance.py`.
+
+Gerar backup:
+
+```powershell
+python scripts/maintenance.py backup
+```
+
+Executar limpeza:
+
+```powershell
+python scripts/maintenance.py cleanup
+```
+
+Executar backup e limpeza:
+
+```powershell
+python scripts/maintenance.py all
+```
+
+Executar apenas simulação:
+
+```powershell
+python scripts/maintenance.py all --dry-run
+```
+
+Essa rotina usa:
+
+- `APP_RETENTION_DAYS`
+- `APP_UPLOAD_TEMP_RETENTION_HOURS`
+- `APP_BACKUP_ENABLED`
+
+## Checklist Rápido
+
+Existe também um checklist resumido em [CHECKLIST_IMPLANTACAO.md](./CHECKLIST_IMPLANTACAO.md) para a subida do ambiente do setor.
 
 ## Healthcheck
 
@@ -269,22 +381,39 @@ A rota `/healthz` retorna um JSON simples para monitoramento:
 ```json
 {
   "status": "ok",
+  "app_env": "production",
+  "auth_enabled": true,
   "modelo_cartao_existe": true,
   "keepedu_api_configurada": true,
-  "jobs_store_existe": true
+  "jobs_store_existe": true,
+  "logs_dir": "/data/logs",
+  "backups_dir": "/data/backups",
+  "backup_enabled": true
 }
 ```
+
+## Observabilidade E Suporte
+
+Além do store de jobs, a aplicação grava log rotativo em `APP_LOG_DIR`.
+
+Exemplo:
+
+- `/data/logs/omrcheck-production.log`
+
+Isso facilita suporte, conferência de startup e diagnóstico básico do ambiente.
 
 ## Segurança E Publicação
 
 Antes de publicar ou compartilhar o projeto:
 
 - nunca envie o arquivo `.env`
+- nunca envie tokens da integração Bernoulli ou credenciais KeepEdu em texto puro
 - nunca envie processamentos reais ou dados operacionais
 - use apenas o `.env.example` como referência
 - rotacione credenciais se houver suspeita de exposição anterior
 - troque a senha padrão de `APP_BASIC_AUTH_PASSWORD` antes de qualquer deploy
-- configure `APP_ALLOWED_HOSTS` com o domínio real do servidor
+- configure `APP_ALLOWED_HOSTS` com o IP ou host real do servidor
+- revise o `git status` antes de cada commit para garantir que nenhum dado do diretório operacional entrou por engano
 
 ## Situação Atual Do Projeto
 
@@ -296,7 +425,6 @@ O projeto está preparado para:
 
 Ainda pode evoluir futuramente com:
 
-- HTTPS com proxy reverso
 - backup automatizado
 - observabilidade mais robusta
 - fila de processamento separada da aplicação web

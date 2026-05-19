@@ -3,28 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <title>Validação Cadastral | OMRCheck Web</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=41">
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=64">
 </head>
 <body>
     <header class="topbar">
-        <div class="brand">
-            <div class="brand-mark">OMR</div>
-            <div class="brand-text">
-                <strong>OMRCheck Web</strong>
-                <span>Validação cadastral dos cartões</span>
-            </div>
-        </div>
-
-        <div class="topbar-actions">
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
+        </a>
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Conferência dos registros e geração do CSV final</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
             <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
         </div>
     </header>
 
-    <main class="page full">
-        <section class="hero hero-shell compact-hero">
+    <main class="page full page-validacao">
+        <section class="hero hero-shell compact-hero validacao-hero">
             <div class="hero-copy">
                 <span class="eyebrow">Validação cadastral</span>
-                <h1>Controle de identificação dos cartões</h1>
+                <h1>Validação dos cartões</h1>
                 <p>{{ nome_processamento }}</p>
             </div>
 
@@ -32,22 +35,22 @@
                 <div class="hero-stat">
                     <span>Cartões</span>
                     <strong>{{ resumo.total }}</strong>
-                    <p>Total de registros processados nesta execução.</p>
+                    <p>Total de cartões enviados para validação nesta execução.</p>
                 </div>
                 <div class="hero-stat">
                     <span>Prontos</span>
                     <strong>{{ resumo.validados }}</strong>
-                    <p>Itens com identificação concluída e prontos para exportação segura.</p>
+                    <p>Registros com identificação concluída e prontos para exportação.</p>
                 </div>
                 <div class="hero-stat">
                     <span>Pendências</span>
                     <strong>{{ resumo.pendentes }}</strong>
-                    <p>Registros que ainda exigem atenção operacional.</p>
+                    <p>Registros que ainda exigem intervenção do operador.</p>
                 </div>
             </div>
         </section>
 
-        <section class="stats-grid">
+        <section class="stats-grid validacao-primary-stats">
             <div class="stat-card">
                 <span>Total de cartões</span>
                 <strong>{{ resumo.total }}</strong>
@@ -64,7 +67,7 @@
             </div>
         </section>
 
-        <section class="stats-grid compact-stats">
+        <section class="stats-grid compact-stats validacao-secondary-stats">
             <div class="stat-card">
                 <span>ID vindo do cartão</span>
                 <strong>{{ resumo.com_id_cartao }}</strong>
@@ -81,10 +84,10 @@
             </div>
         </section>
 
-        <section class="card">
+        <section class="card validacao-export-card">
             <div class="section-head">
                 <div>
-                    <span class="section-kicker">Consolidação</span>
+                    <span class="section-kicker">Exportação</span>
                     <h2>Geração do CSV final</h2>
                 </div>
                 <span class="section-badge">
@@ -101,7 +104,7 @@
                     Gerar CSV Final
                 </button>
             {% else %}
-                <div class="actions">
+                <div class="actions validacao-export-actions">
                     <button class="btn-secondary" disabled>
                         Existem {{ resumo.pendentes }} pendência(s)
                     </button>
@@ -116,11 +119,11 @@
             <p id="csv-export-status" class="muted" style="margin-top: 12px;"></p>
         </section>
 
-        <section class="card">
+        <section class="card validacao-table-card">
             <div class="section-head">
                 <div>
                     <span class="section-kicker">Registros</span>
-                    <h2>Cartões processados</h2>
+                    <h2>Cartões do lote</h2>
                 </div>
                 <span class="section-badge">{{ validacoes|length }} item(ns)</span>
             </div>
@@ -128,7 +131,21 @@
                 O CSV final precisa do ID do aluno. Cartões nominais podem trazer o ID diretamente.
                 Quando isso não acontece, o sistema usa o RA para consultar a API e completar a identificação.
             </p>
-            <div class="table-wrapper">
+            <div class="table-toolbar">
+                <div class="table-toolbar-search">
+                    <label for="validacao-search">Pesquisa rápida</label>
+                    <input
+                        type="text"
+                        id="validacao-search"
+                        class="input-text"
+                        placeholder="Buscar por imagem, RA, ID, status ou motivo"
+                    >
+                </div>
+                <div class="table-toolbar-meta">
+                    <span id="validacao-search-info">Mostrando 0 de 0 registro(s)</span>
+                </div>
+            </div>
+            <div class="table-wrapper validacao-table-wrapper">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -143,7 +160,7 @@
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody id="validacao-tbody">
                         {% for nome, item in validacoes.items() %}
                             <tr class="{% if item.precisa_validacao_manual %}linha-pendente{% else %}linha-validada{% endif %}">
                                 <td>{{ item.arquivo_original }}</td>
@@ -181,6 +198,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div class="table-pagination">
+                <button type="button" class="btn-light" id="validacao-prev">Anterior</button>
+                <span class="table-pagination-info" id="validacao-page-info">Página 1 de 1</span>
+                <button type="button" class="btn-light" id="validacao-next">Próxima</button>
             </div>
         </section>
     </main>
@@ -354,6 +376,85 @@
                 gerarCsvFinal(botao.dataset.forcar === "true");
             });
         });
+
+        const validacaoSearch = document.getElementById("validacao-search");
+        const validacaoRows = Array.from(document.querySelectorAll("#validacao-tbody tr"));
+        const validacaoSearchInfo = document.getElementById("validacao-search-info");
+        const validacaoPageInfo = document.getElementById("validacao-page-info");
+        const validacaoPrev = document.getElementById("validacao-prev");
+        const validacaoNext = document.getElementById("validacao-next");
+        const validacaoPorPagina = 20;
+        let validacaoPaginaAtual = 1;
+
+        function obterLinhasFiltradasValidacao() {
+            const termo = (validacaoSearch?.value || "").trim().toLowerCase();
+
+            return validacaoRows.filter((linha) => {
+                if (!termo) {
+                    return true;
+                }
+
+                return (linha.textContent || "").toLowerCase().includes(termo);
+            });
+        }
+
+        function renderizarPaginacaoValidacao() {
+            if (!validacaoRows.length) {
+                return;
+            }
+
+            const linhasFiltradas = obterLinhasFiltradasValidacao();
+            const total = linhasFiltradas.length;
+            const totalPaginas = Math.max(1, Math.ceil(total / validacaoPorPagina));
+            validacaoPaginaAtual = Math.min(validacaoPaginaAtual, totalPaginas);
+
+            const inicio = (validacaoPaginaAtual - 1) * validacaoPorPagina;
+            const fim = inicio + validacaoPorPagina;
+            const linhasVisiveis = new Set(linhasFiltradas.slice(inicio, fim));
+
+            validacaoRows.forEach((linha) => {
+                linha.style.display = linhasVisiveis.has(linha) ? "" : "none";
+            });
+
+            if (validacaoSearchInfo) {
+                validacaoSearchInfo.textContent = `Mostrando ${Math.min(total, fim) - (total ? inicio : 0)} de ${total} registro(s)`;
+            }
+
+            if (validacaoPageInfo) {
+                validacaoPageInfo.textContent = `Página ${validacaoPaginaAtual} de ${totalPaginas}`;
+            }
+
+            if (validacaoPrev) {
+                validacaoPrev.disabled = validacaoPaginaAtual <= 1;
+            }
+
+            if (validacaoNext) {
+                validacaoNext.disabled = validacaoPaginaAtual >= totalPaginas;
+            }
+        }
+
+        validacaoSearch?.addEventListener("input", () => {
+            validacaoPaginaAtual = 1;
+            renderizarPaginacaoValidacao();
+        });
+
+        validacaoPrev?.addEventListener("click", () => {
+            if (validacaoPaginaAtual > 1) {
+                validacaoPaginaAtual -= 1;
+                renderizarPaginacaoValidacao();
+            }
+        });
+
+        validacaoNext?.addEventListener("click", () => {
+            const totalPaginas = Math.max(1, Math.ceil(obterLinhasFiltradasValidacao().length / validacaoPorPagina));
+
+            if (validacaoPaginaAtual < totalPaginas) {
+                validacaoPaginaAtual += 1;
+                renderizarPaginacaoValidacao();
+            }
+        });
+
+        renderizarPaginacaoValidacao();
     </script>
 </body>
 </html>
