@@ -67,6 +67,24 @@ def _extrair_id_aluno(aluno):
     return ""
 
 
+def _extrair_campo_texto(aluno, possiveis_campos, padrao=""):
+    if not isinstance(aluno, dict):
+        return padrao
+
+    for campo in possiveis_campos:
+        valor = aluno.get(campo)
+
+        if valor is None:
+            continue
+
+        texto = str(valor).strip()
+
+        if texto:
+            return texto
+
+    return padrao
+
+
 def buscar_aluno_por_ra(ra: str):
     """
     Consulta a API do KeepEdu pelo RA e retorna o ID do aluno.
@@ -145,11 +163,27 @@ def buscar_aluno_por_ra(ra: str):
         return {
             "encontrado": True,
             "id": id_aluno,
-            "ra": str(aluno.get("ra", ra)) if isinstance(aluno, dict) else ra,
-            "nome": str(aluno.get("nome", "")) if isinstance(aluno, dict) else "",
-            "turma": str(aluno.get("turma", "")) if isinstance(aluno, dict) else "",
-            "unidade": str(aluno.get("unidade", "")) if isinstance(aluno, dict) else "",
-            "status_matricula": str(aluno.get("status_matricula", "")) if isinstance(aluno, dict) else "",
+            "rmb": _extrair_campo_texto(
+                aluno,
+                ["cd_aluno", "codigo_aluno", "codigoAluno", "rmb", "RMB"]
+            ),
+            "ra": _extrair_campo_texto(
+                aluno,
+                ["cd_ra", "ra", "RA", "registro_academico"],
+                ra
+            ),
+            "nome": _extrair_campo_texto(
+                aluno,
+                ["nm_pessoa", "nome", "nm_aluno"],
+                ""
+            ),
+            "turma": _extrair_campo_texto(aluno, ["turma", "nm_turma"], ""),
+            "unidade": _extrair_campo_texto(aluno, ["unidade", "escola", "nm_unidade"], ""),
+            "status_matricula": _extrair_campo_texto(
+                aluno,
+                ["status_matricula", "nu_ativo", "in_bloqueado"],
+                ""
+            ),
             "raw": dados
         }
 

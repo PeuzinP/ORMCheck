@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Validação Cadastral | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=64">
+    <link rel="stylesheet" href="/static/css/style.css?v=75">
 </head>
 <body>
     <header class="topbar">
@@ -30,23 +30,23 @@
                 <h1>Validação dos cartões</h1>
                 <p>{{ nome_processamento }}</p>
             </div>
+        </section>
 
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <span>Cartões</span>
-                    <strong>{{ resumo.total }}</strong>
-                    <p>Total de cartões enviados para validação nesta execução.</p>
-                </div>
-                <div class="hero-stat">
-                    <span>Prontos</span>
-                    <strong>{{ resumo.validados }}</strong>
-                    <p>Registros com identificação concluída e prontos para exportação.</p>
-                </div>
-                <div class="hero-stat">
-                    <span>Pendências</span>
-                    <strong>{{ resumo.pendentes }}</strong>
-                    <p>Registros que ainda exigem intervenção do operador.</p>
-                </div>
+        <section class="hero-stats hero-stats-row validacao-hero-stats">
+            <div class="hero-stat">
+                <span>Cartões</span>
+                <strong>{{ resumo.total }}</strong>
+                <p>Total de cartões enviados para validação nesta execução.</p>
+            </div>
+            <div class="hero-stat">
+                <span>Prontos</span>
+                <strong>{{ resumo.validados }}</strong>
+                <p>Registros com identificação concluída e prontos para exportação.</p>
+            </div>
+            <div class="hero-stat">
+                <span>Pendências</span>
+                <strong>{{ resumo.pendentes }}</strong>
+                <p>Registros que ainda exigem intervenção do operador.</p>
             </div>
         </section>
 
@@ -117,6 +117,71 @@
                 </div>
             {% endif %}
             <p id="csv-export-status" class="muted" style="margin-top: 12px;"></p>
+
+            <div class="validacao-direct-divider"></div>
+
+            <div class="section-head validacao-direct-head">
+                <div>
+                    <span class="section-kicker">Envio direto</span>
+                    <h2>Importação JSON na plataforma</h2>
+                </div>
+            </div>
+            <p class="card-description validacao-direct-description">
+                Envia os cartões deste lote diretamente para a plataforma, em JSON, com uma requisição por aluno.
+                O sistema reaproveita o mesmo barcode, idioma, tipo e respostas já consolidados na validação.
+                Se a API indicar que o aluno ainda não pertence à avaliação, o cartão volta como pendência no painel.
+            </p>
+            <form id="json-import-form" class="form-grid validacao-direct-form">
+                <div class="validacao-direct-grid">
+                    <div>
+                        <label for="json-id-aval" class="campo-label">ID da avaliação</label>
+                        <input
+                            type="text"
+                            id="json-id-aval"
+                            class="input-text"
+                            value="{{ importacao_defaults.id_aval }}"
+                            placeholder="Ex.: 12310"
+                            required
+                        >
+                    </div>
+                    <div>
+                        <label for="json-id-aluno" class="campo-label">ID do aluno</label>
+                        <input
+                            type="text"
+                            id="json-id-aluno"
+                            class="input-text"
+                            value=""
+                            placeholder="Opcional para envio único"
+                        >
+                    </div>
+                </div>
+                <div class="actions validacao-export-actions">
+                    <button type="button" class="btn-light" id="btn-simular-json-direto">
+                        Simular Envio
+                    </button>
+                    <button type="submit" class="btn-secondary" id="btn-enviar-json-direto">
+                        Enviar Um Aluno
+                    </button>
+                    <button type="button" class="btn-primary" id="btn-enviar-todos-json-direto">
+                        Enviar Todos
+                    </button>
+                </div>
+            </form>
+            <p id="json-export-status" class="muted validacao-direct-status"></p>
+            <div id="json-import-progress-box" class="card progress-card" style="display: none; margin-top: 16px;">
+                <div class="section-head">
+                    <div>
+                        <span class="section-kicker">Acompanhamento</span>
+                        <h3>Progresso do envio JSON</h3>
+                    </div>
+                    <span class="section-badge" id="json-import-progress-percent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="json-import-progress-fill" style="width: 0%;"></div>
+                </div>
+                <p id="json-import-progress-message" class="progress-message">0% | Aguardando envio...</p>
+                <p id="json-import-progress-file" class="muted"></p>
+            </div>
         </section>
 
         <section class="card validacao-table-card">
@@ -163,7 +228,19 @@
                     <tbody id="validacao-tbody">
                         {% for nome, item in validacoes.items() %}
                             <tr class="{% if item.precisa_validacao_manual %}linha-pendente{% else %}linha-validada{% endif %}">
-                                <td>{{ item.arquivo_original }}</td>
+                                <td>
+                                    <div class="validacao-image-cell">
+                                        <span class="validacao-image-name">{{ item.arquivo_original }}</span>
+                                        <button
+                                            type="button"
+                                            class="btn-light validacao-image-preview-btn"
+                                            data-image-url="/imagem/{{ nome_processamento }}/{{ item.imagem | urlencode }}"
+                                            data-image-name="{{ item.arquivo_original }}"
+                                        >
+                                            Visualizar
+                                        </button>
+                                    </div>
+                                </td>
                                 <td>{{ item.id_detectado or "-" }}</td>
                                 <td>{{ item.ra_detectado or "-" }}</td>
                                 <td><strong>{{ item.id_final or "-" }}</strong></td>
@@ -175,7 +252,9 @@
                                 </td>
                                 <td>{{ item.motivo }}</td>
                                 <td>
-                                    {% if item.precisa_validacao_manual %}
+                                    {% if item.status_validacao == "PENDENTE_ALUNO_FORA_AVALIACAO" %}
+                                        <span class="muted">Aguardando inclusão na avaliação ou ajuste do ID</span>
+                                    {% elif item.precisa_validacao_manual %}
                                         <form class="manual-form" action="/validacao/manual/{{ nome_processamento }}" method="post">
                                             <input type="hidden" name="nome_imagem" value="{{ item.imagem }}">
 
@@ -186,7 +265,7 @@
                                                 required
                                             >
 
-                                            <button type="submit" class="btn-primary">
+                                            <button type="submit" class="btn-primary manual-save-btn">
                                                 Salvar
                                             </button>
                                         </form>
@@ -206,6 +285,31 @@
             </div>
         </section>
     </main>
+    <div id="confirmacao-importacao-modal" class="app-modal hidden" aria-hidden="true">
+        <div class="app-modal-backdrop" data-close-import-modal="true"></div>
+        <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmacao-importacao-titulo">
+            <div class="app-modal-header">
+                <div>
+                    <span class="section-kicker">Confirmação</span>
+                    <h3 id="confirmacao-importacao-titulo">Confirmar envio direto?</h3>
+                </div>
+                <button type="button" class="app-modal-close" id="confirmacao-importacao-fechar" aria-label="Fechar">
+                    x
+                </button>
+            </div>
+            <p class="app-modal-text" id="confirmacao-importacao-texto">
+                Você tem certeza que deseja enviar este lote para a plataforma?
+            </p>
+            <div class="app-modal-actions">
+                <button type="button" class="btn-light" id="confirmacao-importacao-cancelar">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-secondary" id="confirmacao-importacao-confirmar">
+                    Confirmar envio
+                </button>
+            </div>
+        </div>
+    </div>
     <div id="confirmacao-csv-modal" class="app-modal hidden" aria-hidden="true">
         <div class="app-modal-backdrop" data-close-modal="true"></div>
         <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmacao-csv-titulo">
@@ -231,13 +335,97 @@
             </div>
         </div>
     </div>
+    <div id="visualizacao-imagem-modal" class="app-modal hidden" aria-hidden="true">
+        <div class="app-modal-backdrop" data-close-image-modal="true"></div>
+        <div class="app-modal-dialog app-modal-image-dialog" role="dialog" aria-modal="true" aria-labelledby="visualizacao-imagem-titulo">
+            <div class="app-modal-header">
+                <div>
+                    <span class="section-kicker">Visualização</span>
+                    <h3 id="visualizacao-imagem-titulo">Imagem do cartão</h3>
+                </div>
+                <button type="button" class="app-modal-close" id="visualizacao-imagem-fechar" aria-label="Fechar">
+                    x
+                </button>
+            </div>
+            <div class="app-modal-image-toolbar">
+                <button type="button" class="btn-light" id="visualizacao-imagem-zoom-out">Zoom -</button>
+                <button type="button" class="btn-light" id="visualizacao-imagem-zoom-reset">100%</button>
+                <button type="button" class="btn-light" id="visualizacao-imagem-zoom-fit">Ajustar</button>
+                <button type="button" class="btn-light" id="visualizacao-imagem-zoom-in">Zoom +</button>
+                <span class="app-modal-image-zoom-label" id="visualizacao-imagem-zoom-label">100%</span>
+            </div>
+            <div class="app-modal-image-body">
+                <div class="app-modal-image-stage" id="visualizacao-imagem-stage">
+                    <img id="visualizacao-imagem-preview" class="app-modal-image-preview" src="" alt="">
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
 
+        const modalConfirmacaoImportacao = document.getElementById("confirmacao-importacao-modal");
+        const modalConfirmacaoImportacaoTexto = document.getElementById("confirmacao-importacao-texto");
+        const modalConfirmacaoImportacaoConfirmar = document.getElementById("confirmacao-importacao-confirmar");
+        const modalConfirmacaoImportacaoCancelar = document.getElementById("confirmacao-importacao-cancelar");
+        const modalConfirmacaoImportacaoFechar = document.getElementById("confirmacao-importacao-fechar");
         const modalConfirmacaoCsv = document.getElementById("confirmacao-csv-modal");
         const modalConfirmacaoCsvConfirmar = document.getElementById("confirmacao-csv-confirmar");
         const modalConfirmacaoCsvCancelar = document.getElementById("confirmacao-csv-cancelar");
         const modalConfirmacaoCsvFechar = document.getElementById("confirmacao-csv-fechar");
+        const modalVisualizacaoImagem = document.getElementById("visualizacao-imagem-modal");
+        const modalVisualizacaoImagemFechar = document.getElementById("visualizacao-imagem-fechar");
+        const modalVisualizacaoImagemPreview = document.getElementById("visualizacao-imagem-preview");
+        const modalVisualizacaoImagemTitulo = document.getElementById("visualizacao-imagem-titulo");
+        const modalVisualizacaoImagemStage = document.getElementById("visualizacao-imagem-stage");
+        const modalVisualizacaoImagemZoomOut = document.getElementById("visualizacao-imagem-zoom-out");
+        const modalVisualizacaoImagemZoomReset = document.getElementById("visualizacao-imagem-zoom-reset");
+        const modalVisualizacaoImagemZoomFit = document.getElementById("visualizacao-imagem-zoom-fit");
+        const modalVisualizacaoImagemZoomIn = document.getElementById("visualizacao-imagem-zoom-in");
+        const modalVisualizacaoImagemZoomLabel = document.getElementById("visualizacao-imagem-zoom-label");
+        const jsonImportProgressBox = document.getElementById("json-import-progress-box");
+        const jsonImportProgressFill = document.getElementById("json-import-progress-fill");
+        const jsonImportProgressPercent = document.getElementById("json-import-progress-percent");
+        const jsonImportProgressMessage = document.getElementById("json-import-progress-message");
+        const jsonImportProgressFile = document.getElementById("json-import-progress-file");
+        let jsonImportJobId = null;
+        let zoomModalImagem = 1;
+
+        function atualizarZoomModalImagem() {
+            if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemZoomLabel) {
+                return;
+            }
+
+            const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
+            if (larguraNatural) {
+                modalVisualizacaoImagemPreview.style.width = `${Math.round(larguraNatural * zoomModalImagem)}px`;
+            }
+            modalVisualizacaoImagemZoomLabel.textContent = `${Math.round(zoomModalImagem * 100)}%`;
+        }
+
+        function ajustarZoomModalImagem() {
+            if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemStage) {
+                return;
+            }
+
+            const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
+            const alturaNatural = modalVisualizacaoImagemPreview.naturalHeight || 0;
+            const larguraDisponivel = modalVisualizacaoImagemStage.clientWidth || 0;
+            const alturaDisponivel = modalVisualizacaoImagemStage.clientHeight || 0;
+
+            if (!larguraNatural || !alturaNatural || !larguraDisponivel || !alturaDisponivel) {
+                zoomModalImagem = 1;
+                atualizarZoomModalImagem();
+                return;
+            }
+
+            const fatorLargura = larguraDisponivel / larguraNatural;
+            const fatorAltura = alturaDisponivel / alturaNatural;
+            zoomModalImagem = Math.min(fatorLargura, fatorAltura, 1);
+            atualizarZoomModalImagem();
+            modalVisualizacaoImagemStage.scrollTop = 0;
+            modalVisualizacaoImagemStage.scrollLeft = 0;
+        }
 
         function abrirModalConfirmacaoCsv() {
             return new Promise((resolve) => {
@@ -275,6 +463,57 @@
                 document.addEventListener("keydown", onEscape);
 
                 modalConfirmacaoCsvConfirmar.focus();
+            });
+        }
+
+        function abrirModalConfirmacaoImportacao({ idAval, idAluno, enviarTodos }) {
+            return new Promise((resolve) => {
+                const concluir = (confirmado) => {
+                    modalConfirmacaoImportacao.classList.add("hidden");
+                    modalConfirmacaoImportacao.setAttribute("aria-hidden", "true");
+                    modalConfirmacaoImportacaoConfirmar.removeEventListener("click", onConfirmar);
+                    modalConfirmacaoImportacaoCancelar.removeEventListener("click", onCancelar);
+                    modalConfirmacaoImportacaoFechar.removeEventListener("click", onCancelar);
+                    modalConfirmacaoImportacao.removeEventListener("click", onBackdrop);
+                    document.removeEventListener("keydown", onEscape);
+                    resolve(confirmado);
+                };
+
+                const onConfirmar = () => concluir(true);
+                const onCancelar = () => concluir(false);
+                const onBackdrop = (event) => {
+                    if (event.target?.dataset?.closeImportModal === "true") {
+                        concluir(false);
+                    }
+                };
+                const onEscape = (event) => {
+                    if (event.key === "Escape") {
+                        concluir(false);
+                    }
+                };
+
+                if (modalConfirmacaoImportacaoTexto) {
+                    modalConfirmacaoImportacaoTexto.textContent = enviarTodos
+                        ? (
+                            `Você tem certeza que deseja enviar todos os alunos deste lote `
+                            + `para a avaliação ${idAval}?`
+                        )
+                        : (
+                            `Você tem certeza que deseja enviar somente o aluno ${idAluno} `
+                            + `para a avaliação ${idAval}?`
+                        );
+                }
+
+                modalConfirmacaoImportacao.classList.remove("hidden");
+                modalConfirmacaoImportacao.setAttribute("aria-hidden", "false");
+
+                modalConfirmacaoImportacaoConfirmar.addEventListener("click", onConfirmar);
+                modalConfirmacaoImportacaoCancelar.addEventListener("click", onCancelar);
+                modalConfirmacaoImportacaoFechar.addEventListener("click", onCancelar);
+                modalConfirmacaoImportacao.addEventListener("click", onBackdrop);
+                document.addEventListener("keydown", onEscape);
+
+                modalConfirmacaoImportacaoConfirmar.focus();
             });
         }
 
@@ -326,6 +565,35 @@
             URL.revokeObjectURL(url);
         }
 
+        function fecharModalImagem() {
+            if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview) {
+                return;
+            }
+
+            modalVisualizacaoImagem.classList.add("hidden");
+            modalVisualizacaoImagem.setAttribute("aria-hidden", "true");
+            modalVisualizacaoImagemPreview.src = "";
+            modalVisualizacaoImagemPreview.alt = "";
+            modalVisualizacaoImagemPreview.style.width = "";
+            zoomModalImagem = 1;
+        }
+
+        function abrirModalImagem(urlImagem, nomeImagem) {
+            if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview || !modalVisualizacaoImagemTitulo) {
+                return;
+            }
+
+            modalVisualizacaoImagemPreview.src = urlImagem;
+            modalVisualizacaoImagemPreview.alt = nomeImagem || "Imagem do cartão";
+            modalVisualizacaoImagemTitulo.textContent = nomeImagem || "Imagem do cartão";
+            modalVisualizacaoImagem.classList.remove("hidden");
+            modalVisualizacaoImagem.setAttribute("aria-hidden", "false");
+            modalVisualizacaoImagemPreview.onload = () => {
+                ajustarZoomModalImagem();
+            };
+            modalVisualizacaoImagemFechar?.focus();
+        }
+
         async function gerarCsvFinal(forcar) {
             const status = document.getElementById("csv-export-status");
             const botoes = document.querySelectorAll(".btn-gerar-csv");
@@ -371,9 +639,222 @@
             }
         }
 
+        function resumirImportacaoDireta(dados) {
+            const total = Number(dados?.total || 0);
+            const importadas = Number(dados?.importadas || 0);
+            const erros = Number(dados?.erros || 0);
+            const mensagens = Array.isArray(dados?.mensagem)
+                ? dados.mensagem.filter((item) => String(item || "").trim()).slice(0, 3)
+                : [];
+
+            const prefixo = erros > 0
+                ? `Envio concluído com pendências: ${importadas}/${total} importada(s) e ${erros} erro(s).`
+                : `Envio concluído: ${importadas}/${total} importada(s).`;
+
+            if (!mensagens.length) {
+                return prefixo;
+            }
+
+            return `${prefixo} ${mensagens.join(" | ")}`;
+        }
+
+        function atualizarPainelImportacao(percentual, mensagem, arquivoAtual) {
+            if (!jsonImportProgressBox || !jsonImportProgressFill || !jsonImportProgressPercent || !jsonImportProgressMessage) {
+                return;
+            }
+
+            const percentualFinal = Math.max(0, Math.min(100, Number(percentual || 0)));
+            jsonImportProgressBox.style.display = "block";
+            jsonImportProgressFill.style.width = `${percentualFinal}%`;
+            jsonImportProgressPercent.textContent = `${percentualFinal}%`;
+            jsonImportProgressMessage.textContent = `${percentualFinal}% | ${mensagem || "Processando..."}`;
+
+            if (jsonImportProgressFile) {
+                jsonImportProgressFile.textContent = arquivoAtual ? `Arquivo atual: ${arquivoAtual}` : "";
+            }
+        }
+
+        async function consultarStatusImportacao(jobId, modo, botoesControle, status) {
+            try {
+                const resposta = await fetch(`/status-processamento/${jobId}`);
+                const dados = await resposta.json();
+                const percentual = Number(dados?.percentual || 0);
+                const mensagem = dados?.mensagem || "Processando...";
+                atualizarPainelImportacao(percentual, mensagem, dados?.arquivo_atual || "");
+
+                if (dados.status === "concluido") {
+                    const resultado = dados?.resultado || {};
+                    const resumo = resumirImportacaoDireta(resultado);
+                    status.textContent = modo === "simulacao"
+                        ? `Simulação concluída. ${resumo}`
+                        : resumo;
+
+                    if (modo === "importacao" && resultado?.validacao_atualizada) {
+                        status.textContent = `${resumo} Atualizando o painel de validação...`;
+                        window.setTimeout(() => {
+                            window.location.reload();
+                        }, 1200);
+                    }
+
+                    botoesControle.forEach((botao) => {
+                        if (botao) {
+                            botao.disabled = false;
+                        }
+                    });
+                    jsonImportJobId = null;
+                    return;
+                }
+
+                if (dados.status === "erro") {
+                    status.textContent = dados?.erro || mensagem || "Erro ao executar envio em JSON.";
+                    botoesControle.forEach((botao) => {
+                        if (botao) {
+                            botao.disabled = false;
+                        }
+                    });
+                    jsonImportJobId = null;
+                    return;
+                }
+
+                window.setTimeout(() => consultarStatusImportacao(jobId, modo, botoesControle, status), 700);
+            } catch (error) {
+                status.textContent = "Erro ao consultar o progresso do envio.";
+                botoesControle.forEach((botao) => {
+                    if (botao) {
+                        botao.disabled = false;
+                    }
+                });
+                jsonImportJobId = null;
+            }
+        }
+
+        async function executarImportacaoDireta(modo, enviarTodos = false) {
+            const status = document.getElementById("json-export-status");
+            const botao = document.getElementById("btn-enviar-json-direto");
+            const botaoEnviarTodos = document.getElementById("btn-enviar-todos-json-direto");
+            const botaoSimular = document.getElementById("btn-simular-json-direto");
+            const nomeProcessamento = window.NOME_PROCESSAMENTO;
+            const idAvalInput = document.getElementById("json-id-aval");
+            const idAlunoInput = document.getElementById("json-id-aluno");
+
+            const idAval = String(idAvalInput?.value || "").trim();
+            const idAluno = String(idAlunoInput?.value || "").trim();
+
+            if (!idAval) {
+                status.textContent = "Informe o ID da avaliação antes de enviar.";
+                idAvalInput?.focus();
+                return;
+            }
+
+            if (!enviarTodos && !idAluno) {
+                status.textContent = "Informe o ID do aluno para enviar somente um JSON.";
+                idAlunoInput?.focus();
+                return;
+            }
+
+            if (modo === "importacao") {
+                const confirmou = await abrirModalConfirmacaoImportacao({
+                    idAval,
+                    idAluno,
+                    enviarTodos
+                });
+
+                if (!confirmou) {
+                    return;
+                }
+            }
+
+            if (botao) {
+                botao.disabled = true;
+            }
+            if (botaoEnviarTodos) {
+                botaoEnviarTodos.disabled = true;
+            }
+            if (botaoSimular) {
+                botaoSimular.disabled = true;
+            }
+            atualizarPainelImportacao(0, modo === "simulacao"
+                ? "Preparando simulação em JSON..."
+                : "Preparando envio em JSON...", "");
+            status.textContent = modo === "simulacao"
+                ? (
+                    enviarTodos
+                        ? "Simulando envio em JSON para todos os alunos..."
+                        : `Simulando envio em JSON para o aluno ${idAluno}...`
+                )
+                : (
+                    enviarTodos
+                        ? "Enviando respostas em JSON para todos os alunos..."
+                        : `Enviando resposta em JSON para o aluno ${idAluno}...`
+                );
+
+            try {
+                const rota = modo === "simulacao"
+                    ? `/simular-importacao-respostas-presenciais-ajax/${encodeURIComponent(nomeProcessamento)}`
+                    : `/importar-respostas-presenciais-ajax/${encodeURIComponent(nomeProcessamento)}`;
+                const resposta = await fetch(rota, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        idAval,
+                        idAluno: enviarTodos ? "" : idAluno
+                    })
+                });
+
+                const dados = await resposta.json().catch(() => ({}));
+
+                if (!resposta.ok) {
+                    throw new Error(dados.mensagem || dados.erro || "Não foi possível enviar o JSON direto.");
+                }
+
+                if (!dados?.job_id) {
+                    throw new Error("A execução foi iniciada sem um identificador de progresso.");
+                }
+
+                jsonImportJobId = dados.job_id;
+                status.textContent = dados.mensagem || "Envio iniciado.";
+                consultarStatusImportacao(
+                    dados.job_id,
+                    modo,
+                    [botao, botaoEnviarTodos, botaoSimular],
+                    status
+                );
+            } catch (error) {
+                status.textContent = modo === "simulacao"
+                    ? `Erro ao simular envio: ${error.message}`
+                    : `Erro ao enviar JSON direto: ${error.message}`;
+                [botao, botaoEnviarTodos, botaoSimular].forEach((item) => {
+                    if (item) {
+                        item.disabled = false;
+                    }
+                });
+            }
+        }
+
         document.querySelectorAll(".btn-gerar-csv").forEach((botao) => {
             botao.addEventListener("click", () => {
                 gerarCsvFinal(botao.dataset.forcar === "true");
+            });
+        });
+
+        document.getElementById("json-import-form")?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            executarImportacaoDireta("importacao", false);
+        });
+        document.getElementById("btn-simular-json-direto")?.addEventListener("click", () => {
+            const idAluno = String(document.getElementById("json-id-aluno")?.value || "").trim();
+            executarImportacaoDireta("simulacao", !idAluno);
+        });
+        document.getElementById("btn-enviar-todos-json-direto")?.addEventListener("click", () => {
+            executarImportacaoDireta("importacao", true);
+        });
+
+        document.querySelectorAll(".validacao-image-preview-btn").forEach((botao) => {
+            botao.addEventListener("click", () => {
+                abrirModalImagem(botao.dataset.imageUrl || "", botao.dataset.imageName || "Imagem do cartão");
             });
         });
 
@@ -385,6 +866,88 @@
         const validacaoNext = document.getElementById("validacao-next");
         const validacaoPorPagina = 20;
         let validacaoPaginaAtual = 1;
+
+        function formatarTextoStatus(valor) {
+            return String(valor || "-")
+                .replaceAll("_", " ")
+                .toLowerCase()
+                .replace(/\b\w/g, (letra) => letra.toUpperCase());
+        }
+
+        async function salvarValidacaoManualSemReload(formulario) {
+            const botaoSalvar = formulario.querySelector('button[type="submit"]');
+            const inputManual = formulario.querySelector('input[name="id_aluno_manual"]');
+            const linha = formulario.closest("tr");
+            const statusExportacao = document.getElementById("csv-export-status");
+
+            if (!botaoSalvar || !inputManual || !linha) {
+                return;
+            }
+
+            const textoOriginal = botaoSalvar.textContent;
+            const dadosFormulario = new FormData(formulario);
+            botaoSalvar.disabled = true;
+            inputManual.disabled = true;
+            botaoSalvar.textContent = "Salvando...";
+
+            try {
+                const resposta = await fetch(`${formulario.action}?ajax=1`, {
+                    method: "POST",
+                    body: dadosFormulario,
+                    headers: {
+                        "Accept": "application/json",
+                        "X-Requested-With": "fetch"
+                    }
+                });
+
+                const dados = await resposta.json().catch(() => ({}));
+
+                if (!resposta.ok || dados.status !== "ok") {
+                    throw new Error(dados.mensagem || "Não foi possível salvar o ID manual.");
+                }
+
+                const registro = dados.registro || {};
+                linha.classList.remove("linha-pendente");
+                linha.classList.add("linha-validada");
+
+                if (linha.cells[3]) {
+                    linha.cells[3].innerHTML = `<strong>${registro.id_final || "-"}</strong>`;
+                }
+
+                if (linha.cells[4]) {
+                    linha.cells[4].textContent = formatarTextoStatus(registro.origem_id || "-");
+                }
+
+                if (linha.cells[5]) {
+                    linha.cells[5].innerHTML = `
+                        <span class="status-badge status-validado">
+                            Resolvido
+                        </span>
+                    `;
+                }
+
+                if (linha.cells[6]) {
+                    linha.cells[6].textContent = registro.motivo || "ID informado manualmente na Validação Cadastral.";
+                }
+
+                if (linha.cells[7]) {
+                    linha.cells[7].innerHTML = '<span class="muted">Resolvido</span>';
+                }
+
+                if (statusExportacao) {
+                    statusExportacao.textContent = "ID manual salvo sem recarregar a página.";
+                }
+
+                renderizarPaginacaoValidacao();
+            } catch (error) {
+                botaoSalvar.disabled = false;
+                inputManual.disabled = false;
+                botaoSalvar.textContent = textoOriginal;
+                if (statusExportacao) {
+                    statusExportacao.textContent = error.message || "Erro ao salvar o ID manual.";
+                }
+            }
+        }
 
         function obterLinhasFiltradasValidacao() {
             const termo = (validacaoSearch?.value || "").trim().toLowerCase();
@@ -451,6 +1014,57 @@
             if (validacaoPaginaAtual < totalPaginas) {
                 validacaoPaginaAtual += 1;
                 renderizarPaginacaoValidacao();
+            }
+        });
+
+        document.addEventListener("submit", async (event) => {
+            const formulario = event.target;
+
+            if (!(formulario instanceof HTMLFormElement) || !formulario.classList.contains("manual-form")) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const inputManual = formulario.querySelector('input[name="id_aluno_manual"]');
+
+            if (!inputManual || !String(inputManual.value || "").trim()) {
+                inputManual?.focus();
+                return;
+            }
+
+            await salvarValidacaoManualSemReload(formulario);
+        });
+
+        modalVisualizacaoImagemFechar?.addEventListener("click", fecharModalImagem);
+        modalVisualizacaoImagemZoomIn?.addEventListener("click", () => {
+            zoomModalImagem = Math.min(zoomModalImagem + 0.1, 3);
+            atualizarZoomModalImagem();
+        });
+        modalVisualizacaoImagemZoomOut?.addEventListener("click", () => {
+            zoomModalImagem = Math.max(zoomModalImagem - 0.1, 0.2);
+            atualizarZoomModalImagem();
+        });
+        modalVisualizacaoImagemZoomReset?.addEventListener("click", () => {
+            zoomModalImagem = 1;
+            atualizarZoomModalImagem();
+        });
+        modalVisualizacaoImagemZoomFit?.addEventListener("click", ajustarZoomModalImagem);
+        modalVisualizacaoImagem?.addEventListener("click", (event) => {
+            if (event.target?.dataset?.closeImageModal === "true") {
+                fecharModalImagem();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && modalVisualizacaoImagem && !modalVisualizacaoImagem.classList.contains("hidden")) {
+                fecharModalImagem();
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            if (modalVisualizacaoImagem && !modalVisualizacaoImagem.classList.contains("hidden")) {
+                ajustarZoomModalImagem();
             }
         });
 

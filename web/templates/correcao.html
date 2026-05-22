@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Correção | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=64">
+    <link rel="stylesheet" href="/static/css/style.css?v=69">
 </head>
 <body>
     <header class="topbar">
@@ -115,7 +115,8 @@
                             <span id="viewer-meta" class="viewer-meta"></span>
                         </div>
                         <p class="viewer-help" id="viewer-help">
-                            Botão esquerdo adiciona marcação | Botão direito remove a marcação mais próxima
+                            Vermelho = Errado / nao deve entrar no CSV | Verde = Correto / deve entrar no CSV |
+                            Botao esquerdo do MOUSE adiciona marcacao | Botao direito do MOUSE remove a marcacao mais proxima
                         </p>
                         <div class="corner-toolbar">
                             <div class="corner-toolbar-group">
@@ -180,6 +181,6 @@
     <script>
         window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
     </script>
-    <script src="/static/js/correcao.js?v=49"></script>
+    <script src="/static/js/correcao.js?v=50"></script>
 </body>
 </html>

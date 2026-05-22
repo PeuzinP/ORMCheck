@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=65">
+    <link rel="stylesheet" href="/static/css/style.css?v=73">
 </head>
 <body>
     <header class="topbar">
@@ -83,7 +83,6 @@
         </section>
 
         <section class="home-dashboard">
-            <div class="home-main-column">
                 <section class="card upload-command-card" id="novo-processamento">
                     <div class="section-head upload-command-head">
                         <div>
@@ -128,13 +127,31 @@
                             <div id="upload-lista" class="upload-lista" style="display: none;"></div>
                         </div>
 
-                        <div class="upload-command-footer">
-                            <button type="submit" class="btn-primary">
-                                Iniciar processamento
-                            </button>
-                            <p class="upload-command-note">
-                                O lote fica disponível no histórico assim que a leitura for iniciada.
-                            </p>
+                        <div class="upload-command-bottom">
+                            <div class="upload-command-footer">
+                                <button type="submit" class="btn-primary">
+                                    Iniciar processamento
+                                </button>
+                                <p class="upload-command-note">
+                                    O lote fica disponível no histórico assim que a leitura for iniciada.
+                                </p>
+                            </div>
+
+                            <section class="event-log-panel home-event-inline" id="event-log-panel">
+                                <div class="section-head event-log-head">
+                                    <div>
+                                        <span class="section-kicker">Monitoramento</span>
+                                        <h2>Eventos recentes</h2>
+                                    </div>
+                                    <span class="section-badge" id="event-log-badge">0 evento(s)</span>
+                                </div>
+
+                                <div class="event-log-list" id="event-log-list">
+                                    <div class="event-log-empty">
+                                        Nenhum evento de leitura ainda.
+                                    </div>
+                                </div>
+                            </section>
                         </div>
 
                         <div id="log-processamento" class="log-processamento log-processamento-home" style="display: none;">
@@ -177,43 +194,7 @@
                     </form>
                 </section>
 
-                <section class="card home-history-card" id="processamentos-recentes">
-                    <div class="section-head">
-                        <div>
-                            <span class="section-kicker">Histórico</span>
-                            <h2>Processamentos recentes</h2>
-                        </div>
-                        <span class="section-badge">{{ processamentos|length }} lote(s)</span>
-                    </div>
-
-                    {% if processamentos %}
-                        <div class="home-history-list" id="home-history-list">
-                            {% for item in processamentos %}
-                                <a class="home-history-item" href="/processamento/{{ item.nome }}">
-                                    <div class="home-history-copy">
-                                        <div class="home-history-meta">
-                                            <strong>{{ item.titulo }}</strong>
-                                            <span class="home-history-tag">{{ item.rotulo }}</span>
-                                        </div>
-                                        <span>Processamento realizado em {{ item.data }} às {{ item.hora }}.</span>
-                                    </div>
-                                    <span class="home-history-action">Abrir</span>
-                                </a>
-                            {% endfor %}
-                        </div>
-                        <div class="table-pagination home-history-pagination">
-                            <button type="button" class="btn-light" id="home-history-prev">Anterior</button>
-                            <span class="table-pagination-info" id="home-history-page-info">Página 1 de 1</span>
-                            <button type="button" class="btn-light" id="home-history-next">Próxima</button>
-                        </div>
-                    {% else %}
-                        <p class="muted">Nenhum processamento encontrado.</p>
-                    {% endif %}
-                </section>
-            </div>
-
-            <div class="home-side-column">
-                <section class="home-ops-card">
+                <section class="home-ops-card home-checklist-card">
                     <div class="home-ops-head">
                         <span class="section-kicker">Checklist</span>
                         <h2>Antes de começar</h2>
@@ -235,39 +216,59 @@
                     </div>
                 </section>
 
-                <section class="home-ops-card home-tool-card">
-                    <div class="home-ops-head">
-                        <span class="section-kicker">Bernoulli</span>
-                        <h2>Simulado Bernoulli</h2>
-                    </div>
-
-                    <p class="card-description">Converter arquivo KeepEdu para o layout final de importação do Bernoulli.</p>
-
-                    <a class="btn-secondary link-btn" href="/bernoulli">
-                        Abrir Simulado Bernoulli
-                    </a>
-                </section>
-
-                <section class="event-log-panel home-event-panel" id="event-log-panel">
-                    <div class="section-head event-log-head">
+                <section class="card home-history-card" id="processamentos-recentes">
+                    <div class="section-head">
                         <div>
-                            <span class="section-kicker">Monitoramento</span>
-                            <h2>Eventos recentes</h2>
+                            <span class="section-kicker">Histórico</span>
+                            <h2>Processamentos recentes</h2>
                         </div>
-                        <span class="section-badge" id="event-log-badge">0 evento(s)</span>
+                        <span class="section-badge">{{ processamentos|length }} lote(s)</span>
                     </div>
 
-                    <p class="event-log-description">
-                        Avisos, falhas técnicas e imagens com necessidade de revisão aparecem aqui durante o lote.
-                    </p>
-
-                    <div class="event-log-list" id="event-log-list">
-                        <div class="event-log-empty">
-                            Nenhum evento de leitura ainda.
+                    {% if processamentos %}
+                        <div class="table-toolbar home-history-toolbar">
+                            <div class="table-toolbar-search">
+                                <label for="home-history-search">Pesquisa rápida</label>
+                                <input
+                                    type="text"
+                                    id="home-history-search"
+                                    class="input-text"
+                                    placeholder="Buscar por lote, data, hora ou descrição"
+                                >
+                            </div>
+                            <div class="table-toolbar-search home-history-filter-block">
+                                <label for="home-history-filter">Filtro</label>
+                                <select id="home-history-filter" class="input-text">
+                                    <option value="todos">Todos</option>
+                                </select>
+                            </div>
+                            <div class="table-toolbar-meta">
+                                <span id="home-history-info">Mostrando 0 de 0 lote(s)</span>
+                            </div>
                         </div>
-                    </div>
+                        <div class="home-history-list" id="home-history-list">
+                            {% for item in processamentos %}
+                                <a
+                                    class="home-history-item"
+                                    href="/processamento/{{ item.nome }}"
+                                    data-rotulo="{{ item.rotulo }}"
+                                    data-search="{{ (item.titulo ~ ' ' ~ item.rotulo ~ ' ' ~ item.data ~ ' ' ~ item.hora ~ ' Processamento realizado em ' ~ item.data ~ ' às ' ~ item.hora)|lower }}"
+                                >
+                                    <div class="home-history-copy">
+                                        <div class="home-history-meta">
+                                            <strong>{{ item.titulo }}</strong>
+                                            <span class="home-history-tag">{{ item.rotulo }}</span>
+                                        </div>
+                                        <span>Processamento realizado em {{ item.data }} às {{ item.hora }}.</span>
+                                    </div>
+                                    <span class="home-history-action">Abrir</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="muted">Nenhum processamento encontrado.</p>
+                    {% endif %}
                 </section>
-            </div>
         </section>
     </main>
         <script>
@@ -291,12 +292,11 @@
         const uploadLista = document.getElementById("upload-lista");
         const eventLogList = document.getElementById("event-log-list");
         const eventLogBadge = document.getElementById("event-log-badge");
-        const homeHistoryItems = Array.from(document.querySelectorAll("#home-history-list .home-history-item"));
-        const homeHistoryPrev = document.getElementById("home-history-prev");
-        const homeHistoryNext = document.getElementById("home-history-next");
-        const homeHistoryPageInfo = document.getElementById("home-history-page-info");
-        const homeHistoryPorPagina = 8;
-        let homeHistoryPaginaAtual = 1;
+        const homeHistoryList = document.getElementById("home-history-list");
+        const homeHistoryItems = Array.from(document.querySelectorAll(".home-history-item"));
+        const homeHistorySearch = document.getElementById("home-history-search");
+        const homeHistoryFilter = document.getElementById("home-history-filter");
+        const homeHistoryInfo = document.getElementById("home-history-info");
 
         function atualizarResumoProcessamento(resumo) {
             const dados = resumo || {};
@@ -387,53 +387,61 @@
             }
         }
 
-        function renderizarPaginacaoHistorico() {
-            if (!homeHistoryItems.length) {
-                return;
-            }
-
-            const totalPaginas = Math.max(1, Math.ceil(homeHistoryItems.length / homeHistoryPorPagina));
-            homeHistoryPaginaAtual = Math.min(homeHistoryPaginaAtual, totalPaginas);
-
-            const inicio = (homeHistoryPaginaAtual - 1) * homeHistoryPorPagina;
-            const fim = inicio + homeHistoryPorPagina;
-
-            homeHistoryItems.forEach((item, indice) => {
-                item.style.display = indice >= inicio && indice < fim ? "" : "none";
-            });
-
-            if (homeHistoryPageInfo) {
-                homeHistoryPageInfo.textContent = `Página ${homeHistoryPaginaAtual} de ${totalPaginas}`;
-            }
-
-            if (homeHistoryPrev) {
-                homeHistoryPrev.disabled = homeHistoryPaginaAtual <= 1;
-            }
-
-            if (homeHistoryNext) {
-                homeHistoryNext.disabled = homeHistoryPaginaAtual >= totalPaginas;
-            }
-        }
-
         function abrirSeletorArquivos() {
             inputArquivos?.click();
         }
 
-        btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
-        homeHistoryPrev?.addEventListener("click", () => {
-            if (homeHistoryPaginaAtual > 1) {
-                homeHistoryPaginaAtual -= 1;
-                renderizarPaginacaoHistorico();
+        function inicializarFiltroHistorico() {
+            if (!homeHistoryFilter || !homeHistoryItems.length) {
+                return;
             }
-        });
-        homeHistoryNext?.addEventListener("click", () => {
-            const totalPaginas = Math.max(1, Math.ceil(homeHistoryItems.length / homeHistoryPorPagina));
 
-            if (homeHistoryPaginaAtual < totalPaginas) {
-                homeHistoryPaginaAtual += 1;
-                renderizarPaginacaoHistorico();
+            const rotulos = Array.from(
+                new Set(
+                    homeHistoryItems
+                        .map((item) => (item.dataset.rotulo || "").trim())
+                        .filter(Boolean)
+                )
+            );
+
+            rotulos.forEach((rotulo) => {
+                const option = document.createElement("option");
+                option.value = rotulo.toLowerCase();
+                option.textContent = rotulo;
+                homeHistoryFilter.appendChild(option);
+            });
+        }
+
+        function aplicarFiltroHistorico() {
+            if (!homeHistoryItems.length) {
+                return;
             }
-        });
+
+            const termo = (homeHistorySearch?.value || "").trim().toLowerCase();
+            const filtro = (homeHistoryFilter?.value || "todos").trim().toLowerCase();
+            let totalVisiveis = 0;
+
+            homeHistoryItems.forEach((item) => {
+                const texto = item.dataset.search || (item.textContent || "").toLowerCase();
+                const rotulo = (item.dataset.rotulo || "").trim().toLowerCase();
+                const combinaTexto = !termo || texto.includes(termo);
+                const combinaFiltro = filtro === "todos" || rotulo === filtro;
+                const visivel = combinaTexto && combinaFiltro;
+
+                item.style.display = visivel ? "" : "none";
+                if (visivel) {
+                    totalVisiveis += 1;
+                }
+            });
+
+            if (homeHistoryInfo) {
+                homeHistoryInfo.textContent = `Mostrando ${totalVisiveis} de ${homeHistoryItems.length} lote(s)`;
+            }
+        }
+
+        btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
+        homeHistorySearch?.addEventListener("input", aplicarFiltroHistorico);
+        homeHistoryFilter?.addEventListener("change", aplicarFiltroHistorico);
 
         uploadDropzone?.addEventListener("click", (event) => {
             if (event.target.closest("button")) {
@@ -568,7 +576,8 @@
             });
         }
 
-        renderizarPaginacaoHistorico();
+        inicializarFiltroHistorico();
+        aplicarFiltroHistorico();
     </script>
 </body>
 </html>

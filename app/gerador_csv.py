@@ -1,5 +1,6 @@
 import csv
 import json
+from pathlib import Path
 
 from app.services import caminho_leituras
 from app.validacao_cadastral import gerar_validacao_cadastral
@@ -66,6 +67,10 @@ def resposta(respostas: dict, numero: int):
     return correcoes.get(valor, valor)
 
 
+def nome_arquivo_keepedu(nome_arquivo: str):
+    return Path(str(nome_arquivo).strip()).stem
+
+
 def gerar_csv_final(nome_processamento: str, forcar: bool = False):
     leituras = carregar_leituras(nome_processamento)
     dados_validacao = gerar_validacao_cadastral(nome_processamento)
@@ -101,7 +106,7 @@ def gerar_csv_final(nome_processamento: str, forcar: bool = False):
             arquivo_original = dados_cartao.get("arquivo_original", nome_imagem)
             codigo_barras_final = validacao.get("codigo_barras_final", "") or ""
 
-            linha = [arquivo_original]
+            linha = [nome_arquivo_keepedu(arquivo_original)]
 
             # RA, Pergunta001 até Pergunta006
             for numero in range(1, 7):

@@ -1,11 +1,13 @@
 import os
 import csv
 import json
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
 
 from app.settings import PASTA_PROCESSAMENTOS, PASTA_UPLOADS_TEMP
+from app.time_utils import agora_local, fromtimestamp_local
 from omr_reader import (
     processar_imagens_omr,
     detectar_respostas_por_template,
@@ -17,33 +19,130 @@ from app.progresso import atualizar_job, registrar_evento_job
 EXTENSOES_IMAGEM = [".jpg", ".jpeg", ".png"]
 
 
+def _obter_data_hora_processamento(nome_pasta: str, pasta: Path) -> datetime:
+    candidatos = [
+        pasta / "log_leitura_omr.csv",
+        pasta / "leituras_omr.json",
+        pasta
+    ]
+
+    for candidato in candidatos:
+        if candidato.exists():
+            try:
+                return fromtimestamp_local(candidato.stat().st_mtime)
+            except OSError:
+                pass
+
+    match = re.match(r"^processamento_(\d{8})_(\d{6})$", str(nome_pasta or "").strip())
+
+    if match:
+        try:
+            return datetime.strptime(f"{match.group(1)}_{match.group(2)}", "%Y%m%d_%H%M%S")
+        except ValueError:
+            pass
+
+    return agora_local()
+
+
+def _formatar_data_hora_processamento(nome_pasta: str, pasta: Path) -> tuple[str, str]:
+    data_hora = _obter_data_hora_processamento(nome_pasta, pasta)
+    return (
+        data_hora.strftime("%d/%m/%Y"),
+        data_hora.strftime("%H:%M:%S")
+    )
+
+
+def _rotulo_data_processamento(nome_pasta: str, pasta: Path) -> str:
+    data_hora = _obter_data_hora_processamento(nome_pasta, pasta)
+    hoje = agora_local().date()
+    data_referencia = data_hora.date()
+
+    if data_referencia == hoje:
+        return "Hoje"
+    if data_referencia == hoje.fromordinal(hoje.toordinal() - 1):
+        return "Ontem"
+
+    dias_semana = {
+        0: "Segunda",
+        1: "Terça",
+        2: "Quarta",
+        3: "Quinta",
+        4: "Sexta",
+        5: "Sábado",
+        6: "Domingo",
+    }
+    return dias_semana.get(data_referencia.weekday(), "Lote")
+
+
 def listar_processamentos():
     itens = []
 
     for pasta in sorted(PASTA_PROCESSAMENTOS.glob("processamento_*"), reverse=True):
         if pasta.is_dir():
+            data_formatada, hora_formatada = _formatar_data_hora_processamento(pasta.name, pasta)
+            rotulo = _rotulo_data_processamento(pasta.name, pasta)
             itens.append({
                 "nome": pasta.name,
-                "caminho": str(pasta)
+                "caminho": str(pasta),
+                "data": data_formatada,
+                "hora": hora_formatada,
+                "titulo": f"{data_formatada} às {hora_formatada}",
+                "rotulo": rotulo
             })
 
     return itens
 
 
+def resumo_processamento(nome_processamento: str):
+    caminho_csv = caminho_log(nome_processamento)
+    resumo = {
+        "total_imagens": 0,
+        "total_ok": 0,
+        "total_erro": 0,
+        "total_manual": 0,
+        "total_pendencias": 0
+    }
+
+    if not caminho_csv.exists():
+        return resumo
+
+    with open(caminho_csv, "r", encoding="utf-8-sig", newline="") as f:
+        leitor = csv.DictReader(f, delimiter=";")
+        linhas = list(leitor)
+
+    resumo["total_imagens"] = len(linhas)
+    resumo["total_ok"] = sum(1 for linha in linhas if linha.get("status") == "OK")
+    resumo["total_erro"] = sum(1 for linha in linhas if linha.get("status") == "ERRO")
+    resumo["total_manual"] = sum(1 for linha in linhas if linha.get("correcao_manual") == "SIM")
+
+    caminho_json = caminho_leituras(nome_processamento)
+    leituras = carregar_json(caminho_json, {})
+    resumo["total_pendencias"] = sum(
+        1
+        for dados in leituras.values()
+        if (dados.get("erros") or []) or int(dados.get("total_pendencias_confianca", 0) or 0) > 0
+    )
+
+    return resumo
+
+
 def listar_imagens_debug(nome_processamento: str):
     pasta_debug = PASTA_PROCESSAMENTOS / nome_processamento / "debug_omr"
+    imagens = set()
 
-    if not pasta_debug.exists():
-        return []
+    if pasta_debug.exists():
+        for arquivo in pasta_debug.iterdir():
+            if arquivo.suffix.lower() in EXTENSOES_IMAGEM and arquivo.name.startswith("template_"):
+                imagens.add(arquivo.name)
 
-    imagens = []
+    caminho_leitura = caminho_leituras(nome_processamento)
+    leituras = carregar_json(caminho_leitura, {})
 
-    for arquivo in sorted(pasta_debug.iterdir()):
-        if arquivo.suffix.lower() in EXTENSOES_IMAGEM:
-            if arquivo.name.startswith("template_"):
-                imagens.append(arquivo.name)
+    for nome_imagem in leituras.keys():
+        if str(nome_imagem).startswith("template_"):
+            imagens.add(str(nome_imagem))
 
-    return imagens
+    return sorted(imagens)
 
 
 def processar_pasta_local(pasta_origem: str):
@@ -64,7 +163,7 @@ def processar_pasta_local(pasta_origem: str):
 
 
 async def processar_uploads(arquivos):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = agora_local().strftime("%Y%m%d_%H%M%S")
     pasta_upload = PASTA_UPLOADS_TEMP / f"upload_{timestamp}"
     pasta_upload.mkdir(parents=True, exist_ok=True)
 
@@ -346,6 +445,12 @@ def reprocessar_imagem_processamento(nome_processamento: str, nome_imagem: str, 
 
 def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
     try:
+        arquivos = [
+            arquivo for arquivo in pasta_upload.iterdir()
+            if arquivo.suffix.lower() in EXTENSOES_IMAGEM
+        ]
+        total = len(arquivos)
+
         registrar_evento_job(
             job_id,
             tipo="info",
@@ -356,15 +461,19 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
             job_id,
             status="processando",
             percentual=10,
-            mensagem="Arquivos recebidos. Iniciando leitura OMR..."
+            mensagem="Arquivos recebidos. Iniciando leitura OMR...",
+            resumo={
+                "info": 0,
+                "warning": 0,
+                "error": 0,
+                "success": 0,
+                "total_eventos": 0,
+                "total_imagens": total,
+                "total_ok": 0,
+                "total_erro": 0,
+                "total_manual": 0
+            }
         )
-
-        arquivos = [
-            arquivo for arquivo in pasta_upload.iterdir()
-            if arquivo.suffix.lower() in EXTENSOES_IMAGEM
-        ]
-
-        total = len(arquivos)
 
         if total == 0:
             raise ValueError("Nenhuma imagem válida encontrada para processamento.")
@@ -411,13 +520,37 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
             )
 
         nome_processamento = os.path.basename(resultado["pasta_processamento"])
+        resumo_atual = {
+            "info": 0,
+            "warning": 0,
+            "error": 0,
+            "success": 0,
+            "total_eventos": 0,
+            "total_imagens": int(resultado.get("total_imagens", 0)),
+            "total_ok": int(resultado.get("total_ok", 0)),
+            "total_erro": int(resultado.get("total_erro", 0)),
+            "total_manual": int(resultado.get("total_manual", 0))
+        }
+
+        try:
+            from app.progresso import obter_job
+            resumo_atual.update(obter_job(job_id).get("resumo", {}))
+            resumo_atual.update({
+                "total_imagens": int(resultado.get("total_imagens", 0)),
+                "total_ok": int(resultado.get("total_ok", 0)),
+                "total_erro": int(resultado.get("total_erro", 0)),
+                "total_manual": int(resultado.get("total_manual", 0))
+            })
+        except Exception:
+            pass
 
         atualizar_job(
             job_id,
             status="concluido",
             percentual=100,
             mensagem="Processamento concluído.",
-            nome_processamento=nome_processamento
+            nome_processamento=nome_processamento,
+            resumo=resumo_atual
         )
         registrar_evento_job(
             job_id,

@@ -49,7 +49,8 @@ OMRCheck-Web/
 │   └── templates/          # Templates HTML
 ├── main.py                 # Inicialização do FastAPI
 ├── omr_reader.py           # Motor principal de leitura OMR
-├── docker-compose.yml      # Orquestração principal do ambiente implantado
+├── docker-compose.yml      # Orquestração principal com acesso direto
+├── docker-compose.cloudflare.yml # Orquestração para deploy via Cloudflare Tunnel
 ├── Dockerfile              # Imagem Docker da aplicação
 ├── requirements-prod.txt   # Dependências de produção
 ├── scripts/                # Rotinas operacionais
@@ -78,6 +79,11 @@ KEEPEDU_BUSCAR_ID_URL=https://develop.keepedu.com.br/api/customers/buscar-id-alu
 KEEPEDU_API_KEY=
 KEEPEDU_INSTITUTE=
 ID_PROVA_KEEPEDU=
+KEEPEDU_IMPORTAR_RESPOSTAS_URL=http://localhost/github-app/keepedu/api/avaliacoes/importar-respostas-presenciais
+KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL=
+KEEPEDU_IMPORTAR_DIA_AVAL=1
+KEEPEDU_IMPORTAR_USUARIO_ID=0
+KEEPEDU_IMPORTAR_TIMEOUT_SECONDS=30
 
 BERNOULLI_USUARIOS_URL=http://api.bernoulli.com.br/api/gerenciar/acessos/usuarios/listar
 BERNOULLI_AUTHORIZATION=
@@ -88,6 +94,26 @@ BERNOULLI_FRONT_VERSION=4.25.72
 BERNOULLI_PLATAFORMA=2
 BERNOULLI_ORIGIN=https://mb4.bernoulli.com.br
 BERNOULLI_REFERER=https://mb4.bernoulli.com.br/
+BERNOULLI_LOGIN_URL=
+BERNOULLI_LOGIN_METHOD=POST
+BERNOULLI_LOGIN_USERNAME=
+BERNOULLI_LOGIN_PASSWORD=
+BERNOULLI_LOGIN_USERNAME_FIELD=usuario
+BERNOULLI_LOGIN_PASSWORD_FIELD=senha
+BERNOULLI_LOGIN_USE_FORM=false
+BERNOULLI_LOGIN_EXTRA_PAYLOAD={}
+BERNOULLI_LOGIN_HEADERS={}
+BERNOULLI_LOGIN_TOKEN_PATH=token
+BERNOULLI_LOGIN_COOKIE_NAMES=
+BERNOULLI_PARAMETROS_URL=https://api.bernoulli.com.br/api/autenticado/parametros
+BERNOULLI_PARAMETROS_METHOD=POST
+BERNOULLI_PARAMETROS_USE_FORM=false
+BERNOULLI_PARAMETROS_PAYLOAD={}
+BERNOULLI_PARAMETROS_HEADERS={}
+BERNOULLI_PARAMETROS_TOKEN_PATH=access_token
+BERNOULLI_AUTH_HEADER_PREFIX=Bearer
+BERNOULLI_AUTH_REFRESH_MARGIN_SECONDS=300
+BERNOULLI_AUTH_CACHE_FILE=/data/runtime/bernoulli_auth.json
 
 APP_DATA_DIR=/data
 APP_LOG_DIR=/data/logs
@@ -99,6 +125,7 @@ APP_RUNTIME_DIR=/data/runtime
 HOST=0.0.0.0
 PORT=8000
 APP_ALLOWED_HOSTS=localhost,127.0.0.1,SEU_IP_OU_HOST_INTERNO
+CLOUDFLARE_TUNNEL_TOKEN=
 
 APP_ENABLE_AUTH=true
 APP_BASIC_AUTH_USER=operador
@@ -117,18 +144,35 @@ APP_BACKUP_ENABLED=true
 ### Observações
 
 - `KEEPEDU_API_KEY` e `KEEPEDU_INSTITUTE` são obrigatórios para a validação via API
-- `BERNOULLI_AUTHORIZATION` e `BERNOULLI_COOKIE` são sensíveis e devem ficar apenas no `.env`
+- `BERNOULLI_AUTHORIZATION` e `BERNOULLI_COOKIE` permitem autenticação manual, mas podem expirar
+- `BERNOULLI_LOGIN_*` permite que o backend refaça login e mantenha a sessão Bernoulli de forma automática
+- `BERNOULLI_PARAMETROS_*` permite executar o passo intermediário que troca o token inicial por um token autorizado para as APIs autenticadas
+- `BERNOULLI_LOGIN_EXTRA_PAYLOAD` e `BERNOULLI_LOGIN_HEADERS` aceitam JSON para adaptar o payload/headers do login real observado no navegador
+- `BERNOULLI_PARAMETROS_PAYLOAD` e `BERNOULLI_PARAMETROS_HEADERS` aceitam JSON para o POST em `/api/autenticado/parametros`
+- `BERNOULLI_LOGIN_TOKEN_PATH` define onde o token vem na resposta JSON do login, por exemplo `token` ou `data.access_token`
+- `BERNOULLI_PARAMETROS_TOKEN_PATH` define onde vem o token devolvido pela etapa `/api/autenticado/parametros`
+- `BERNOULLI_LOGIN_COOKIE_NAMES` pode limitar quais cookies da resposta devem ser persistidos
+- `BERNOULLI_AUTH_CACHE_FILE` guarda a sessão Bernoulli reaproveitável em arquivo local de runtime
 - `APP_TIMEZONE` padroniza a exibição de datas e horários do sistema
 - `APP_DATA_DIR` define onde uploads, processamentos e runtime serão persistidos
 - `APP_LOG_DIR` define onde os logs operacionais serão gravados
 - `APP_BACKUP_DIR` define onde os backups compactados serão salvos
 - `APP_RUNTIME_DIR` define onde ficam arquivos transitórios do motor de jobs
 - `APP_ALLOWED_HOSTS` limita quais hosts podem servir a aplicação
+- `CLOUDFLARE_TUNNEL_TOKEN` é usado apenas no deploy com Cloudflare Tunnel
 - `APP_ENABLE_AUTH`, `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD` controlam a proteção por login HTTP básico
 - `APP_RETENTION_DAYS` define a retenção de processamentos e logs antigos
 - `APP_UPLOAD_TEMP_RETENTION_HOURS` define a retenção dos uploads temporários
 - `APP_BACKUP_ENABLED` define se a rotina operacional deve gerar backup antes da limpeza
 - em ambiente local sem Docker, você pode ajustar `APP_DATA_DIR` para um caminho local ou remover essa variável
+
+### Autenticação Bernoulli
+
+- Se você já tem um `Authorization` ou `Cookie` válido, pode continuar usando `BERNOULLI_AUTHORIZATION` e `BERNOULLI_COOKIE`
+- Para evitar atualização manual, capture uma requisição de login bem-sucedida no navegador e preencha `BERNOULLI_LOGIN_URL`, campos de usuário/senha e, se necessário, `BERNOULLI_LOGIN_HEADERS`/`BERNOULLI_LOGIN_EXTRA_PAYLOAD`
+- Se a Bernoulli devolver um novo `access_token` em `/api/autenticado/parametros`, preencha também `BERNOULLI_PARAMETROS_*` com o payload observado nessa chamada
+- O backend passa a reaproveitar a sessão salva em `BERNOULLI_AUTH_CACHE_FILE` e tenta renovar automaticamente quando o JWT estiver perto de expirar ou quando a API responder com `401`, `403` ou HTML de sessão expirada
+- Se o login do MB4 usar SSO externo, talvez seja necessário reproduzir no `.env` o endpoint interno que realmente entrega o token/cookies para a API
 
 ## Execução Local
 
@@ -195,6 +239,7 @@ Antes de subir em servidor, preencha no `.env`:
 - `APP_ALLOWED_HOSTS`
 
 Sem proxy reverso, inclua em `APP_ALLOWED_HOSTS` o IP interno ou host real que sera usado para acessar a aplicacao.
+Com Cloudflare Tunnel, inclua o dominio publico real, por exemplo `omr.suaempresa.com.br`.
 
 ### 3. Executar preflight
 
@@ -259,6 +304,70 @@ docker compose up -d
 No modo atual, o projeto sobe com um servico:
 
 - `omrcheck-web`: aplicação FastAPI/Uvicorn acessível diretamente na porta `8000`
+
+## Implantacao Com Cloudflare Tunnel
+
+Essa e a forma recomendada quando o dominio da empresa ja esta no Cloudflare.
+
+### 1. Preparar o `.env`
+
+Preencha no `.env`:
+
+- `APP_ALLOWED_HOSTS` com o dominio publico real, por exemplo `omr.suaempresa.com.br`
+- `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD`
+- `CLOUDFLARE_TUNNEL_TOKEN` com o token do tunnel criado no painel do Cloudflare
+
+Exemplo:
+
+```env
+APP_ALLOWED_HOSTS=localhost,127.0.0.1,omr.suaempresa.com.br
+CLOUDFLARE_TUNNEL_TOKEN=SEU_TOKEN_DO_TUNNEL
+```
+
+### 2. Criar o Tunnel no Cloudflare
+
+No painel do Cloudflare:
+
+- crie um `Cloudflare Tunnel`
+- publique um hostname como `omr.suaempresa.com.br`
+- aponte o servico para `http://omrcheck-web:8000`
+- copie o token gerado pelo Cloudflare para `CLOUDFLARE_TUNNEL_TOKEN`
+
+### 3. Executar preflight
+
+Antes da subida, rode:
+
+```powershell
+python scripts/preflight.py
+```
+
+### 4. Subir a stack com Cloudflare
+
+```powershell
+docker compose -f docker-compose.cloudflare.yml up --build -d
+```
+
+### 5. Validar
+
+- acesse o dominio publicado no Cloudflare
+- confira `https://SEU_DOMINIO/healthz`
+- valide o login basico
+- execute um processamento pequeno de teste
+- confira escrita em `docker-data/processamentos`
+
+Comandos uteis:
+
+```powershell
+docker compose -f docker-compose.cloudflare.yml ps
+docker compose -f docker-compose.cloudflare.yml logs -f
+docker compose -f docker-compose.cloudflare.yml down
+```
+
+### 6. Observacoes
+
+- nesse modo a aplicacao nao expoe a porta `8000` publicamente no servidor
+- o trafego externo entra pelo Cloudflare e chega ao container via `cloudflared`
+- se precisar acesso local temporario para testes, use o `docker-compose.yml` tradicional
 
 ## Fluxo De Uso
 

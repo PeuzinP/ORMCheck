@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Processamento | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=64">
+    <link rel="stylesheet" href="/static/css/style.css?v=68">
 </head>
 <body>
     <header class="topbar">
@@ -30,23 +30,23 @@
                 <h1>Resumo do processamento</h1>
                 <p>{{ nome_processamento }}</p>
             </div>
+        </section>
 
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <span>Status</span>
-                    <strong>Finalizado</strong>
-                    <p>O lote já pode seguir para revisão e validação.</p>
-                </div>
-                <div class="hero-stat">
-                    <span>Imagens</span>
-                    <strong>{{ resumo.total_imagens }}</strong>
-                    <p>Quantidade de imagens registradas neste processamento.</p>
-                </div>
-                <div class="hero-stat">
-                    <span>Pendências</span>
-                    <strong>{{ resumo.total_manual }}</strong>
-                    <p>Cartões encaminhados para correção manual ou conferência.</p>
-                </div>
+        <section class="hero-stats hero-stats-row processamento-hero-stats">
+            <div class="hero-stat">
+                <span>Status</span>
+                <strong>Finalizado</strong>
+                <p>O lote já pode seguir para revisão e validação.</p>
+            </div>
+            <div class="hero-stat">
+                <span>Imagens</span>
+                <strong>{{ resumo.total_imagens }}</strong>
+                <p>Quantidade de imagens registradas neste processamento.</p>
+            </div>
+            <div class="hero-stat">
+                <span>Pendências</span>
+                <strong>{{ resumo.total_manual }}</strong>
+                <p>Cartões encaminhados para correção manual ou conferência.</p>
             </div>
         </section>
 

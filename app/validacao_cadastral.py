@@ -20,6 +20,59 @@ def carregar_validacao_manual(nome_processamento: str):
         return json.load(f)
 
 
+def caminho_pendencias_importacao(nome_processamento: str):
+    caminho_leitura = caminho_leituras(nome_processamento)
+    pasta_processamento = caminho_leitura.parent
+    return pasta_processamento / "pendencias_importacao.json"
+
+
+def carregar_pendencias_importacao(nome_processamento: str):
+    caminho = caminho_pendencias_importacao(nome_processamento)
+
+    if not caminho.exists():
+        return {}
+
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def salvar_pendencias_importacao(nome_processamento: str, dados: dict):
+    caminho = caminho_pendencias_importacao(nome_processamento)
+
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+    return caminho
+
+
+def registrar_pendencia_importacao(
+    nome_processamento: str,
+    nome_imagem: str,
+    status_validacao: str,
+    motivo: str,
+    detalhes: dict | None = None,
+):
+    dados = carregar_pendencias_importacao(nome_processamento)
+    dados[nome_imagem] = {
+        "status_validacao": status_validacao,
+        "motivo": str(motivo or "").strip(),
+        "detalhes": detalhes or {},
+    }
+    salvar_pendencias_importacao(nome_processamento, dados)
+    return dados[nome_imagem]
+
+
+def limpar_pendencia_importacao(nome_processamento: str, nome_imagem: str):
+    dados = carregar_pendencias_importacao(nome_processamento)
+
+    if nome_imagem in dados:
+        dados.pop(nome_imagem, None)
+        salvar_pendencias_importacao(nome_processamento, dados)
+        return True
+
+    return False
+
+
 def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manual: str):
     valor_manual = str(valor_manual or "").strip()
 
@@ -88,6 +141,7 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
+    limpar_pendencia_importacao(nome_processamento, nome_imagem)
     return dados[nome_imagem]
 
 def carregar_leituras(nome_processamento: str):
@@ -109,6 +163,22 @@ def salvar_validacao(nome_processamento: str, dados_validacao: dict):
         json.dump(dados_validacao, f, ensure_ascii=False, indent=4)
 
     return caminho_saida
+
+
+def caminho_validacao_cadastral(nome_processamento: str):
+    caminho_leitura = caminho_leituras(nome_processamento)
+    pasta_processamento = caminho_leitura.parent
+    return pasta_processamento / "validacao_cadastral.json"
+
+
+def carregar_validacao_cadastral_salva(nome_processamento: str):
+    caminho = caminho_validacao_cadastral(nome_processamento)
+
+    if not caminho.exists():
+        return None
+
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def caminho_validacao_manual(nome_processamento: str):
     caminho_leitura = caminho_leituras(nome_processamento)
@@ -172,6 +242,7 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
+    limpar_pendencia_importacao(nome_processamento, nome_imagem)
     return dados[nome_imagem]
 
 def extrair_codigo_barras_possivel(dados_cartao: dict):
@@ -298,7 +369,34 @@ def detectar_id_prova_do_processamento(leituras: dict):
     return ""
 
 
-def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento: str, validacoes_manuais: dict):
+def _aplicar_pendencia_importacao(resultado: dict, pendencia_importacao: dict | None):
+    if not pendencia_importacao:
+        return resultado
+
+    status_validacao = str(pendencia_importacao.get("status_validacao") or "").strip()
+    motivo = str(pendencia_importacao.get("motivo") or "").strip()
+
+    if not status_validacao and not motivo:
+        return resultado
+
+    if status_validacao:
+        resultado["status_validacao"] = status_validacao
+
+    if motivo:
+        resultado["motivo"] = motivo
+
+    resultado["pendencia_importacao"] = pendencia_importacao
+    resultado["precisa_validacao_manual"] = True
+    return resultado
+
+
+def validar_cartao(
+    nome_imagem: str,
+    dados_cartao: dict,
+    id_prova_processamento: str,
+    validacoes_manuais: dict,
+    pendencias_importacao: dict,
+):
     codigo_barras_detectado = extrair_codigo_barras_possivel(dados_cartao)
     id_prova_detectado, id_aluno_detectado = quebrar_codigo_barras(codigo_barras_detectado)
 
@@ -323,10 +421,27 @@ def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento:
         "status_validacao": "",
         "motivo": "",
         "aluno_api": None,
+        "pendencia_importacao": None,
         "precisa_validacao_manual": False
     }
 
     manual = validacoes_manuais.get(nome_imagem)
+    pendencia_importacao = pendencias_importacao.get(nome_imagem)
+
+    if not manual:
+        arquivo_original = dados_cartao.get("arquivo_original", "")
+        manual = validacoes_manuais.get(arquivo_original)
+        if not pendencia_importacao:
+            pendencia_importacao = pendencias_importacao.get(arquivo_original)
+
+    if manual:
+        resultado["id_final"] = manual.get("id_final", "")
+        resultado["codigo_barras_final"] = manual.get("codigo_barras_final", "")
+        resultado["origem_id"] = "VALIDACAO_MANUAL"
+        resultado["status_validacao"] = "VALIDADO_MANUAL"
+        resultado["motivo"] = manual.get("motivo", "ID informado manualmente.")
+        resultado["precisa_validacao_manual"] = False
+        return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
     if not manual:
         arquivo_original = dados_cartao.get("arquivo_original", "")
@@ -339,20 +454,7 @@ def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento:
         resultado["status_validacao"] = "VALIDADO_MANUAL"
         resultado["motivo"] = manual.get("motivo", "ID informado manualmente.")
         resultado["precisa_validacao_manual"] = False
-        return resultado
-
-    if not manual:
-        arquivo_original = dados_cartao.get("arquivo_original", "")
-        manual = validacoes_manuais.get(arquivo_original)
-
-    if manual:
-        resultado["id_final"] = manual.get("id_final", "")
-        resultado["codigo_barras_final"] = manual.get("codigo_barras_final", "")
-        resultado["origem_id"] = "VALIDACAO_MANUAL"
-        resultado["status_validacao"] = "VALIDADO_MANUAL"
-        resultado["motivo"] = manual.get("motivo", "ID informado manualmente.")
-        resultado["precisa_validacao_manual"] = False
-        return resultado
+        return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
     # 1. Se o cartão já tem código de barras válido, ele é a fonte principal.
     if codigo_barras_detectado and id_prova_detectado and id_aluno_detectado:
@@ -362,7 +464,7 @@ def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento:
         resultado["status_validacao"] = "VALIDADO_CODIGO_BARRAS"
         resultado["motivo"] = "Código de barras lido diretamente do cartão."
         resultado["precisa_validacao_manual"] = False
-        return resultado
+        return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
     # 2. Se não tem código de barras, mas tem RA, busca o ID do aluno pela API.
     if ra_detectado:
@@ -381,7 +483,7 @@ def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento:
                 )
                 resultado["aluno_api"] = aluno
                 resultado["precisa_validacao_manual"] = True
-                return resultado
+                return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
             resultado["id_final"] = id_final
             resultado["codigo_barras_final"] = f"{id_prova_processamento}A{id_final}"
@@ -390,20 +492,20 @@ def validar_cartao(nome_imagem: str, dados_cartao: dict, id_prova_processamento:
             resultado["motivo"] = "ID do aluno localizado pela API a partir do RA e código final montado com o ID da prova detectado."
             resultado["aluno_api"] = aluno
             resultado["precisa_validacao_manual"] = False
-            return resultado
+            return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
         resultado["status_validacao"] = "PENDENTE_RA_NAO_ENCONTRADO"
         resultado["motivo"] = aluno.get("motivo", "RA informado, mas ID não foi localizado pela API.")
         resultado["aluno_api"] = aluno
         resultado["precisa_validacao_manual"] = True
-        return resultado
+        return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
     # 3. Sem código de barras e sem RA.
     resultado["status_validacao"] = "PENDENTE_SEM_IDENTIFICACAO"
     resultado["motivo"] = "Cartão sem código de barras válido e sem RA preenchido."
     resultado["precisa_validacao_manual"] = True
 
-    return resultado
+    return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
 
 def gerar_validacao_cadastral(nome_processamento: str):
@@ -411,6 +513,7 @@ def gerar_validacao_cadastral(nome_processamento: str):
 
     id_prova_processamento = detectar_id_prova_do_processamento(leituras)
     validacoes_manuais = carregar_validacao_manual(nome_processamento)
+    pendencias_importacao = carregar_pendencias_importacao(nome_processamento)
 
     validacoes = {}
     resumo = {
@@ -421,6 +524,7 @@ def gerar_validacao_cadastral(nome_processamento: str):
         "com_id_api": 0,
         "sem_identificacao": 0,
         "sem_id_prova": 0,
+        "fora_avaliacao": 0,
         "id_prova_processamento": id_prova_processamento
     }
 
@@ -429,7 +533,8 @@ def gerar_validacao_cadastral(nome_processamento: str):
         nome_imagem,
         dados_cartao,
         id_prova_processamento,
-        validacoes_manuais
+        validacoes_manuais,
+        pendencias_importacao
     )
 
         validacoes[nome_imagem] = validacao
@@ -451,6 +556,9 @@ def gerar_validacao_cadastral(nome_processamento: str):
 
         if validacao["status_validacao"] == "PENDENTE_SEM_ID_PROVA":
             resumo["sem_id_prova"] += 1
+
+        if validacao["status_validacao"] == "PENDENTE_ALUNO_FORA_AVALIACAO":
+            resumo["fora_avaliacao"] += 1
 
     dados_saida = {
         "nome_processamento": nome_processamento,

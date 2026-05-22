@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let cantosEdicao = {};
     let modoEdicao = "marcacoes";
     let cantoSelecionado = "TOP_LEFT";
+    let filtroStatus = "todos";
 
     const ORDEM_CANTOS = ["TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"];
     const ROTULOS_CANTOS = {
@@ -33,10 +34,202 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnProximaImagem = document.getElementById("proxima-imagem");
     const modoEdicaoSelect = document.getElementById("modo-edicao");
     const btnReprocessarImagem = document.getElementById("reprocessar-imagem");
+    const viewerStatus = document.getElementById("viewer-status");
+    const viewerMeta = document.getElementById("viewer-meta");
+    const buscaInput = document.getElementById("busca");
+    const sidebarTotal = document.getElementById("sidebar-total");
+    const sidebarEmpty = document.getElementById("sidebar-empty");
+    const countErro = document.getElementById("count-erro");
+    const countOk = document.getElementById("count-ok");
+    const countManual = document.getElementById("count-manual");
+    const btnProximaComErro = document.getElementById("proxima-com-erro");
+    const botoesFiltroSidebar = Array.from(document.querySelectorAll(".sidebar-filter-btn"));
     const markerToolbarGroup = document.getElementById("marker-toolbar-group");
     const cornerPillsGroup = document.getElementById("corner-pills-group");
     const toastStack = document.getElementById("toast-stack");
     const botoesCanto = Array.from(document.querySelectorAll(".corner-btn"));
+    const STORAGE_KEY = `correcao:${NOME_PROCESSAMENTO}:state`;
+
+    function obterLeituraAtual(nome = imagemAtual) {
+        return leituras[nome] || {};
+    }
+
+    function normalizarNomePesquisa(nome) {
+        return String(nome || "").replace(/^template_/, "").toLowerCase();
+    }
+
+    function foiCorrigidaManualmente(leitura) {
+        return String(leitura?.origem_cantos || "").toUpperCase() === "MANUAL";
+    }
+
+    function pluralizar(valor, singular, plural) {
+        return `${valor} ${valor === 1 ? singular : plural}`;
+    }
+
+    function listarErros(leitura) {
+        return Array.isArray(leitura?.erros)
+            ? leitura.erros.map((erro) => String(erro || "").trim()).filter(Boolean)
+            : [];
+    }
+
+    function resumirErro(erros) {
+        if (!erros.length) {
+            return "";
+        }
+
+        if (erros.length === 1) {
+            return erros[0];
+        }
+
+        return erros.slice(0, 2).join(" | ");
+    }
+
+    function obterResumoImagem(nome) {
+        const leitura = obterLeituraAtual(nome);
+        const erros = listarErros(leitura);
+        const manual = foiCorrigidaManualmente(leitura);
+
+        if (erros.length) {
+            const detalheErro = resumirErro(erros);
+            return {
+                status: "erro",
+                rotulo: "Erro",
+                meta: detalheErro,
+                metaCurta: pluralizar(erros.length, "erro", "erros"),
+                manual
+            };
+        }
+
+        return {
+            status: "ok",
+            rotulo: "OK",
+            meta: manual ? "Leitura revisada com ajuste manual de cantos" : "Leitura sem erros de leitura",
+            metaCurta: manual ? "Ajuste manual" : "Sem erro",
+            manual
+        };
+    }
+
+    function salvarEstadoPainel() {
+        const estado = {
+            busca: buscaInput?.value || "",
+            filtroStatus,
+            imagemAtual,
+            modoEdicao,
+            zoomSelect: zoomSelect?.value || "fit-width"
+        };
+
+        try {
+            window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+        } catch (erro) {
+            // Ignora falha de storage; a interface continua funcional.
+        }
+    }
+
+    function carregarEstadoPainel() {
+        try {
+            const bruto = window.sessionStorage.getItem(STORAGE_KEY);
+            return bruto ? JSON.parse(bruto) : {};
+        } catch (erro) {
+            return {};
+        }
+    }
+
+    function atualizarResumoViewer() {
+        if (!viewerStatus || !viewerMeta || !imagemAtual) {
+            return;
+        }
+
+        const resumo = obterResumoImagem(imagemAtual);
+        viewerStatus.textContent = resumo.rotulo;
+        viewerStatus.className = `status-badge viewer-status-badge ${resumo.status}`;
+        viewerMeta.textContent = resumo.manual ? `${resumo.meta} | Ajuste manual aplicado` : resumo.meta;
+    }
+
+    function atualizarRotuloBotao(botao) {
+        const nome = botao.dataset.imagem || "";
+        const resumo = obterResumoImagem(nome);
+        const nomeCurto = normalizarNomePesquisa(nome);
+        const tituloExibicao = String(nome || "").replace(/^template_/, "");
+        botao.classList.toggle("com-manual", resumo.manual);
+        botao.dataset.status = resumo.status;
+        botao.dataset.manual = resumo.manual ? "sim" : "nao";
+        botao.dataset.search = `${nomeCurto} ${resumo.rotulo.toLowerCase()} ${resumo.meta.toLowerCase()} ${resumo.metaCurta.toLowerCase()} ${resumo.manual ? "manual corrigida reprocessada" : ""}`;
+        botao.innerHTML = `
+            <div class="item-imagem-head">
+                <div class="item-imagem-title-wrap">
+                    <span class="item-imagem-title">${tituloExibicao}</span>
+                    <span class="item-imagem-subtitle">${resumo.metaCurta}</span>
+                </div>
+                <span class="item-imagem-pill ${resumo.status}">${resumo.rotulo}</span>
+            </div>
+            <div class="item-imagem-meta">
+                <span class="item-imagem-detail">${resumo.meta}</span>
+                ${resumo.manual ? `<span class="item-imagem-chip manual">Ajuste manual</span>` : ""}
+            </div>
+        `;
+    }
+
+    function decorarListaImagens() {
+        document.querySelectorAll(".item-imagem").forEach((botao) => {
+            atualizarRotuloBotao(botao);
+        });
+        atualizarContadoresSidebar();
+    }
+
+    function atualizarContadoresSidebar() {
+        const botoes = Array.from(document.querySelectorAll(".item-imagem"));
+        const total = botoes.length;
+        const totalErro = botoes.filter((botao) => botao.dataset.status === "erro").length;
+        const totalOk = botoes.filter((botao) => botao.dataset.status === "ok").length;
+        const totalManual = botoes.filter((botao) => botao.dataset.manual === "sim").length;
+
+        if (sidebarTotal) sidebarTotal.textContent = pluralizar(total, "imagem", "imagens");
+        if (countErro) countErro.textContent = `${totalErro}`;
+        if (countOk) countOk.textContent = `${totalOk}`;
+        if (countManual) countManual.textContent = `${totalManual}`;
+    }
+
+    function atualizarBotoesFiltroSidebar() {
+        botoesFiltroSidebar.forEach((botao) => {
+            botao.classList.toggle("ativo", botao.dataset.filter === filtroStatus);
+        });
+    }
+
+    function aplicarFiltroImagens() {
+        const termo = (buscaInput?.value || "").trim().toLowerCase();
+        const botoes = Array.from(document.querySelectorAll(".item-imagem"));
+        let totalVisiveis = 0;
+
+        botoes.forEach((botao) => {
+            const texto = botao.dataset.search || normalizarNomePesquisa(botao.dataset.imagem);
+            const combinaStatus =
+                filtroStatus === "todos"
+                || (filtroStatus === "erro" && botao.dataset.status === "erro")
+                || (filtroStatus === "manual" && botao.dataset.manual === "sim");
+            const visivel = combinaStatus && (!termo || texto.includes(termo));
+            botao.classList.toggle("hidden", !visivel);
+            if (visivel) {
+                totalVisiveis += 1;
+            }
+        });
+
+        if (imagemAtual) {
+            const atual = document.querySelector(`.item-imagem[data-imagem="${CSS.escape(imagemAtual)}"]`);
+            if (atual?.classList.contains("hidden")) {
+                const primeiroVisivel = document.querySelector(".item-imagem:not(.hidden)");
+                if (primeiroVisivel) {
+                    primeiroVisivel.click();
+                }
+            }
+        }
+
+        if (sidebarEmpty) {
+            sidebarEmpty.hidden = totalVisiveis > 0;
+        }
+
+        atualizarBotoesFiltroSidebar();
+        salvarEstadoPainel();
+    }
 
     function mostrarToast(mensagem, tipo = "success", titulo = "") {
         if (!toastStack) {
@@ -198,11 +391,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!viewerHelp) return;
 
         if (modoEdicao === "cantos") {
-            viewerHelp.textContent = `Clique na imagem para posicionar o ${ROTULOS_CANTOS[cantoSelecionado]}. Botão direito remove o canto selecionado.`;
+            viewerHelp.textContent = `Modo cantos: botao esquerdo do MOUSE posiciona o ${ROTULOS_CANTOS[cantoSelecionado]}. Botao direito do MOUSE remove o canto selecionado.`;
             return;
         }
 
-        viewerHelp.textContent = "Botão esquerdo adiciona marcação | Botão direito remove a marcação mais próxima";
+        viewerHelp.textContent = "Vermelho = Errado / nao deve entrar no CSV | Verde = Correto / deve entrar no CSV | Botao esquerdo do MOUSE adiciona marcacao | Botao direito do MOUSE remove a marcacao mais proxima";
     }
 
     function atualizarBotoesCanto() {
@@ -222,6 +415,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (modoEdicaoSelect) {
             modoEdicaoSelect.value = modoEdicao;
         }
+
+        salvarEstadoPainel();
     }
 
     function renderizarOverlay() {
@@ -291,6 +486,8 @@ document.addEventListener("DOMContentLoaded", () => {
         nomeImagem.textContent = nome;
         atualizarAjuda();
         atualizarBotoesCanto();
+        atualizarResumoViewer();
+        salvarEstadoPainel();
 
         let urlImagem = `/imagem/${NOME_PROCESSAMENTO}/${encodeURIComponent(nome)}`;
 
@@ -304,7 +501,9 @@ document.addEventListener("DOMContentLoaded", () => {
             garantirCantosVisiveis(nome);
             zoom = zoomSelect.value || "fit-width";
             atualizarBotoesCanto();
+            atualizarResumoViewer();
             aplicarZoom();
+            salvarEstadoPainel();
         };
 
         imagemPrincipal.onerror = () => {
@@ -519,6 +718,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             await carregarLeituras();
             cantosEdicao[imagemAtual] = clonarCantos(obterCantosDaLeitura(imagemAtual));
+            decorarListaImagens();
+            aplicarFiltroImagens();
             selecionarImagem(imagemAtual, true);
             mostrarToast("Imagem reprocessada com sucesso.", "success", "Leitura atualizada");
         } catch (erro) {
@@ -536,6 +737,13 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             botao.classList.add("ativo");
             selecionarImagem(botao.dataset.imagem);
+        });
+    });
+
+    botoesFiltroSidebar.forEach((botao) => {
+        botao.addEventListener("click", () => {
+            filtroStatus = botao.dataset.filter || "todos";
+            aplicarFiltroImagens();
         });
     });
 
@@ -623,6 +831,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const valor = zoomSelect.value;
         zoom = valor === "fit-width" || valor === "fit-window" ? valor : Number(valor);
         aplicarZoom();
+        salvarEstadoPainel();
     });
 
     document.getElementById("btn-salvar")?.addEventListener("click", salvarMarcacoes);
@@ -637,8 +846,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return document.querySelector(".item-imagem.ativo");
     }
 
+    function botoesVisiveis() {
+        return Array.from(document.querySelectorAll(".item-imagem")).filter((botao) => !botao.classList.contains("hidden"));
+    }
+
     function selecionarImagemPorIndice(indice) {
-        const botoes = Array.from(document.querySelectorAll(".item-imagem"));
+        const botoes = botoesVisiveis();
 
         if (!botoes.length) return;
 
@@ -658,7 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function irParaProximaImagem() {
-        const botoes = Array.from(document.querySelectorAll(".item-imagem"));
+        const botoes = botoesVisiveis();
         const atual = imagemSelecionadaAtual();
 
         if (!botoes.length) return;
@@ -667,7 +880,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function irParaImagemAnterior() {
-        const botoes = Array.from(document.querySelectorAll(".item-imagem"));
+        const botoes = botoesVisiveis();
         const atual = imagemSelecionadaAtual();
 
         if (!botoes.length) return;
@@ -675,8 +888,35 @@ document.addEventListener("DOMContentLoaded", () => {
         selecionarImagemPorIndice(botoes.indexOf(atual) - 1);
     }
 
+    function irParaProximaCorrespondencia(predicado, tituloSemResultado) {
+        const botoes = botoesVisiveis();
+        const atual = imagemSelecionadaAtual();
+
+        if (!botoes.length) return;
+
+        const indiceAtual = Math.max(0, botoes.indexOf(atual));
+
+        for (let deslocamento = 1; deslocamento <= botoes.length; deslocamento += 1) {
+            const candidato = botoes[(indiceAtual + deslocamento) % botoes.length];
+            if (predicado(candidato)) {
+                candidato.click();
+                candidato.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                return;
+            }
+        }
+
+        mostrarToast(tituloSemResultado, "warning", "Sem correspondência");
+    }
+
     btnProximaImagem?.addEventListener("click", irParaProximaImagem);
     btnImagemAnterior?.addEventListener("click", irParaImagemAnterior);
+    btnProximaComErro?.addEventListener("click", () => {
+        irParaProximaCorrespondencia(
+            (botao) => botao.dataset.status === "erro",
+            "Nenhuma outra imagem com erro foi encontrada no filtro atual."
+        );
+    });
+    buscaInput?.addEventListener("input", aplicarFiltroImagens);
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "ArrowRight") {
@@ -689,10 +929,42 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     Promise.all([carregarCorrecoes(), carregarLeituras()]).then(() => {
+        const estado = carregarEstadoPainel();
+        if (buscaInput && typeof estado.busca === "string") {
+            buscaInput.value = estado.busca;
+        }
+        if (estado.filtroStatus) {
+            filtroStatus = ["todos", "erro", "manual"].includes(estado.filtroStatus)
+                ? estado.filtroStatus
+                : "todos";
+        }
+        if (modoEdicaoSelect && estado.modoEdicao) {
+            modoEdicao = estado.modoEdicao;
+            modoEdicaoSelect.value = estado.modoEdicao;
+        }
+        if (zoomSelect && estado.zoomSelect) {
+            zoomSelect.value = estado.zoomSelect;
+        }
+        decorarListaImagens();
         atualizarAjuda();
         atualizarBotoesCanto();
+        aplicarFiltroImagens();
 
-        const primeiroBotao = document.querySelector(".item-imagem");
+        const params = new URLSearchParams(window.location.search);
+        const imagemSolicitada = params.get("imagem");
+        if (imagemSolicitada) {
+            filtroStatus = "todos";
+        }
+        const imagemRestaurada = estado.imagemAtual;
+        let primeiroBotao = imagemSolicitada
+            ? document.querySelector(`.item-imagem[data-imagem="${CSS.escape(imagemSolicitada)}"]`)
+            : imagemRestaurada
+                ? document.querySelector(`.item-imagem[data-imagem="${CSS.escape(imagemRestaurada)}"]`)
+                : document.querySelector(".item-imagem:not(.hidden)");
+
+        if (primeiroBotao?.classList.contains("hidden")) {
+            primeiroBotao = document.querySelector(".item-imagem:not(.hidden)");
+        }
 
         if (primeiroBotao) {
             primeiroBotao.click();
