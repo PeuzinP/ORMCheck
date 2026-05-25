@@ -1,14 +1,17 @@
 import json
+import mimetypes
 from pathlib import Path
+import re
 import unicodedata
 
 import requests
 
 from app.gerador_csv import TOTAL_PERGUNTAS, carregar_leituras, nome_arquivo_keepedu, resposta
-from app.services import caminho_leituras
+from app.services import caminho_leituras, localizar_imagem_original
 from app.settings import (
     ID_PROVA_KEEPEDU,
     KEEPEDU_API_KEY,
+    KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL,
     KEEPEDU_IMPORTAR_RESPOSTAS_URL,
     KEEPEDU_IMPORTAR_TIMEOUT_SECONDS,
     KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL,
@@ -61,6 +64,14 @@ def _cabecalhos_keepedu() -> dict:
         "ApiKey": KEEPEDU_API_KEY,
         "Institute": KEEPEDU_INSTITUTE,
         "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+
+def _cabecalhos_keepedu_upload() -> dict:
+    return {
+        "ApiKey": KEEPEDU_API_KEY,
+        "Institute": KEEPEDU_INSTITUTE,
         "Accept": "application/json",
     }
 
@@ -158,6 +169,28 @@ def _mensagens_resposta(corpo_resposta: dict) -> list[str]:
     return mensagens
 
 
+def _resumir_resposta_http_nao_json(status_code: int, resposta_api: requests.Response, contexto: str) -> str:
+    texto = str(resposta_api.text or "").strip()
+    texto_compacto = " ".join(texto.split())
+
+    if not texto_compacto:
+        return f"{contexto}: HTTP {status_code} sem corpo JSON."
+
+    if "<html" in texto_compacto.lower() or "<!doctype" in texto_compacto.lower():
+        return f"{contexto}: HTTP {status_code} retornou HTML em vez de JSON."
+
+    texto_limpo = re.sub(r"<[^>]+>", " ", texto_compacto)
+    texto_limpo = " ".join(texto_limpo.split())
+
+    if not texto_limpo:
+        return f"{contexto}: HTTP {status_code} sem JSON válido."
+
+    if len(texto_limpo) > 220:
+        texto_limpo = f"{texto_limpo[:217]}..."
+
+    return f"{contexto}: HTTP {status_code} - {texto_limpo}"
+
+
 def _post_keepedu(url_destino: str, payload_envio: dict, cabecalhos: dict) -> tuple[int, dict]:
     resposta_api = requests.post(
         url_destino,
@@ -173,10 +206,71 @@ def _post_keepedu(url_destino: str, payload_envio: dict, cabecalhos: dict) -> tu
     except ValueError:
         corpo_resposta = {
             "success": False,
-            "mensagem": [resposta_api.text.strip() or "A API não retornou um JSON válido."],
+            "mensagem": [_resumir_resposta_http_nao_json(status_code, resposta_api, "Importação de respostas")],
         }
 
     return status_code, corpo_resposta
+
+
+def _post_keepedu_folha_resposta(
+    url_destino: str,
+    caminho_imagem: Path,
+    id_aval,
+    cabecalhos: dict,
+) -> tuple[int, dict]:
+    content_type = mimetypes.guess_type(caminho_imagem.name)[0] or "application/octet-stream"
+
+    with open(caminho_imagem, "rb") as arquivo_imagem:
+        resposta_api = requests.post(
+            url_destino,
+            data={"idAval": str(id_aval)},
+            files={
+                "imagem_folha_resposta": (
+                    caminho_imagem.name,
+                    arquivo_imagem,
+                    content_type,
+                )
+            },
+            headers=cabecalhos,
+            timeout=KEEPEDU_IMPORTAR_TIMEOUT_SECONDS,
+        )
+
+    status_code = resposta_api.status_code
+
+    try:
+        corpo_resposta = resposta_api.json()
+    except ValueError:
+        corpo_resposta = {
+            "success": 200 <= status_code < 300,
+            "mensagem": [_resumir_resposta_http_nao_json(status_code, resposta_api, "Upload da folha-resposta")],
+        }
+
+    return status_code, corpo_resposta
+
+
+def _montar_url_folha_resposta(url_base: str, id_aval) -> str:
+    url = str(url_base or "").strip()
+    id_aval_texto = str(id_aval).strip()
+
+    if not url or not id_aval_texto:
+        return url
+
+    return (
+        url.replace("{idAval}", id_aval_texto)
+        .replace("{id_aval}", id_aval_texto)
+        .replace(":idAval", id_aval_texto)
+        .replace(":id_aval", id_aval_texto)
+    )
+
+
+def _sucesso_resposta_generica(status_code: int, corpo_resposta: dict) -> bool:
+    if not (200 <= status_code < 300):
+        return False
+
+    if isinstance(corpo_resposta, dict) and "success" in corpo_resposta:
+        return bool(corpo_resposta.get("success"))
+
+    return True
 
 
 def _motivo_pendencia_avaliacao(corpo_resposta: dict, nome_arquivo: str) -> str:
@@ -338,6 +432,7 @@ def _executar_importacao_respostas_presenciais(
         }
 
     cabecalhos = _cabecalhos_keepedu()
+    cabecalhos_upload = _cabecalhos_keepedu_upload()
     payload_base = _payload_base(id_aval_final)
     detalhes = []
     total = 0
@@ -388,9 +483,16 @@ def _executar_importacao_respostas_presenciais(
                 **payload_base,
                 "alunos": [aluno],
             }
+            caminho_imagem_original = localizar_imagem_original(
+                nome_processamento,
+                nome_imagem,
+                leituras,
+            )
 
             if modo == "simulacao":
                 status_code, corpo_resposta = processar_mock_importacao_keepedu(payload_envio)
+                status_code_folha = None
+                corpo_resposta_folha = None
             else:
                 if KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL:
                     (
@@ -458,8 +560,37 @@ def _executar_importacao_respostas_presenciais(
                         continue
 
                 status_code, corpo_resposta = _post_keepedu(url_destino, payload_envio, cabecalhos)
+                status_code_folha = None
+                corpo_resposta_folha = None
+                url_folha_resposta = _montar_url_folha_resposta(
+                    KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL,
+                    payload_base["idAval"],
+                )
+
+                if _sucesso_resposta_generica(status_code, corpo_resposta) and KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL:
+                    if not caminho_imagem_original:
+                        raise ValueError(
+                            f"A imagem original de {nome_imagem} não foi localizada para envio da folha-resposta."
+                        )
+
+                    (
+                        status_code_folha,
+                        corpo_resposta_folha,
+                    ) = _post_keepedu_folha_resposta(
+                        url_folha_resposta,
+                        caminho_imagem_original,
+                        payload_base["idAval"],
+                        cabecalhos_upload,
+                    )
+            if modo == "simulacao":
+                url_folha_resposta = ""
 
             sucesso = (200 <= status_code < 300) and bool(corpo_resposta.get("success"))
+            if modo != "simulacao" and KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL:
+                sucesso = sucesso and _sucesso_resposta_generica(
+                    status_code_folha or 0,
+                    corpo_resposta_folha or {},
+                )
             fora_avaliacao = _resposta_indica_aluno_fora_avaliacao(corpo_resposta)
 
             if fora_avaliacao:
@@ -495,6 +626,10 @@ def _executar_importacao_respostas_presenciais(
                 "payload": payload_envio,
                 "status_code": status_code,
                 "resposta": corpo_resposta,
+                "imagem_original": str(caminho_imagem_original) if caminho_imagem_original else "",
+                "folha_resposta_url": url_folha_resposta,
+                "folha_resposta_status_code": status_code_folha,
+                "folha_resposta_resposta": corpo_resposta_folha,
                 "sucesso": sucesso,
                 "pendencia_avaliacao": fora_avaliacao,
             }
@@ -507,6 +642,10 @@ def _executar_importacao_respostas_presenciais(
             arquivos_erros_api = corpo_resposta.get("arquivoErros") or []
             if isinstance(arquivos_erros_api, list):
                 arquivos_erros.extend(arquivos_erros_api)
+
+            mensagens_folha = _mensagens_resposta(corpo_resposta_folha or {})
+            if mensagens_folha:
+                mensagens.extend(mensagens_folha)
 
             if sucesso:
                 importadas += 1
@@ -530,10 +669,19 @@ def _executar_importacao_respostas_presenciais(
                 )
             else:
                 if not mensagens_api:
-                    mensagens.append(
-                        f"Falha ao importar {nome_arquivo}: "
-                        f"HTTP {status_code}."
-                    )
+                    if corpo_resposta_folha is not None and not _sucesso_resposta_generica(
+                        status_code_folha or 0,
+                        corpo_resposta_folha or {},
+                    ):
+                        mensagens.append(
+                            f"Falha ao enviar a imagem original de {nome_arquivo}: "
+                            f"HTTP {status_code_folha}."
+                        )
+                    else:
+                        mensagens.append(
+                            f"Falha ao importar {nome_arquivo}: "
+                            f"HTTP {status_code}."
+                        )
                 percentual_erro = 5 + int((indice / max(total_itens, 1)) * 90)
                 _emitir_progresso_importacao(
                     progresso_callback,
@@ -550,7 +698,21 @@ def _executar_importacao_respostas_presenciais(
                     },
                     tipo="error",
                     titulo="Falha no envio",
-                    descricao=" | ".join(_mensagens_resposta(corpo_resposta)[:3]) or f"HTTP {status_code}",
+                    descricao=(
+                        " | ".join(_mensagens_resposta(corpo_resposta_folha or {})[:3])
+                        if corpo_resposta_folha is not None and not _sucesso_resposta_generica(
+                            status_code_folha or 0,
+                            corpo_resposta_folha or {},
+                        )
+                        else " | ".join(_mensagens_resposta(corpo_resposta)[:3])
+                    ) or (
+                        f"HTTP {status_code_folha}"
+                        if corpo_resposta_folha is not None and not _sucesso_resposta_generica(
+                            status_code_folha or 0,
+                            corpo_resposta_folha or {},
+                        )
+                        else f"HTTP {status_code}"
+                    ),
                 )
 
         except requests.RequestException as exc:
@@ -623,6 +785,10 @@ def _executar_importacao_respostas_presenciais(
         "success": status == "ok",
         "modo": modo,
         "url_destino": url_destino,
+        "url_destino_folha_resposta": _montar_url_folha_resposta(
+            KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL,
+            payload_base["idAval"],
+        ) if modo != "simulacao" else "",
         "idAval": payload_base["idAval"],
         "id_aluno": id_aluno_filtrado,
         "total": total,

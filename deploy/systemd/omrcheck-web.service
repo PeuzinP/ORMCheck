@@ -1,0 +1,18 @@
+[Unit]
+Description=OMRCheck Web
+After=network.target mysql.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=omrcheck
+Group=omrcheck
+WorkingDirectory=/opt/omrcheck-web
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/omrcheck-web/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

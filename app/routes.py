@@ -6,13 +6,17 @@ from app.keepedu_importacao import (
     processar_mock_importacao_keepedu,
     simular_importacao_respostas_presenciais,
 )
+from app.keepedu_auth import autenticar_keepedu
 from app.validacao_cadastral import gerar_validacao_cadastral, salvar_correcao_manual
 import json
 import os
 from html import escape
 
 from app.settings import (
+    APP_ENABLE_AUTH,
     ID_PROVA_KEEPEDU,
+    KEEPEDU_LOGIN_SCHOOL,
+    KEEPEDU_LOGIN_URL,
     PASTA_UPLOADS_TEMP,
     MAX_UPLOAD_FILES,
     MAX_FILE_SIZE_MB,
@@ -70,6 +74,15 @@ def render_template(request: Request, nome_template: str, contexto: dict, status
     resposta.headers["Pragma"] = "no-cache"
     resposta.headers["Expires"] = "0"
     return resposta
+
+
+def _destino_pos_login(destino: str | None) -> str:
+    texto = str(destino or "").strip()
+
+    if not texto.startswith("/") or texto.startswith("//"):
+        return "/"
+
+    return texto
 
 
 def _resultado_job_importacao(resultado: dict | None):
@@ -290,6 +303,67 @@ async def index(request: Request):
             "processamentos": processamentos
         }
     )
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: str = "/"):
+    if not APP_ENABLE_AUTH:
+        return RedirectResponse(url="/", status_code=303)
+
+    if request.session.get("authenticated"):
+        return RedirectResponse(url=_destino_pos_login(next), status_code=303)
+
+    return render_template(
+        request,
+        "login.html",
+        {
+            "erro_login": "",
+            "email_login": "",
+            "next_url": _destino_pos_login(next),
+            "keepedu_login_habilitado": bool(KEEPEDU_LOGIN_URL),
+            "keepedu_school": KEEPEDU_LOGIN_SCHOOL,
+        },
+    )
+
+
+@router.post("/login", response_class=HTMLResponse)
+async def login_submit(
+    request: Request,
+    email: str = Form(""),
+    senha: str = Form(""),
+    next_url: str = Form("/"),
+):
+    if not APP_ENABLE_AUTH:
+        return RedirectResponse(url="/", status_code=303)
+
+    sucesso, mensagem, dados_usuario = autenticar_keepedu(email, senha)
+
+    if not sucesso:
+        return render_template(
+            request,
+            "login.html",
+            {
+                "erro_login": mensagem or "Não foi possível entrar.",
+                "email_login": str(email or "").strip(),
+                "next_url": _destino_pos_login(next_url),
+                "keepedu_login_habilitado": bool(KEEPEDU_LOGIN_URL),
+                "keepedu_school": KEEPEDU_LOGIN_SCHOOL,
+            },
+            status_code=401,
+        )
+
+    request.session.clear()
+    request.session["authenticated"] = True
+    request.session["user_email"] = str(dados_usuario.get("email") or email or "").strip()
+    request.session["auth_source"] = str(dados_usuario.get("origem") or "keepedu")
+
+    return RedirectResponse(url=_destino_pos_login(next_url), status_code=303)
+
+
+@router.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=303)
 
 
 @router.get("/bernoulli", response_class=HTMLResponse)
@@ -822,6 +896,17 @@ async def rota_reprocessar_imagem(nome_processamento: str, payload: ReprocessarI
     
 @router.get("/validacao/{nome_processamento}", response_class=HTMLResponse)
 async def validacao_cadastral(request: Request, nome_processamento: str):
+    caminho = caminho_leituras(nome_processamento)
+
+    if not caminho.exists():
+        return HTMLResponse(
+            (
+                "<h1>Processamento não encontrado.</h1>"
+                "<p>O lote solicitado não existe no diretório configurado em APP_PROCESSAMENTOS_DIR.</p>"
+            ),
+            status_code=404,
+        )
+
     dados_validacao = gerar_validacao_cadastral(nome_processamento)
     resumo = dados_validacao["resumo"]
 

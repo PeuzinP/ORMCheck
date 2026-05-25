@@ -43,18 +43,15 @@ O sistema permite:
 OMRCheck-Web/
 ├── app/                    # Regras de negócio, rotas e serviços
 ├── assets/                 # Ícone e arquivos estáticos auxiliares
+├── deploy/                 # Arquivos de deploy para Linux (systemd e nginx)
 ├── templates_omr/          # Template OMR do cartão
 ├── web/
 │   ├── static/             # CSS e JavaScript
 │   └── templates/          # Templates HTML
 ├── main.py                 # Inicialização do FastAPI
 ├── omr_reader.py           # Motor principal de leitura OMR
-├── docker-compose.yml      # Orquestração principal com acesso direto
-├── docker-compose.cloudflare.yml # Orquestração para deploy via Cloudflare Tunnel
-├── Dockerfile              # Imagem Docker da aplicação
 ├── requirements-prod.txt   # Dependências de produção
 ├── scripts/                # Rotinas operacionais
-├── CHECKLIST_IMPLANTACAO.md # Checklist curto de subida no setor
 └── .env.example            # Exemplo de configuração do ambiente
 ```
 
@@ -74,13 +71,27 @@ Exemplo:
 ```env
 APP_ENV=production
 APP_TIMEZONE=America/Sao_Paulo
+APP_STORAGE_BACKEND=mysql
 
-KEEPEDU_BUSCAR_ID_URL=ROTA_BUSCAR_ID_URL
+DATABASE_URL=
+MYSQL_HOST=mysql
+MYSQL_PORT=3306
+MYSQL_DATABASE=omrcheck
+MYSQL_USER=omrcheck
+MYSQL_PASSWORD=troque-esta-senha
+MYSQL_ROOT_PASSWORD=troque-a-senha-root
+MYSQL_SQL_ECHO=false
+
+KEEPEDU_API_BASE_URL=https://proposito.keepedu.com.br/api
+KEEPEDU_BUSCAR_ID_URL=
 KEEPEDU_API_KEY=
 KEEPEDU_INSTITUTE=
 ID_PROVA_KEEPEDU=
-KEEPEDU_IMPORTAR_RESPOSTAS_URL=ROTA_IMPORTAR_RESPOSTAS_URL
+KEEPEDU_IMPORTAR_RESPOSTAS_URL=
+KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL=
 KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL=
+KEEPEDU_LOGIN_URL=
+KEEPEDU_LOGIN_SCHOOL=proposito
 KEEPEDU_IMPORTAR_DIA_AVAL=1
 KEEPEDU_IMPORTAR_USUARIO_ID=0
 KEEPEDU_IMPORTAR_TIMEOUT_SECONDS=30
@@ -125,9 +136,10 @@ APP_RUNTIME_DIR=/data/runtime
 HOST=0.0.0.0
 PORT=8000
 APP_ALLOWED_HOSTS=localhost,127.0.0.1,SEU_IP_OU_HOST_INTERNO
-CLOUDFLARE_TUNNEL_TOKEN=
 
 APP_ENABLE_AUTH=true
+APP_SESSION_SECRET=troque-esta-chave-de-sessao
+APP_SESSION_COOKIE_NAME=omrcheck_session
 APP_BASIC_AUTH_USER=operador
 APP_BASIC_AUTH_PASSWORD=troque-esta-senha
 
@@ -144,6 +156,10 @@ APP_BACKUP_ENABLED=true
 ### Observações
 
 - `KEEPEDU_API_KEY` e `KEEPEDU_INSTITUTE` são obrigatórios para a validação via API
+- `KEEPEDU_API_BASE_URL` permite centralizar a base da API Keep e derivar rotas como login, busca de aluno, importação de respostas e upload da folha
+- `KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL` ativa um segundo envio `multipart/form-data` com a imagem original do cartão logo após o envio bem-sucedido do JSON
+- `KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL` aceita rota fixa ou placeholders como `{idAval}` e `:idAval` para APIs que exigem o ID da avaliação no path
+- `KEEPEDU_LOGIN_URL` e `KEEPEDU_LOGIN_SCHOOL` habilitam o login web pela API da Keep
 - `BERNOULLI_AUTHORIZATION` e `BERNOULLI_COOKIE` permitem autenticação manual, mas podem expirar
 - `BERNOULLI_LOGIN_*` permite que o backend refaça login e mantenha a sessão Bernoulli de forma automática
 - `BERNOULLI_PARAMETROS_*` permite executar o passo intermediário que troca o token inicial por um token autorizado para as APIs autenticadas
@@ -154,13 +170,16 @@ APP_BACKUP_ENABLED=true
 - `BERNOULLI_LOGIN_COOKIE_NAMES` pode limitar quais cookies da resposta devem ser persistidos
 - `BERNOULLI_AUTH_CACHE_FILE` guarda a sessão Bernoulli reaproveitável em arquivo local de runtime
 - `APP_TIMEZONE` padroniza a exibição de datas e horários do sistema
+- `APP_STORAGE_BACKEND=mysql` move o estado operacional do app para o MySQL; use `file` apenas como fallback local
+- `DATABASE_URL` pode sobrescrever toda a montagem da conexão, se você preferir informar a string completa
+- `MYSQL_*` define host, porta e credenciais do banco usado pelo app
 - `APP_DATA_DIR` define onde uploads, processamentos e runtime serão persistidos
 - `APP_LOG_DIR` define onde os logs operacionais serão gravados
 - `APP_BACKUP_DIR` define onde os backups compactados serão salvos
 - `APP_RUNTIME_DIR` define onde ficam arquivos transitórios do motor de jobs
 - `APP_ALLOWED_HOSTS` limita quais hosts podem servir a aplicação
-- `CLOUDFLARE_TUNNEL_TOKEN` é usado apenas no deploy com Cloudflare Tunnel
-- `APP_ENABLE_AUTH`, `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD` controlam a proteção por login HTTP básico
+- `APP_ENABLE_AUTH`, `APP_SESSION_SECRET` e `APP_SESSION_COOKIE_NAME` controlam a proteção por sessão web
+- `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD` permanecem como fallback local quando a rota Keep de login não estiver configurada
 - `APP_RETENTION_DAYS` define a retenção de processamentos e logs antigos
 - `APP_UPLOAD_TEMP_RETENTION_HOURS` define a retenção dos uploads temporários
 - `APP_BACKUP_ENABLED` define se a rotina operacional deve gerar backup antes da limpeza
@@ -237,9 +256,12 @@ Antes de subir em servidor, preencha no `.env`:
 - `APP_BASIC_AUTH_USER`
 - `APP_BASIC_AUTH_PASSWORD`
 - `APP_ALLOWED_HOSTS`
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `MYSQL_ROOT_PASSWORD`
 
 Sem proxy reverso, inclua em `APP_ALLOWED_HOSTS` o IP interno ou host real que sera usado para acessar a aplicacao.
-Com Cloudflare Tunnel, inclua o dominio publico real, por exemplo `omr.suaempresa.com.br`.
 
 ### 3. Executar preflight
 
@@ -305,69 +327,127 @@ No modo atual, o projeto sobe com um servico:
 
 - `omrcheck-web`: aplicação FastAPI/Uvicorn acessível diretamente na porta `8000`
 
-## Implantacao Com Cloudflare Tunnel
+## Implantacao Sem Docker
 
-Essa e a forma recomendada quando o dominio da empresa ja esta no Cloudflare.
+Esta e a forma recomendada quando a aplicacao vai rodar diretamente em um servidor Linux com MySQL local ou remoto.
 
-### 1. Preparar o `.env`
+### 1. Preparar o servidor
 
-Preencha no `.env`:
+- instale Python 3.11+
+- instale MySQL Server ou aponte para um MySQL ja existente
+- crie um usuario de sistema para a aplicacao, por exemplo `omrcheck`
+- copie o projeto para um caminho como `/opt/omrcheck-web`
 
-- `APP_ALLOWED_HOSTS` com o dominio publico real, por exemplo `omr.suaempresa.com.br`
-- `APP_BASIC_AUTH_USER` e `APP_BASIC_AUTH_PASSWORD`
-- `CLOUDFLARE_TUNNEL_TOKEN` com o token do tunnel criado no painel do Cloudflare
+### 2. Criar ambiente virtual
 
-Exemplo:
-
-```env
-APP_ALLOWED_HOSTS=localhost,127.0.0.1,omr.suaempresa.com.br
-CLOUDFLARE_TUNNEL_TOKEN=SEU_TOKEN_DO_TUNNEL
+```bash
+cd /opt/omrcheck-web
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements-prod.txt
 ```
 
-### 2. Criar o Tunnel no Cloudflare
+### 3. Preparar o `.env`
 
-No painel do Cloudflare:
+Exemplo minimo para MySQL local no mesmo servidor:
 
-- crie um `Cloudflare Tunnel`
-- publique um hostname como `omr.suaempresa.com.br`
-- aponte o servico para `http://omrcheck-web:8000`
-- copie o token gerado pelo Cloudflare para `CLOUDFLARE_TUNNEL_TOKEN`
+```env
+APP_ENV=production
+APP_STORAGE_BACKEND=mysql
+APP_TIMEZONE=America/Sao_Paulo
 
-### 3. Executar preflight
+DATABASE_URL=
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=omrcheck
+MYSQL_USER=omrcheck
+MYSQL_PASSWORD=troque-esta-senha
+MYSQL_SQL_ECHO=false
 
-Antes da subida, rode:
+HOST=127.0.0.1
+PORT=8000
+APP_ALLOWED_HOSTS=127.0.0.1,localhost,omr.seudominio.com.br
+APP_ENABLE_AUTH=true
+APP_SESSION_SECRET=troque-esta-chave-de-sessao
+APP_SESSION_COOKIE_NAME=omrcheck_session
+APP_BASIC_AUTH_USER=operador
+APP_BASIC_AUTH_PASSWORD=troque-esta-senha
+```
 
-```powershell
+Observacoes:
+
+- use `MYSQL_HOST=127.0.0.1` quando o banco estiver no mesmo servidor
+- use IP ou dominio real em `MYSQL_HOST` quando o banco estiver em outro servidor
+- `MYSQL_ROOT_PASSWORD` nao e usado pela aplicacao fora do Docker; ele serve apenas para administracao manual
+
+### 4. Inicializar o schema
+
+```bash
+cd /opt/omrcheck-web
+source .venv/bin/activate
+python -c "from app.db import init_db; init_db(); print('db ok')"
+```
+
+### 5. Validar antes da subida
+
+```bash
 python scripts/preflight.py
 ```
 
-### 4. Subir a stack com Cloudflare
+### 6. Rodar manualmente para teste
 
-```powershell
-docker compose -f docker-compose.cloudflare.yml up --build -d
+```bash
+uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-### 5. Validar
+### 7. Instalar como servico systemd
 
-- acesse o dominio publicado no Cloudflare
-- confira `https://SEU_DOMINIO/healthz`
-- valide o login basico
+O projeto inclui um exemplo pronto em `deploy/systemd/omrcheck-web.service`.
+
+Copie o arquivo para o servidor e ajuste estes campos, se necessario:
+
+- `User`
+- `Group`
+- `WorkingDirectory`
+- `ExecStart`
+
+Depois instale o servico:
+
+```bash
+sudo cp deploy/systemd/omrcheck-web.service /etc/systemd/system/omrcheck-web.service
+sudo systemctl daemon-reload
+sudo systemctl enable omrcheck-web
+sudo systemctl start omrcheck-web
+sudo systemctl status omrcheck-web
+```
+
+Ver logs:
+
+```bash
+sudo journalctl -u omrcheck-web -f
+```
+
+### 8. Publicar com Nginx
+
+O projeto inclui um exemplo pronto em `deploy/nginx/omrcheck-web.conf`.
+
+Passos tipicos:
+
+```bash
+sudo cp deploy/nginx/omrcheck-web.conf /etc/nginx/sites-available/omrcheck-web.conf
+sudo ln -s /etc/nginx/sites-available/omrcheck-web.conf /etc/nginx/sites-enabled/omrcheck-web.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 9. Validar
+
+- acesse `http://127.0.0.1:8000/healthz` localmente no servidor
+- se estiver usando Nginx, acesse o dominio publicado
+- confirme no `healthz` que `storage_backend` esta como `mysql`
 - execute um processamento pequeno de teste
-- confira escrita em `docker-data/processamentos`
-
-Comandos uteis:
-
-```powershell
-docker compose -f docker-compose.cloudflare.yml ps
-docker compose -f docker-compose.cloudflare.yml logs -f
-docker compose -f docker-compose.cloudflare.yml down
-```
-
-### 6. Observacoes
-
-- nesse modo a aplicacao nao expoe a porta `8000` publicamente no servidor
-- o trafego externo entra pelo Cloudflare e chega ao container via `cloudflared`
-- se precisar acesso local temporario para testes, use o `docker-compose.yml` tradicional
+- confira criacao de registros em `jobs`
 
 ## Fluxo De Uso
 
@@ -414,11 +494,11 @@ Os principais artefatos gerados pelo sistema são:
 
 - `processamentos/`
 - `uploads_temp/`
-- `runtime/jobs.json`
+- `runtime/`
 - `logs/`
 - `backups/`
 
-No Docker, esses dados ficam persistidos em `docker-data/`.
+No Docker, os arquivos operacionais continuam em `docker-data/` e o estado de `jobs` pode ficar em MySQL quando `APP_STORAGE_BACKEND=mysql`.
 
 ## Dados Sensíveis E Arquivos Não Versionados
 
@@ -478,10 +558,6 @@ Essa rotina usa:
 - `APP_RETENTION_DAYS`
 - `APP_UPLOAD_TEMP_RETENTION_HOURS`
 - `APP_BACKUP_ENABLED`
-
-## Checklist Rápido
-
-Existe também um checklist resumido em [CHECKLIST_IMPLANTACAO.md](./CHECKLIST_IMPLANTACAO.md) para a subida do ambiente do setor.
 
 ## Healthcheck
 

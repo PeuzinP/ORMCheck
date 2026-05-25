@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -38,9 +39,60 @@ def _json_dict_from_env(nome_variavel: str) -> dict:
     return carregado if isinstance(carregado, dict) else {}
 
 
+def _url_from_base(nome_variavel: str, caminho_padrao: str = "", fallback: str = "") -> str:
+    valor = os.getenv(nome_variavel, "").strip()
+
+    if valor:
+        return valor
+
+    base = os.getenv("KEEPEDU_API_BASE_URL", "").strip().rstrip("/")
+    caminho_padrao = str(caminho_padrao or "").strip().lstrip("/")
+
+    if base and caminho_padrao:
+        return f"{base}/{caminho_padrao}"
+
+    return str(fallback or "").strip()
+
+
+def _inferir_keepedu_school() -> str:
+    valor = os.getenv("KEEPEDU_LOGIN_SCHOOL", "").strip()
+
+    if valor:
+        return valor
+
+    for url in (
+        os.getenv("KEEPEDU_LOGIN_URL", "").strip(),
+        os.getenv("KEEPEDU_API_BASE_URL", "").strip(),
+    ):
+        if not url:
+            continue
+
+        try:
+            hostname = urlparse(url).hostname or ""
+        except ValueError:
+            hostname = ""
+
+        partes = [parte for parte in hostname.split(".") if parte]
+        if len(partes) >= 3 and partes[0].lower() != "www":
+            return partes[0]
+
+    return ""
+
+
 APP_DATA_DIR = _path_from_env("APP_DATA_DIR", BASE_DIR)
 APP_ENV = os.getenv("APP_ENV", "production").strip().lower() or "production"
 APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Sao_Paulo").strip() or "America/Sao_Paulo"
+APP_STORAGE_BACKEND = os.getenv("APP_STORAGE_BACKEND", "file").strip().lower() or "file"
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+MYSQL_HOST = os.getenv("MYSQL_HOST", "mysql").strip() or "mysql"
+MYSQL_PORT = max(1, int(os.getenv("MYSQL_PORT", "3306")))
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "omrcheck").strip() or "omrcheck"
+MYSQL_USER = os.getenv("MYSQL_USER", "omrcheck").strip() or "omrcheck"
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "").strip()
+MYSQL_SQL_ECHO = os.getenv("MYSQL_SQL_ECHO", "false").strip().lower() in {
+    "1", "true", "yes", "on"
+}
 
 PASTA_PROCESSAMENTOS = _path_from_env(
     "APP_PROCESSAMENTOS_DIR",
@@ -74,8 +126,13 @@ CAMINHO_LOG_APP = PASTA_LOGS / f"omrcheck-{APP_ENV}.log"
 
 KEEPEDU_BUSCAR_ID_URL = os.getenv(
     "KEEPEDU_BUSCAR_ID_URL",
-    "https://develop.keepedu.com.br/api/customers/buscar-id-aluno"
+    _url_from_base(
+        "KEEPEDU_BUSCAR_ID_URL",
+        "customers/buscar-id-aluno",
+        "https://develop.keepedu.com.br/api/customers/buscar-id-aluno",
+    )
 )
+KEEPEDU_API_BASE_URL = os.getenv("KEEPEDU_API_BASE_URL", "").strip().rstrip("/")
 
 KEEPEDU_API_KEY = os.getenv("KEEPEDU_API_KEY", "")
 
@@ -84,14 +141,27 @@ KEEPEDU_INSTITUTE = os.getenv(
     ""
 )
 ID_PROVA_KEEPEDU = os.getenv("ID_PROVA_KEEPEDU", "")
-KEEPEDU_IMPORTAR_RESPOSTAS_URL = os.getenv(
+KEEPEDU_IMPORTAR_RESPOSTAS_URL = _url_from_base(
     "KEEPEDU_IMPORTAR_RESPOSTAS_URL",
-    "http://localhost/github-app/keepedu/api/avaliacoes/importar-respostas-presenciais"
-).strip()
+    "avaliacoes/importar-respostas-presenciais",
+    "http://localhost/github-app/keepedu/api/avaliacoes/importar-respostas-presenciais",
+)
 KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL = os.getenv(
-    "KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL",
-    ""
+     "KEEPEDU_SIMULAR_IMPORTAR_RESPOSTAS_URL",
+     ""
 ).strip()
+KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL = _url_from_base(
+    "KEEPEDU_IMPORTAR_FOLHA_RESPOSTA_URL",
+    "avaliacoes/importar-folha-resposta",
+    "https://develop.keepedu.com.br/api/avaliacoes/importar-folha-resposta",
+)
+KEEPEDU_LOGIN_URL = _url_from_base(
+    "KEEPEDU_LOGIN_URL",
+    "gestor/user/login",
+    "https://develop.keepedu.com.br/api/gestor/user/login",
+
+)
+KEEPEDU_LOGIN_SCHOOL = _inferir_keepedu_school()
 KEEPEDU_IMPORTAR_DIA_AVAL = os.getenv("KEEPEDU_IMPORTAR_DIA_AVAL", "1").strip() or "1"
 KEEPEDU_IMPORTAR_USUARIO_ID = int(os.getenv("KEEPEDU_IMPORTAR_USUARIO_ID", "0"))
 KEEPEDU_IMPORTAR_TIMEOUT_SECONDS = max(
@@ -156,6 +226,12 @@ APP_ENABLE_AUTH = os.getenv("APP_ENABLE_AUTH", "false").strip().lower() in {
 }
 APP_BASIC_AUTH_USER = os.getenv("APP_BASIC_AUTH_USER", "").strip()
 APP_BASIC_AUTH_PASSWORD = os.getenv("APP_BASIC_AUTH_PASSWORD", "").strip()
+APP_SESSION_SECRET = (
+    os.getenv("APP_SESSION_SECRET", "").strip()
+    or APP_BASIC_AUTH_PASSWORD
+    or "omrcheck-session-secret-change-me"
+)
+APP_SESSION_COOKIE_NAME = os.getenv("APP_SESSION_COOKIE_NAME", "omrcheck_session").strip() or "omrcheck_session"
 APP_ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv("APP_ALLOWED_HOSTS", "").split(",")

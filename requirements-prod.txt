@@ -4,6 +4,8 @@ Jinja2==3.1.2
 python-multipart==0.0.28
 python-dotenv==1.1.1
 requests==2.32.3
+SQLAlchemy==2.0.41
+PyMySQL==1.1.1
 pandas==3.0.2
 beautifulsoup4==4.12.3
 html5lib==1.1

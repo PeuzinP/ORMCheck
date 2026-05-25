@@ -38,6 +38,7 @@ def carregar_pendencias_importacao(nome_processamento: str):
 
 def salvar_pendencias_importacao(nome_processamento: str, dados: dict):
     caminho = caminho_pendencias_importacao(nome_processamento)
+    caminho.parent.mkdir(parents=True, exist_ok=True)
 
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
@@ -158,6 +159,7 @@ def salvar_validacao(nome_processamento: str, dados_validacao: dict):
     caminho_leitura = caminho_leituras(nome_processamento)
     pasta_processamento = caminho_leitura.parent
     caminho_saida = pasta_processamento / "validacao_cadastral.json"
+    pasta_processamento.mkdir(parents=True, exist_ok=True)
 
     with open(caminho_saida, "w", encoding="utf-8") as f:
         json.dump(dados_validacao, f, ensure_ascii=False, indent=4)

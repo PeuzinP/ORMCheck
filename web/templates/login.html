@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | OMRCheck Web</title>
+    <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
+    <link rel="stylesheet" href="/static/css/style.css?v=74">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
+        </a>
+        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
+            <strong>OMRCheck</strong>
+            <span>Entrada segura para leitura, revisão e exportação</span>
+        </a>
+        <div class="topbar-right">
+            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
+                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+            </a>
+        </div>
+    </header>
+
+    <main class="page page-home">
+        <section class="home-hero">
+            <div class="home-hero-main">
+                <span class="eyebrow">Acesso</span>
+                <h1>Entrar no OMRCheck</h1>
+                <p>Use seu e-mail e senha para acessar os lotes, revisar cartões e acompanhar as integrações com a Keep.</p>
+
+                <div class="home-hero-metrics">
+                    <article class="home-metric-card">
+                        <span>Autenticação</span>
+                        <strong>{% if keepedu_login_habilitado %}KeepEdu{% else %}Local{% endif %}</strong>
+                        <p>
+                            {% if keepedu_login_habilitado %}
+                                Login validado pela API da Keep.
+                            {% else %}
+                                Login local habilitado como fallback.
+                            {% endif %}
+                        </p>
+                    </article>
+                    <article class="home-metric-card">
+                        <span>Ambiente</span>
+                        <strong>{{ (keepedu_school or "OMRCheck")|title }}</strong>
+                        <p>O acesso libera o uso normal do painel do sistema.</p>
+                    </article>
+                </div>
+            </div>
+
+            <aside class="home-hero-side">
+                <div class="card">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Login</span>
+                            <h2>Acessar painel</h2>
+                        </div>
+                    </div>
+
+                    <p class="card-description">
+                        Informe as credenciais para continuar.
+                    </p>
+
+                    {% if erro_login %}
+                        <div class="erro-box" style="display: block; margin-bottom: 16px;">
+                            <strong>Falha no login:</strong>
+                            <p style="margin: 6px 0 0;">{{ erro_login }}</p>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" action="/login" class="form-grid">
+                        <input type="hidden" name="next_url" value="{{ next_url }}">
+
+                        <div>
+                            <label for="login-email">E-mail</label>
+                            <input
+                                type="email"
+                                id="login-email"
+                                name="email"
+                                class="input-text"
+                                placeholder="programacao@pensaredu.com.br"
+                                value="{{ email_login }}"
+                                autocomplete="username"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label for="login-senha">Senha</label>
+                            <input
+                                type="password"
+                                id="login-senha"
+                                name="senha"
+                                class="input-text"
+                                placeholder="Digite sua senha"
+                                autocomplete="current-password"
+                                required
+                            >
+                        </div>
+
+                        <div class="actions validacao-export-actions">
+                            <button type="submit" class="btn-primary">Entrar</button>
+                        </div>
+                    </form>
+                </div>
+            </aside>
+        </section>
+    </main>
+</body>
+</html>

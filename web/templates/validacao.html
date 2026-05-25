@@ -16,6 +16,7 @@
             <span>Conferência dos registros e geração do CSV final</span>
         </a>
         <div class="topbar-right">
+            <a class="btn-light" href="/logout">Sair</a>
             <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
                 <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
             </a>
@@ -123,7 +124,7 @@
             <div class="section-head validacao-direct-head">
                 <div>
                     <span class="section-kicker">Envio direto</span>
-                    <h2>Importação JSON na plataforma</h2>
+                    <h2>Importação de Vetores na plataforma</h2>
                 </div>
             </div>
             <p class="card-description validacao-direct-description">
@@ -131,40 +132,33 @@
                 O sistema reaproveita o mesmo barcode, idioma, tipo e respostas já consolidados na validação.
                 Se a API indicar que o aluno ainda não pertence à avaliação, o cartão volta como pendência no painel.
             </p>
-            <form id="json-import-form" class="form-grid validacao-direct-form">
-                <div class="validacao-direct-grid">
-                    <div>
+            <form id="json-import-form" class="validacao-direct-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
                         <label for="json-id-aval" class="campo-label">ID da avaliação</label>
-                        <input
-                            type="text"
-                            id="json-id-aval"
-                            class="input-text"
-                            value="{{ importacao_defaults.id_aval }}"
-                            placeholder="Ex.: 12310"
-                            required
-                        >
+                        <input type="text" id="json-id-aval" class="input-text" value="{{ importacao_defaults.id_aval }}" placeholder="Ex.: 12310" required>
+                        
+                        <button type="submit" class="btn-secondary" id="btn-enviar-json-direto" style="width: 100%;">
+                            Enviar Um Aluno
+                        </button>
+                        <button type="button" class="btn-light" id="btn-enviar-imagem-cartao-resposta" style="width: 100%;">
+                            Enviar Imagem do cartão
+                        </button>
                     </div>
-                    <div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
                         <label for="json-id-aluno" class="campo-label">ID do aluno</label>
-                        <input
-                            type="text"
-                            id="json-id-aluno"
-                            class="input-text"
-                            value=""
-                            placeholder="Opcional para envio único"
-                        >
+                        <input type="text" id="json-id-aluno" class="input-text" placeholder="Opcional para envio único">
+                        
+                        <button type="button" class="btn-primary" id="btn-enviar-todos-json-direto" style="width: 100%;">
+                            Enviar Todos (Vetores)
+                        </button>
+                        <button type="button" class="btn-primary" id="btn-enviar-todas-imagens" style="width: 100%;">
+                            Enviar todas as Imagens
+                        </button>
                     </div>
-                </div>
-                <div class="actions validacao-export-actions">
-                    <button type="button" class="btn-light" id="btn-simular-json-direto">
-                        Simular Envio
-                    </button>
-                    <button type="submit" class="btn-secondary" id="btn-enviar-json-direto">
-                        Enviar Um Aluno
-                    </button>
-                    <button type="button" class="btn-primary" id="btn-enviar-todos-json-direto">
-                        Enviar Todos
-                    </button>
+
                 </div>
             </form>
             <p id="json-export-status" class="muted validacao-direct-status"></p>
@@ -172,7 +166,7 @@
                 <div class="section-head">
                     <div>
                         <span class="section-kicker">Acompanhamento</span>
-                        <h3>Progresso do envio JSON</h3>
+                        <h3>Progresso do envio dos Vetores</h3>
                     </div>
                     <span class="section-badge" id="json-import-progress-percent">0%</span>
                 </div>
@@ -690,10 +684,7 @@
                         : resumo;
 
                     if (modo === "importacao" && resultado?.validacao_atualizada) {
-                        status.textContent = `${resumo} Atualizando o painel de validação...`;
-                        window.setTimeout(() => {
-                            window.location.reload();
-                        }, 1200);
+                        status.textContent = `${resumo} O painel foi mantido sem recarregar a página.`;
                     }
 
                     botoesControle.forEach((botao) => {
@@ -747,7 +738,7 @@
             }
 
             if (!enviarTodos && !idAluno) {
-                status.textContent = "Informe o ID do aluno para enviar somente um JSON.";
+                status.textContent = "Informe o ID do aluno para enviar somente um Vetor.";
                 idAlunoInput?.focus();
                 return;
             }
@@ -773,6 +764,16 @@
             if (botaoSimular) {
                 botaoSimular.disabled = true;
             }
+            if (botaoSimular) {
+                botaoSimular.disabled = true;
+            }
+
+            // -> ADICIONE ESTAS 4 LINHAS AQUI PARA RESTAURAR O TÍTULO PADRÃO:
+            const tituloProgresso = document.querySelector("#json-import-progress-box h3");
+            if (tituloProgresso) {
+                tituloProgresso.textContent = "Progresso do envio Vetor";
+            }
+
             atualizarPainelImportacao(0, modo === "simulacao"
                 ? "Preparando simulação em JSON..."
                 : "Preparando envio em JSON...", "");
@@ -1069,6 +1070,169 @@
         });
 
         renderizarPaginacaoValidacao();
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const btnEnviarImagem = document.getElementById("btn-enviar-imagem-cartao-resposta");
+            
+            // Elementos do Modal
+            const modal = document.getElementById("modal-confirmacao-imagem");
+            const btnFechar = document.getElementById("btn-fechar-modal-img");
+            const btnCancelar = document.getElementById("btn-cancelar-img");
+            const btnConfirmar = document.getElementById("btn-confirmar-img");
+            const textoModal = document.getElementById("texto-modal-imagem");
+
+            // Variáveis para guardar os dados até a confirmação
+            let avaliacaoAtual = "";
+            let alunoAtual = "";
+
+            // Função para fechar o modal
+            // Função para fechar o modal
+            const fecharModal = () => { 
+                modal.classList.add("hidden"); 
+                modal.setAttribute("aria-hidden", "true"); 
+            };
+
+            // 1. AÇÃO DE FECHAR O MODAL
+
+            if (btnEnviarImagem) {
+                btnEnviarImagem.addEventListener("click", function(event) {
+                    event.preventDefault(); 
+                    
+                    // 1. CAPTURANDO OS IDs CORRETAMENTE
+                    // ATENÇÃO: Verifique no seu HTML se o ID do input de avaliação é realmente esse.
+                    // Se o input não tiver ID, ele tentará buscar pelo "name".
+                    // 1. CAPTURANDO OS IDs CORRETAMENTE PELO HTML ORIGINAL
+                    const inputAvaliacao = document.getElementById("json-id-aval");
+                    if (!inputAvaliacao) {
+                        alert("Por favor, preencha o ID da avaliação antes de enviar.");
+                        return;
+                    }
+
+                    const inputAluno = document.getElementById("json-id-aluno");
+
+                    avaliacaoAtual = inputAvaliacao ? inputAvaliacao.value.trim() : null;
+                    alunoAtual = inputAluno ? inputAluno.value.trim() : "";
+
+                    // 2. Customiza o texto do modal e exibe na tela
+                    if (alunoAtual) {
+                        textoModal.textContent = `Você tem certeza que deseja enviar a imagem somente do aluno ${alunoAtual} para a avaliação ${avaliacaoAtual}?`;
+                    } else {
+                        textoModal.textContent = `Você tem certeza que deseja enviar as imagens de TODOS os alunos para a avaliação ${avaliacaoAtual}?`;
+                    }
+                    
+                    // Remove a classe 'hidden' e ajusta o atributo de acessibilidade
+                    modal.classList.remove("hidden");
+                    modal.setAttribute("aria-hidden", "false");
+                });
+            }
+
+            // 3. AÇÃO DE CONFIRMAÇÃO DO MODAL
+            if (btnConfirmar) {
+                btnConfirmar.addEventListener("click", async function() {
+                    fecharModal(); // Esconde o modal imediatamente
+
+                    const nomeProcessamento = "{{ nome_processamento }}"; // Variável Jinja
+                    const textoOriginal = btnEnviarImagem.textContent;
+                    btnEnviarImagem.textContent = "Iniciando Envio...";
+                    btnEnviarImagem.disabled = true;
+
+                    try {
+                        // Dispara para o seu FastAPI
+                        const response = await fetch(`/importar-respostas-presenciais-ajax/${nomeProcessamento}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                idAval: avaliacaoAtual,
+                                idAluno: alunoAtual
+                            })
+                        });
+                        const btnEnviarTodasImagens = document.getElementById("btn-enviar-todas-imagens");
+
+                        if (btnEnviarTodasImagens) {
+                            btnEnviarTodasImagens.addEventListener("click", function(event) {
+                                event.preventDefault();
+                                
+                                // Pega o ID da avaliação que já está no campo
+                                const idAvaliacao = document.getElementById("json-id-aval")?.value;
+                                
+                                if (!idAvaliacao) {
+                                    alert("Preencha o ID da avaliação.");
+                                    return;
+                                }
+
+                                // Prepara o texto do modal para indicar que é um envio em massa
+                                textoModal.textContent = `Você tem certeza que deseja enviar as imagens de TODOS os alunos para a avaliação ${idAvaliacao}?`;
+                                
+                                // Define que não há aluno específico (vazio) para o backend entender como "todos"
+                                alunoAtual = ""; 
+                                avaliacaoAtual = idAvaliacao;
+                                
+                                // Abre o modal que já configuramos
+                                modal.classList.remove("hidden");
+                                modal.setAttribute("aria-hidden", "false");
+                            });
+                        }
+                        const result = await response.json();
+
+                        if (response.ok && result.status === "ok") {
+                            // 1. Muda o título da caixa de progresso dinamicamente
+                            const tituloProgresso = document.querySelector("#json-import-progress-box h3");
+                            if (tituloProgresso) {
+                                tituloProgresso.textContent = "Progresso de envio da/das imagens";
+                            }
+
+                            // 2. Prepara o texto de status
+                            const statusText = document.getElementById("json-export-status");
+                            if (statusText) {
+                                statusText.textContent = "Iniciando envio das imagens...";
+                            }
+
+                            // 3. Inicia a animação da barra chamando a função que você já tem no código
+                            consultarStatusImportacao(
+                                result.job_id, 
+                                "importacao", 
+                                [btnEnviarImagem], 
+                                statusText
+                            );
+                        } else {
+                            alert("Erro retornado: " + (result.mensagem || "Verifique os logs."));
+                        }
+                    } catch (error) {
+                        console.error("Erro na requisição:", error);
+                        alert("Falha de comunicação com o servidor.");
+                    } finally {
+                        btnEnviarImagem.textContent = textoOriginal;
+                        btnEnviarImagem.disabled = false;
+                    }
+                });
+            }
+        });
     </script>
+    <div id="modal-confirmacao-imagem" class="app-modal hidden" aria-hidden="true">
+        <div class="app-modal-backdrop" id="backdrop-modal-img"></div>
+        <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-imagem">
+            <div class="app-modal-header">
+                <div>
+                    <span class="section-kicker">Confirmação</span>
+                    <h3 id="titulo-modal-imagem">Confirmar envio de imagens?</h3>
+                </div>
+                <button type="button" class="app-modal-close" id="btn-fechar-modal-img" aria-label="Fechar">
+                    x
+                </button>
+            </div>
+            <p class="app-modal-text" id="texto-modal-imagem">
+                Você tem certeza que deseja enviar as imagens para a avaliação?
+            </p>
+            <div class="app-modal-actions">
+                <button type="button" class="btn-light" id="btn-cancelar-img">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-secondary" id="btn-confirmar-img">
+                    Confirmar envio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
