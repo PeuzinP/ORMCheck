@@ -2,199 +2,250 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulado Bernoulli | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
     <link rel="stylesheet" href="/static/css/style.css?v=66">
+    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
 </head>
-<body>
-    <header class="topbar">
-        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
-        </a>
-        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
-            <strong>OMRCheck</strong>
-            <span>Conversão de planilhas KeepEdu para importação Bernoulli</span>
-        </a>
-        <div class="topbar-right">
-            <a class="btn-light" href="/logout">Sair</a>
-            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+<body class="keepedu-app-page">
+    <header class="ke-header">
+        <div class="ke-header-left">
+            <a class="ke-logo" href="/" aria-label="Abrir painel">
+                <span class="ke-logo-mark" aria-hidden="true"></span>
+                <span class="ke-logo-word">KeepEdu</span>
             </a>
-            <a class="btn-light" href="/">Voltar</a>
+            <button class="ke-header-menu" type="button" aria-label="Menu">
+                <span></span>
+            </button>
+        </div>
+        <div class="ke-header-right">
+            <a class="ke-user-chip" href="/logout" aria-label="Abrir sessão do usuário">
+                <span class="ke-user-avatar">O</span>
+                <span class="ke-user-name">{{ request.session.get("user_email", "Operador OMR") }}</span>
+            </a>
+            <a class="ke-header-link" href="/logout">Sair</a>
         </div>
     </header>
 
-    <main class="page bernoulli-page">
-        <section class="bernoulli-hero card">
-            <div class="bernoulli-hero-copy">
-                <span class="section-kicker">Bernoulli</span>
-                <h1>Gerar arquivo do Simulado Bernoulli</h1>
-                <p>Envie a planilha do KeepEdu, consulte o RMB e gere o arquivo final pronto para importação.</p>
+    <div class="ke-shell">
+        <aside class="ke-sidebar">
+            <div class="ke-sidebar-title">Menu</div>
+            <nav class="ke-nav">
+                <a class="ke-nav-item" href="/">
+                    <span class="ke-nav-icon">⌂</span>
+                    <span>Painel</span>
+                </a>
+                <a class="ke-nav-item is-active" href="/bernoulli">
+                    <span class="ke-nav-icon">⇄</span>
+                    <span>Bernoulli</span>
+                </a>
+            </nav>
+
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Etapas</div>
+                <a class="ke-side-link is-current" href="/bernoulli">Conversão Bernoulli</a>
+                <a class="ke-side-link" href="/">Novo processamento OMR</a>
             </div>
-            <div class="bernoulli-hero-meta">
-                <div class="bernoulli-meta-item">
-                    <strong>Entrada</strong>
-                    <span>CSV, XLSX ou XLS</span>
-                </div>
-                <div class="bernoulli-meta-item">
-                    <strong>Consulta</strong>
-                    <span>RMB via API do Bernoulli</span>
-                </div>
-                <div class="bernoulli-meta-item">
-                    <strong>Saída</strong>
-                    <span>XLSX final pronto para uso</span>
+
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Fluxo</div>
+                <div class="ke-side-meta">
+                    <div class="ke-side-meta-item">
+                        <span>Entrada</span>
+                        <strong>CSV, XLSX ou XLS</strong>
+                    </div>
+                    <div class="ke-side-meta-item">
+                        <span>Saída</span>
+                        <p>Arquivo final em XLSX pronto para importação no Bernoulli.</p>
+                    </div>
                 </div>
             </div>
-        </section>
+        </aside>
 
-        <section class="bernoulli-layout">
-            <div class="bernoulli-main-column">
-                <section class="card bernoulli-form-card">
-                    <div class="section-head">
-                        <div>
-                            <span class="section-kicker">Conversão</span>
-                            <h2>Gerar arquivo Bernoulli</h2>
+        <main class="ke-main">
+            <div class="ke-page-bar">
+                <div class="ke-page-title">
+                    <h1>Simulado Bernoulli <small>Conversão KeepEdu</small></h1>
+                </div>
+                <div class="ke-breadcrumbs">
+                    Colégio Propósito | Keep Edu &nbsp;&gt;&nbsp; Bernoulli
+                </div>
+            </div>
+
+            <div class="page bernoulli-page ke-page-content">
+                <section class="bernoulli-hero card">
+                    <div class="bernoulli-hero-copy">
+                        <span class="section-kicker">Bernoulli</span>
+                        <h1>Gerar arquivo do Simulado Bernoulli</h1>
+                        <p>Envie a planilha do KeepEdu, consulte o RMB e gere o arquivo final pronto para importação.</p>
+                    </div>
+                    <div class="bernoulli-hero-meta">
+                        <div class="bernoulli-meta-item">
+                            <strong>Entrada</strong>
+                            <span>CSV, XLSX ou XLS</span>
+                        </div>
+                        <div class="bernoulli-meta-item">
+                            <strong>Consulta</strong>
+                            <span>RMB via API do Bernoulli</span>
+                        </div>
+                        <div class="bernoulli-meta-item">
+                            <strong>Saída</strong>
+                            <span>XLSX final pronto para uso</span>
                         </div>
                     </div>
+                </section>
 
-                    <div class="bernoulli-mini-grid">
-                        <div class="bernoulli-mini-card">
-                            <strong>1. Enviar</strong>
-                            <span>Planilha exportada do KeepEdu</span>
-                        </div>
-                        <div class="bernoulli-mini-card">
-                            <strong>2. Consultar</strong>
-                            <span>RMB localizado pelo RA</span>
-                        </div>
-                        <div class="bernoulli-mini-card">
-                            <strong>3. Baixar</strong>
-                            <span>Arquivo final em .xlsx</span>
-                        </div>
-                    </div>
-
-                    <div class="bernoulli-day-toggle" role="group" aria-label="Selecionar dia do simulado">
-                        <button type="button" class="bernoulli-day-btn active" data-dia="1">1° Dia</button>
-                        <button type="button" class="bernoulli-day-btn" data-dia="2">2° Dia</button>
-                    </div>
-
-                    <form
-                        id="bernoulli-form"
-                        class="bernoulli-form"
-                        action="/bernoulli/processar-ajax"
-                        method="post"
-                        enctype="multipart/form-data"
-                    >
-                        <input type="hidden" name="dia" id="bernoulli-dia" value="1">
-                        <label class="field-block">
-                            <span>Arquivo do KeepEdu</span>
-                            <div class="bernoulli-upload-box">
-                                <input id="bernoulli-arquivo" type="file" name="arquivo_keepedu" accept=".csv,.xlsx,.xls" required>
-                                <div class="bernoulli-upload-copy">
-                                    <strong id="bernoulli-file-name">Nenhum arquivo selecionado</strong>
-                                    <small>Use a planilha com RA, Nome, Lingua Estrangeira e questões.</small>
+                <section class="bernoulli-layout">
+                    <div class="bernoulli-main-column">
+                        <section class="card bernoulli-form-card">
+                            <div class="section-head">
+                                <div>
+                                    <span class="section-kicker">Conversão</span>
+                                    <h2>Gerar arquivo Bernoulli</h2>
                                 </div>
                             </div>
-                        </label>
 
-                        <div class="bernoulli-actions">
-                            <button type="submit" class="btn-primary" id="bernoulli-submit">Gerar Simulado Bernoulli</button>
-                            <a class="btn-light" href="/">Voltar para a home</a>
-                        </div>
-                    </form>
-                </section>
+                            <div class="bernoulli-mini-grid">
+                                <div class="bernoulli-mini-card">
+                                    <strong>1. Enviar</strong>
+                                    <span>Planilha exportada do KeepEdu</span>
+                                </div>
+                                <div class="bernoulli-mini-card">
+                                    <strong>2. Consultar</strong>
+                                    <span>RMB localizado pelo RA</span>
+                                </div>
+                                <div class="bernoulli-mini-card">
+                                    <strong>3. Baixar</strong>
+                                    <span>Arquivo final em .xlsx</span>
+                                </div>
+                            </div>
 
-                <section class="card bernoulli-log-card">
-                    <div>
-                        <span class="section-kicker">Resumo</span>
-                        <h2>Processamento</h2>
+                            <div class="bernoulli-day-toggle" role="group" aria-label="Selecionar dia do simulado">
+                                <button type="button" class="bernoulli-day-btn active" data-dia="1">1° Dia</button>
+                                <button type="button" class="bernoulli-day-btn" data-dia="2">2° Dia</button>
+                            </div>
+
+                            <form
+                                id="bernoulli-form"
+                                class="bernoulli-form"
+                                action="/bernoulli/processar-ajax"
+                                method="post"
+                                enctype="multipart/form-data"
+                            >
+                                <input type="hidden" name="dia" id="bernoulli-dia" value="1">
+                                <label class="field-block">
+                                    <span>Arquivo do KeepEdu</span>
+                                    <div class="bernoulli-upload-box">
+                                        <input id="bernoulli-arquivo" type="file" name="arquivo_keepedu" accept=".csv,.xlsx,.xls" required>
+                                        <div class="bernoulli-upload-copy">
+                                            <strong id="bernoulli-file-name">Nenhum arquivo selecionado</strong>
+                                            <small>Use a planilha com RA, Nome, Lingua Estrangeira e questões.</small>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <div class="bernoulli-actions">
+                                    <button type="submit" class="btn-primary" id="bernoulli-submit">Gerar Simulado Bernoulli</button>
+                                    <a class="btn-light" href="/">Voltar para a home</a>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section class="card bernoulli-log-card">
+                            <div>
+                                <span class="section-kicker">Resumo</span>
+                                <h2>Processamento</h2>
+                            </div>
+                            <p class="card-description">Indicadores da conversão atual e liberação do arquivo final.</p>
+
+                            <div class="bernoulli-log-summary" id="bernoulli-log-summary">
+                                <div class="bernoulli-log-stat">
+                                    <span>Linhas</span>
+                                    <strong id="bernoulli-total-linhas">0</strong>
+                                </div>
+                                <div class="bernoulli-log-stat">
+                                    <span>RMB</span>
+                                    <strong id="bernoulli-total-rmb">0</strong>
+                                </div>
+                                <div class="bernoulli-log-stat">
+                                    <span>Pendentes</span>
+                                    <strong id="bernoulli-total-pendentes">0</strong>
+                                </div>
+                                <div class="bernoulli-log-stat">
+                                    <span>Questões</span>
+                                    <strong id="bernoulli-total-questoes">0</strong>
+                                </div>
+                            </div>
+                        </section>
                     </div>
-                    <p class="card-description">Indicadores da conversão atual e liberação do arquivo final.</p>
 
-                    <div class="bernoulli-log-summary" id="bernoulli-log-summary">
-                        <div class="bernoulli-log-stat">
-                            <span>Linhas</span>
-                            <strong id="bernoulli-total-linhas">0</strong>
-                        </div>
-                        <div class="bernoulli-log-stat">
-                            <span>RMB</span>
-                            <strong id="bernoulli-total-rmb">0</strong>
-                        </div>
-                        <div class="bernoulli-log-stat">
-                            <span>Pendentes</span>
-                            <strong id="bernoulli-total-pendentes">0</strong>
-                        </div>
-                        <div class="bernoulli-log-stat">
-                            <span>Questões</span>
-                            <strong id="bernoulli-total-questoes">0</strong>
-                        </div>
-                    </div>
+                    <aside class="bernoulli-side-column">
+                        <section class="card bernoulli-help-card">
+                            <div class="section-head">
+                                <div>
+                                    <span class="section-kicker">Saída</span>
+                                    <h2>Saída padrão</h2>
+                                </div>
+                            </div>
+
+                            <div class="bernoulli-rule-list compact">
+                                <div class="bernoulli-rule-item">
+                                    <strong>Colunas</strong>
+                                    <p id="bernoulli-regra-colunas">RMB, RA, Nome, Lingua Estrangeira e q1...q90.</p>
+                                </div>
+                                <div class="bernoulli-rule-item">
+                                    <strong>RMB</strong>
+                                    <p>Buscado pela API do Bernoulli usando o RA.</p>
+                                </div>
+                                <div class="bernoulli-rule-item">
+                                    <strong>Língua Estrangeira</strong>
+                                    <p id="bernoulli-regra-lingua">Mantém o valor vindo do arquivo do KeepEdu.</p>
+                                </div>
+                                <div class="bernoulli-rule-item">
+                                    <strong>Marcação</strong>
+                                    <p>Branco e dupla marcação saem como *.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card bernoulli-track-card">
+                            <div>
+                                <span class="section-kicker">Andamento</span>
+                                <h2>Andamento do arquivo</h2>
+                            </div>
+                            <p class="card-description">Status, progresso e eventos da geração do arquivo final.</p>
+
+                            <div class="bernoulli-status-banner" id="bernoulli-status-banner">
+                                <strong>Aguardando arquivo</strong>
+                                <span>O log aparece aqui durante a geração.</span>
+                            </div>
+
+                            <div class="log-processamento bernoulli-progress-box" id="bernoulli-progress-box">
+                                <div class="log-topo">
+                                    <strong>Andamento da conversão</strong>
+                                    <span id="bernoulli-percentual">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="bernoulli-barra" style="width: 0%;"></div>
+                                </div>
+                                <p id="bernoulli-mensagem">0% | Aguardando início...</p>
+                                <p id="bernoulli-arquivo" class="muted"></p>
+                            </div>
+
+                            <div class="event-log-list bernoulli-log-list" id="bernoulli-log-list">
+                                <div class="event-log-empty">Nenhum processamento iniciado.</div>
+                            </div>
+
+                            <div class="bernoulli-result-actions" id="bernoulli-result-actions" style="display: none;">
+                                <a id="bernoulli-download" class="btn-primary link-btn" href="#">Baixar arquivo final</a>
+                            </div>
+                        </section>
+                    </aside>
                 </section>
             </div>
-
-            <aside class="bernoulli-side-column">
-                <section class="card bernoulli-help-card">
-                    <div class="section-head">
-                        <div>
-                            <span class="section-kicker">Saída</span>
-                            <h2>Saída padrão</h2>
-                        </div>
-                    </div>
-
-                    <div class="bernoulli-rule-list compact">
-                        <div class="bernoulli-rule-item">
-                            <strong>Colunas</strong>
-                            <p id="bernoulli-regra-colunas">RMB, RA, Nome, Lingua Estrangeira e q1...q90.</p>
-                        </div>
-                        <div class="bernoulli-rule-item">
-                            <strong>RMB</strong>
-                            <p>Buscado pela API do Bernoulli usando o RA.</p>
-                        </div>
-                        <div class="bernoulli-rule-item">
-                            <strong>Língua Estrangeira</strong>
-                            <p id="bernoulli-regra-lingua">Mantém o valor vindo do arquivo do KeepEdu.</p>
-                        </div>
-                        <div class="bernoulli-rule-item">
-                            <strong>Marcação</strong>
-                            <p>Branco e dupla marcação saem como *.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card bernoulli-track-card">
-                    <div>
-                        <span class="section-kicker">Andamento</span>
-                        <h2>Andamento do arquivo</h2>
-                    </div>
-                    <p class="card-description">Status, progresso e eventos da geração do arquivo final.</p>
-
-                    <div class="bernoulli-status-banner" id="bernoulli-status-banner">
-                        <strong>Aguardando arquivo</strong>
-                        <span>O log aparece aqui durante a geração.</span>
-                    </div>
-
-                    <div class="log-processamento bernoulli-progress-box" id="bernoulli-progress-box">
-                        <div class="log-topo">
-                            <strong>Andamento da conversão</strong>
-                            <span id="bernoulli-percentual">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="bernoulli-barra" style="width: 0%;"></div>
-                        </div>
-                        <p id="bernoulli-mensagem">0% | Aguardando início...</p>
-                        <p id="bernoulli-arquivo" class="muted"></p>
-                    </div>
-
-                    <div class="event-log-list bernoulli-log-list" id="bernoulli-log-list">
-                        <div class="event-log-empty">Nenhum processamento iniciado.</div>
-                    </div>
-
-                    <div class="bernoulli-result-actions" id="bernoulli-result-actions" style="display: none;">
-                        <a id="bernoulli-download" class="btn-primary link-btn" href="#">Baixar arquivo final</a>
-                    </div>
-                </section>
-            </aside>
-        </section>
-    </main>
+        </main>
+    </div>
 
     <script>
         const bernoulliForm = document.getElementById("bernoulli-form");

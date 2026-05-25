@@ -2,63 +2,113 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Processando | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
     <link rel="stylesheet" href="/static/css/style.css?v=66">
+    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
 </head>
-<body>
-    <header class="topbar">
-        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
-        </a>
-        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
-            <strong>OMRCheck</strong>
-            <span>Acompanhamento da leitura em tempo real</span>
-        </a>
-        <div class="topbar-right">
-            <a class="btn-light" href="/logout">Sair</a>
-            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+<body class="keepedu-app-page">
+    <header class="ke-header">
+        <div class="ke-header-left">
+            <a class="ke-logo" href="/" aria-label="Abrir painel">
+                <span class="ke-logo-mark" aria-hidden="true"></span>
+                <span class="ke-logo-word">KeepEdu</span>
             </a>
-            <a class="btn-light" href="/">Voltar</a>
+            <button class="ke-header-menu" type="button" aria-label="Menu">
+                <span></span>
+            </button>
+        </div>
+        <div class="ke-header-right">
+            <a class="ke-user-chip" href="/logout" aria-label="Abrir sessão do usuário">
+                <span class="ke-user-avatar">O</span>
+                <span class="ke-user-name">{{ request.session.get("user_email", "Operador OMR") }}</span>
+            </a>
+            <a class="ke-header-link" href="/logout">Sair</a>
         </div>
     </header>
-    <main class="page page-processando">
-        <section class="hero hero-shell compact-hero processando-hero">
-            <div class="hero-copy">
-                <span class="eyebrow">Execução em andamento</span>
-                <h1>Processando o lote</h1>
-                <p>Acompanhe o percentual, o arquivo atual e eventuais falhas durante a leitura.</p>
-            </div>
 
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <span>Status</span>
-                    <strong>Em andamento</strong>
-                    <p>O sistema atualiza o progresso automaticamente até a conclusão do lote.</p>
+    <div class="ke-shell">
+        <aside class="ke-sidebar">
+            <div class="ke-sidebar-title">Menu</div>
+            <nav class="ke-nav">
+                <a class="ke-nav-item" href="/">
+                    <span class="ke-nav-icon">⌂</span>
+                    <span>Painel</span>
+                </a>
+                <a class="ke-nav-item is-active" href="#">
+                    <span class="ke-nav-icon">#</span>
+                    <span>Processando</span>
+                </a>
+                <a class="ke-nav-item" href="/bernoulli">
+                    <span class="ke-nav-icon">⇄</span>
+                    <span>Bernoulli</span>
+                </a>
+            </nav>
+
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Andamento</div>
+                <div class="ke-side-meta">
+                    <div class="ke-side-meta-item">
+                        <span>Status</span>
+                        <strong>Execução em andamento</strong>
+                    </div>
+                    <div class="ke-side-meta-item">
+                        <span>Atualização</span>
+                        <p>O painel consulta automaticamente o progresso até redirecionar para o lote concluído.</p>
+                    </div>
                 </div>
             </div>
-        </section>
+        </aside>
 
-        <section class="card progress-card processando-progress-card">
-            <h2>Andamento do lote</h2>
-
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+        <main class="ke-main">
+            <div class="ke-page-bar">
+                <div class="ke-page-title">
+                    <h1>Processando lote <small>Monitoramento em tempo real</small></h1>
+                </div>
+                <div class="ke-breadcrumbs">
+                    Colégio Propósito | Keep Edu &nbsp;&gt;&nbsp; Processamentos &nbsp;&gt;&nbsp; Em andamento
+                </div>
             </div>
 
-            <p id="linha-log" class="progress-message">
-                0% | Iniciando leitura OMR...
-            </p>
+            <div class="page page-processando ke-page-content">
+                <section class="hero hero-shell compact-hero processando-hero">
+                    <div class="hero-copy">
+                        <span class="eyebrow">Execução em andamento</span>
+                        <h1>Processando o lote</h1>
+                        <p>Acompanhe o percentual, o arquivo atual e eventuais falhas durante a leitura.</p>
+                    </div>
 
-            <p id="arquivo-atual" class="muted"></p>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span>Status</span>
+                            <strong>Em andamento</strong>
+                            <p>O sistema atualiza o progresso automaticamente até a conclusão do lote.</p>
+                        </div>
+                    </div>
+                </section>
 
-            <div id="erro-box" class="erro-box" style="display: none;">
-                <strong>Erro:</strong>
-                <p id="erro-texto"></p>
+                <section class="card progress-card processando-progress-card">
+                    <h2>Andamento do lote</h2>
+
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                    </div>
+
+                    <p id="linha-log" class="progress-message">
+                        0% | Iniciando leitura OMR...
+                    </p>
+
+                    <p id="arquivo-atual" class="muted"></p>
+
+                    <div id="erro-box" class="erro-box" style="display: none;">
+                        <strong>Erro:</strong>
+                        <p id="erro-texto"></p>
+                    </div>
+                </section>
             </div>
-        </section>
-    </main>
+        </main>
+    </div>
 
     <script>
         const JOB_ID = "{{ job_id }}";

@@ -2,180 +2,240 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Correção | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
     <link rel="stylesheet" href="/static/css/style.css?v=69">
+    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
 </head>
-<body>
-    <header class="topbar">
-        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
-        </a>
-        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
-            <strong>OMRCheck</strong>
-            <span>Revisão visual das leituras e ajustes manuais</span>
-        </a>
-        <div class="topbar-right">
-            <a class="btn-light" href="/logout">Sair</a>
-            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+<body class="keepedu-app-page">
+    <header class="ke-header">
+        <div class="ke-header-left">
+            <a class="ke-logo" href="/" aria-label="Abrir painel">
+                <span class="ke-logo-mark" aria-hidden="true"></span>
+                <span class="ke-logo-word">KeepEdu</span>
             </a>
-            <a class="btn-light" href="/processamento/{{ nome_processamento }}">Voltar</a>
+            <button class="ke-header-menu" type="button" aria-label="Menu">
+                <span></span>
+            </button>
+        </div>
+        <div class="ke-header-right">
+            <a class="ke-user-chip" href="/logout" aria-label="Abrir sessão do usuário">
+                <span class="ke-user-avatar">O</span>
+                <span class="ke-user-name">{{ request.session.get("user_email", "Operador OMR") }}</span>
+            </a>
+            <a class="ke-header-link" href="/logout">Sair</a>
         </div>
     </header>
 
-    <main class="page full page-correcao">
-        <section class="hero compact hero-correcao hero-correcao-shell">
-            <span class="eyebrow">Correção visual</span>
-            <h1>Correção do lote</h1>
-            <p>{{ nome_processamento }}</p>
-        </section>
+    <div class="ke-shell">
+        <aside class="ke-sidebar">
+            <div class="ke-sidebar-title">Menu</div>
+            <nav class="ke-nav">
+                <a class="ke-nav-item" href="/">
+                    <span class="ke-nav-icon">⌂</span>
+                    <span>Painel</span>
+                </a>
+                <a class="ke-nav-item" href="/processamento/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">#</span>
+                    <span>Processamento</span>
+                </a>
+                <a class="ke-nav-item is-active" href="/correcao/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">✓</span>
+                    <span>Correção</span>
+                </a>
+                <a class="ke-nav-item" href="/validacao/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">≡</span>
+                    <span>Validação</span>
+                </a>
+            </nav>
 
-        <section class="card toolbar correcao-toolbar-card">
-            <div>
-                <label>Pesquisar</label>
-                <input type="text" id="busca" placeholder="RA, imagem ou questão">
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Fluxo do lote</div>
+                <a class="ke-side-link" href="/processamento/{{ nome_processamento }}">Resumo do lote</a>
+                <a class="ke-side-link is-current" href="/correcao/{{ nome_processamento }}">Correção visual</a>
+                <a class="ke-side-link" href="/validacao/{{ nome_processamento }}">Validação cadastral</a>
             </div>
 
-            <div>
-                <label>Zoom</label>
-                <select id="zoom-select">
-                    <option value="0.35">35%</option>
-                    <option value="0.45">45%</option>
-                    <option value="0.60">60%</option>
-                    <option value="0.75">75%</option>
-                    <option value="1">100%</option>
-                    <option value="1.25">125%</option>
-                    <option value="1.50">150%</option>
-                    <option value="fit-width" selected>Adaptar à largura</option>
-                    <option value="fit-window">Adaptar à janela</option>
-                </select>
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Contexto</div>
+                <div class="ke-side-meta">
+                    <div class="ke-side-meta-item">
+                        <span>Lote</span>
+                        <strong>{{ nome_processamento }}</strong>
+                    </div>
+                    <div class="ke-side-meta-item">
+                        <span>Objetivo</span>
+                        <p>Revisar marcações, corrigir cantos e reprocessar cartões sem sair da tela.</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="ke-main">
+            <div class="ke-page-bar">
+                <div class="ke-page-title">
+                    <h1>Correção visual <small>{{ nome_processamento }}</small></h1>
+                </div>
+                <div class="ke-breadcrumbs">
+                    Colégio Propósito | Keep Edu &nbsp;&gt;&nbsp; Processamentos &nbsp;&gt;&nbsp; Correção
+                </div>
             </div>
 
-            <button class="btn-primary" id="btn-salvar">
-                Salvar marcações
-            </button>
-        </section>
+            <div class="page full page-correcao ke-page-content">
+                <section class="hero compact hero-correcao hero-correcao-shell">
+                    <span class="eyebrow">Correção visual</span>
+                    <h1>Correção do lote</h1>
+                    <p>{{ nome_processamento }}</p>
+                </section>
 
-        <section class="layout-correcao">
-            <aside class="sidebar card correcao-sidebar">
-                <div class="sidebar-head">
-                    <div class="sidebar-head-copy">
-                        <span class="section-kicker">Navegação</span>
-                        <h2>Imagens do lote</h2>
-                        <p class="sidebar-description">
-                            Navegue pelas imagens do lote e concentre a revisão nos cartões com erro ou ajuste manual.
-                        </p>
-                    </div>
-                    <span class="section-badge" id="sidebar-total">0 imagens</span>
-                </div>
-
-                <div class="sidebar-summary" id="sidebar-summary">
-                    <div class="sidebar-stat">
-                        <span>Erro</span>
-                        <strong id="count-erro">0</strong>
-                    </div>
-                    <div class="sidebar-stat">
-                        <span>OK</span>
-                        <strong id="count-ok">0</strong>
-                    </div>
-                    <div class="sidebar-stat">
-                        <span>Manual</span>
-                        <strong id="count-manual">0</strong>
-                    </div>
-                </div>
-
-                <div class="sidebar-filters">
-                    <button class="sidebar-filter-btn ativo" data-filter="todos" type="button">Todas</button>
-                    <button class="sidebar-filter-btn" data-filter="erro" type="button">Erros</button>
-                    <button class="sidebar-filter-btn" data-filter="manual" type="button">Corrigidas</button>
-                </div>
-
-                {% if imagens_debug %}
-                    <div class="lista-imagens">
-                        {% for imagem in imagens_debug %}
-                            <button class="item-imagem" data-imagem="{{ imagem }}">
-                                {{ imagem }}
-                            </button>
-                        {% endfor %}
-                    </div>
-                    <div class="sidebar-empty" id="sidebar-empty" hidden>
-                        Nenhuma imagem corresponde ao filtro atual.
-                    </div>
-                {% else %}
-                    <p class="muted">Nenhuma imagem encontrada.</p>
-                {% endif %}
-            </aside>
-
-            <section class="viewer card correcao-viewer">
-                <div class="viewer-header">
+                <section class="card toolbar correcao-toolbar-card">
                     <div>
-                        <strong id="nome-imagem">Selecione uma imagem</strong>
-                        <div class="viewer-meta-row">
-                            <span id="viewer-status" class="status-badge viewer-status-badge">Sem seleção</span>
-                            <span id="viewer-meta" class="viewer-meta"></span>
+                        <label>Pesquisar</label>
+                        <input type="text" id="busca" placeholder="RA, imagem ou questão">
+                    </div>
+
+                    <div>
+                        <label>Zoom</label>
+                        <select id="zoom-select">
+                            <option value="0.35">35%</option>
+                            <option value="0.45">45%</option>
+                            <option value="0.60">60%</option>
+                            <option value="0.75">75%</option>
+                            <option value="1">100%</option>
+                            <option value="1.25">125%</option>
+                            <option value="1.50">150%</option>
+                            <option value="fit-width" selected>Adaptar à largura</option>
+                            <option value="fit-window">Adaptar à janela</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" id="btn-salvar">
+                        Salvar marcações
+                    </button>
+                </section>
+
+                <section class="layout-correcao">
+                    <aside class="sidebar card correcao-sidebar">
+                        <div class="sidebar-head">
+                            <div class="sidebar-head-copy">
+                                <span class="section-kicker">Navegação</span>
+                                <h2>Imagens do lote</h2>
+                                <p class="sidebar-description">
+                                    Navegue pelas imagens do lote e concentre a revisão nos cartões com erro ou ajuste manual.
+                                </p>
+                            </div>
+                            <span class="section-badge" id="sidebar-total">0 imagens</span>
                         </div>
-                        <p class="viewer-help" id="viewer-help">
-                            Vermelho = Errado / nao deve entrar no CSV | Verde = Correto / deve entrar no CSV |
-                            Botao esquerdo do MOUSE adiciona marcacao | Botao direito do MOUSE remove a marcacao mais proxima
-                        </p>
-                        <div class="corner-toolbar">
-                            <div class="corner-toolbar-group">
-                                <label for="modo-edicao">Modo</label>
-                                <select id="modo-edicao">
-                                    <option value="marcacoes">Marcações</option>
-                                    <option value="cantos">Ajuste de cantos</option>
-                                </select>
+
+                        <div class="sidebar-summary" id="sidebar-summary">
+                            <div class="sidebar-stat">
+                                <span>Erro</span>
+                                <strong id="count-erro">0</strong>
                             </div>
-                            <div class="corner-toolbar-group marker-toolbar-group" id="marker-toolbar-group">
-                                <label for="tipo-marcacao-viewer">Tipo</label>
-                                <select id="tipo-marcacao-viewer">
-                                    <option value="verde">Verde</option>
-                                    <option value="vermelho">Vermelho</option>
-                                </select>
+                            <div class="sidebar-stat">
+                                <span>OK</span>
+                                <strong id="count-ok">0</strong>
                             </div>
-                            <div class="corner-toolbar-group corner-pills" id="corner-pills-group">
-                                <button class="btn-secondary corner-btn" data-corner="TOP_LEFT" title="Canto superior esquerdo">SE</button>
-                                <button class="btn-secondary corner-btn" data-corner="TOP_RIGHT" title="Canto superior direito">SD</button>
-                                <button class="btn-secondary corner-btn" data-corner="BOTTOM_LEFT" title="Canto inferior esquerdo">IE</button>
-                                <button class="btn-secondary corner-btn" data-corner="BOTTOM_RIGHT" title="Canto inferior direito">ID</button>
+                            <div class="sidebar-stat">
+                                <span>Manual</span>
+                                <strong id="count-manual">0</strong>
                             </div>
-                            <button class="btn-secondary icon-action-btn" id="reprocessar-imagem" title="Reprocessar imagem" aria-label="Reprocessar imagem">↻</button>
                         </div>
-                    </div>
 
-                    <div class="viewer-actions">
-                        <button class="btn-light" id="proxima-com-erro">
-                            Próx. erro
-                        </button>
+                        <div class="sidebar-filters">
+                            <button class="sidebar-filter-btn ativo" data-filter="todos" type="button">Todas</button>
+                            <button class="sidebar-filter-btn" data-filter="erro" type="button">Erros</button>
+                            <button class="sidebar-filter-btn" data-filter="manual" type="button">Corrigidas</button>
+                        </div>
 
-                        <button class="btn-secondary" id="imagem-anterior">
-                            ← Anterior
-                        </button>
+                        {% if imagens_debug %}
+                            <div class="lista-imagens">
+                                {% for imagem in imagens_debug %}
+                                    <button class="item-imagem" data-imagem="{{ imagem }}">
+                                        {{ imagem }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            <div class="sidebar-empty" id="sidebar-empty" hidden>
+                                Nenhuma imagem corresponde ao filtro atual.
+                            </div>
+                        {% else %}
+                            <p class="muted">Nenhuma imagem encontrada.</p>
+                        {% endif %}
+                    </aside>
 
-                        <button class="btn-primary" id="proxima-imagem">
-                            Próxima →
-                        </button>
+                    <section class="viewer card correcao-viewer">
+                        <div class="viewer-header">
+                            <div>
+                                <strong id="nome-imagem">Selecione uma imagem</strong>
+                                <div class="viewer-meta-row">
+                                    <span id="viewer-status" class="status-badge viewer-status-badge">Sem seleção</span>
+                                    <span id="viewer-meta" class="viewer-meta"></span>
+                                </div>
+                                <p class="viewer-help" id="viewer-help">
+                                    Vermelho = Errado / nao deve entrar no CSV | Verde = Correto / deve entrar no CSV |
+                                    Botao esquerdo do MOUSE adiciona marcacao | Botao direito do MOUSE remove a marcacao mais proxima
+                                </p>
+                                <div class="corner-toolbar">
+                                    <div class="corner-toolbar-group">
+                                        <label for="modo-edicao">Modo</label>
+                                        <select id="modo-edicao">
+                                            <option value="marcacoes">Marcações</option>
+                                            <option value="cantos">Ajuste de cantos</option>
+                                        </select>
+                                    </div>
+                                    <div class="corner-toolbar-group marker-toolbar-group" id="marker-toolbar-group">
+                                        <label for="tipo-marcacao-viewer">Tipo</label>
+                                        <select id="tipo-marcacao-viewer">
+                                            <option value="verde">Verde</option>
+                                            <option value="vermelho">Vermelho</option>
+                                        </select>
+                                    </div>
+                                    <div class="corner-toolbar-group corner-pills" id="corner-pills-group">
+                                        <button class="btn-secondary corner-btn" data-corner="TOP_LEFT" title="Canto superior esquerdo">SE</button>
+                                        <button class="btn-secondary corner-btn" data-corner="TOP_RIGHT" title="Canto superior direito">SD</button>
+                                        <button class="btn-secondary corner-btn" data-corner="BOTTOM_LEFT" title="Canto inferior esquerdo">IE</button>
+                                        <button class="btn-secondary corner-btn" data-corner="BOTTOM_RIGHT" title="Canto inferior direito">ID</button>
+                                    </div>
+                                    <button class="btn-secondary icon-action-btn" id="reprocessar-imagem" title="Reprocessar imagem" aria-label="Reprocessar imagem">↻</button>
+                                </div>
+                            </div>
 
-                        <button class="btn-secondary" id="zoom-menos">
-                            Zoom -
-                        </button>
+                            <div class="viewer-actions">
+                                <button class="btn-light" id="proxima-com-erro">
+                                    Próx. erro
+                                </button>
 
-                        <button class="btn-secondary" id="zoom-mais">
-                            Zoom +
-                        </button>
-                    </div>
-                </div>
+                                <button class="btn-secondary" id="imagem-anterior">
+                                    ← Anterior
+                                </button>
 
-                <div class="image-area" id="image-area">
-                    <div id="image-wrapper" class="image-wrapper">
-                        <img id="imagem-principal" src="" alt="">
-                        <div id="overlay-marcacoes"></div>
-                    </div>
-                </div>
-            </section>
-        </section>
-    </main>
+                                <button class="btn-primary" id="proxima-imagem">
+                                    Próxima →
+                                </button>
+
+                                <button class="btn-secondary" id="zoom-menos">
+                                    Zoom -
+                                </button>
+
+                                <button class="btn-secondary" id="zoom-mais">
+                                    Zoom +
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="image-area" id="image-area">
+                            <div id="image-wrapper" class="image-wrapper">
+                                <img id="imagem-principal" src="" alt="">
+                                <div id="overlay-marcacoes"></div>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </main>
+    </div>
 
     <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 

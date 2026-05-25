@@ -43,12 +43,14 @@ class AutenticacaoWebMiddleware(BaseHTTPMiddleware):
             or request.url.path == "/healthz"
             or request.url.path == "/login"
             or request.url.path == "/logout"
+            or request.url.path == "/favicon.ico"
             or request.url.path.startswith("/static/")
             or request.url.path.startswith("/assets/")
         ):
             return await call_next(request)
 
-        if request.session.get("authenticated"):
+        sessao = request.scope.get("session") or {}
+        if bool(sessao.get("authenticated")):
             return await call_next(request)
 
         aceita_json = "application/json" in str(request.headers.get("accept", "")).lower()

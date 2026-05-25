@@ -2,126 +2,190 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Processamento | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
     <link rel="stylesheet" href="/static/css/style.css?v=68">
+    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
 </head>
-<body>
-    <header class="topbar">
-        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
-        </a>
-        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
-            <strong>OMRCheck</strong>
-            <span>Resumo do lote e próximos passos</span>
-        </a>
-        <div class="topbar-right">
-            <a class="btn-light" href="/logout">Sair</a>
-            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
+<body class="keepedu-app-page">
+    <header class="ke-header">
+        <div class="ke-header-left">
+            <a class="ke-logo" href="/" aria-label="Abrir painel">
+                <span class="ke-logo-mark" aria-hidden="true"></span>
+                <span class="ke-logo-word">KeepEdu</span>
             </a>
-            <a class="btn-light" href="/">Voltar ao início</a>
+            <button class="ke-header-menu" type="button" aria-label="Menu">
+                <span></span>
+            </button>
+        </div>
+        <div class="ke-header-right">
+            <a class="ke-user-chip" href="/logout" aria-label="Abrir sessão do usuário">
+                <span class="ke-user-avatar">O</span>
+                <span class="ke-user-name">{{ request.session.get("user_email", "Operador OMR") }}</span>
+            </a>
+            <a class="ke-header-link" href="/logout">Sair</a>
         </div>
     </header>
 
-    <main class="page page-processamento">
-        <section class="hero hero-shell compact-hero processamento-hero">
-            <div class="hero-copy">
-                <span class="eyebrow">Lote disponível</span>
-                <h1>Resumo do processamento</h1>
-                <p>{{ nome_processamento }}</p>
-            </div>
-        </section>
+    <div class="ke-shell">
+        <aside class="ke-sidebar">
+            <div class="ke-sidebar-title">Menu</div>
+            <nav class="ke-nav">
+                <a class="ke-nav-item" href="/">
+                    <span class="ke-nav-icon">⌂</span>
+                    <span>Painel</span>
+                </a>
+                <a class="ke-nav-item is-active" href="/processamento/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">#</span>
+                    <span>Processamento</span>
+                </a>
+                <a class="ke-nav-item" href="/correcao/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">✓</span>
+                    <span>Correção</span>
+                </a>
+                <a class="ke-nav-item" href="/validacao/{{ nome_processamento }}">
+                    <span class="ke-nav-icon">≡</span>
+                    <span>Validação</span>
+                </a>
+                <a class="ke-nav-item" href="/bernoulli">
+                    <span class="ke-nav-icon">⇄</span>
+                    <span>Bernoulli</span>
+                </a>
+            </nav>
 
-        <section class="hero-stats hero-stats-row processamento-hero-stats">
-            <div class="hero-stat">
-                <span>Status</span>
-                <strong>Finalizado</strong>
-                <p>O lote já pode seguir para revisão e validação.</p>
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Acesso rápido</div>
+                <a class="ke-side-link is-current" href="/processamento/{{ nome_processamento }}">Resumo do lote</a>
+                <a class="ke-side-link" href="/correcao/{{ nome_processamento }}">Abrir correção</a>
+                <a class="ke-side-link" href="/validacao/{{ nome_processamento }}">Abrir validação</a>
+                <a class="ke-side-link" href="/leituras/{{ nome_processamento }}" target="_blank">Leituras OMR</a>
+                <a class="ke-side-link" href="/download-log/{{ nome_processamento }}">Baixar log</a>
             </div>
-            <div class="hero-stat">
-                <span>Imagens</span>
-                <strong>{{ resumo.total_imagens }}</strong>
-                <p>Quantidade de imagens registradas neste processamento.</p>
-            </div>
-            <div class="hero-stat">
-                <span>Pendências</span>
-                <strong>{{ resumo.total_manual }}</strong>
-                <p>Cartões encaminhados para correção manual ou conferência.</p>
-            </div>
-        </section>
 
-        <section class="summary-grid processamento-summary-grid">
-            <article class="summary-card">
-                <span class="summary-label">Leituras OK</span>
-                <strong>{{ resumo.total_ok }}</strong>
-                <p>Cartões lidos sem erro estrutural.</p>
-            </article>
-            <article class="summary-card">
-                <span class="summary-label">Falhas</span>
-                <strong>{{ resumo.total_erro }}</strong>
-                <p>Imagens com erro de leitura que exigem revisão.</p>
-            </article>
-            <article class="summary-card">
-                <span class="summary-label">Pendências</span>
-                <strong>{{ resumo.total_pendencias }}</strong>
-                <p>Leituras com erro ou confiança insuficiente.</p>
-            </article>
-        </section>
+            <div class="ke-sidebar-group">
+                <div class="ke-sidebar-group-title">Resumo</div>
+                <div class="ke-side-meta">
+                    <div class="ke-side-meta-item">
+                        <span>Lote</span>
+                        <strong>{{ nome_processamento }}</strong>
+                    </div>
+                    <div class="ke-side-meta-item">
+                        <span>Status</span>
+                        <p>Processamento finalizado e pronto para revisão.</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-        <section class="card processamento-actions-card">
-            <div class="section-head">
-                <div>
-                    <span class="section-kicker">Ações</span>
-                    <h2>Próximas etapas</h2>
+        <main class="ke-main">
+            <div class="ke-page-bar">
+                <div class="ke-page-title">
+                    <h1>Resumo do lote <small>{{ nome_processamento }}</small></h1>
+                </div>
+                <div class="ke-breadcrumbs">
+                    Colégio Propósito | Keep Edu &nbsp;&gt;&nbsp; Processamentos &nbsp;&gt;&nbsp; Resumo
                 </div>
             </div>
 
-            <div class="actions action-grid">
-                <a class="btn-primary link-btn" href="/correcao/{{ nome_processamento }}">
-                    Abrir painel de correção
-                </a>
-                <a class="btn-secondary link-btn" href="/validacao/{{ nome_processamento }}">
-                    Abrir validação cadastral
-                </a>
-                <a class="btn-secondary link-btn" href="/leituras/{{ nome_processamento }}" target="_blank">
-                    Ver leituras OMR
-                </a>
+            <div class="page page-processamento ke-page-content">
+                <section class="hero hero-shell compact-hero processamento-hero">
+                    <div class="hero-copy">
+                        <span class="eyebrow">Lote disponível</span>
+                        <h1>Resumo do processamento</h1>
+                        <p>{{ nome_processamento }}</p>
+                    </div>
+                </section>
 
-                <a class="btn-secondary link-btn" href="/download-log/{{ nome_processamento }}">
-                    Baixar log
-                </a>
+                <section class="hero-stats hero-stats-row processamento-hero-stats">
+                    <div class="hero-stat">
+                        <span>Status</span>
+                        <strong>Finalizado</strong>
+                        <p>O lote já pode seguir para revisão e validação.</p>
+                    </div>
+                    <div class="hero-stat">
+                        <span>Imagens</span>
+                        <strong>{{ resumo.total_imagens }}</strong>
+                        <p>Quantidade de imagens registradas neste processamento.</p>
+                    </div>
+                    <div class="hero-stat">
+                        <span>Pendências</span>
+                        <strong>{{ resumo.total_manual }}</strong>
+                        <p>Cartões encaminhados para correção manual ou conferência.</p>
+                    </div>
+                </section>
 
-                <a class="btn-light link-btn" href="/">
-                    Novo processamento
-                </a>
-            </div>
-        </section>
+                <section class="summary-grid processamento-summary-grid">
+                    <article class="summary-card">
+                        <span class="summary-label">Leituras OK</span>
+                        <strong>{{ resumo.total_ok }}</strong>
+                        <p>Cartões lidos sem erro estrutural.</p>
+                    </article>
+                    <article class="summary-card">
+                        <span class="summary-label">Falhas</span>
+                        <strong>{{ resumo.total_erro }}</strong>
+                        <p>Imagens com erro de leitura que exigem revisão.</p>
+                    </article>
+                    <article class="summary-card">
+                        <span class="summary-label">Pendências</span>
+                        <strong>{{ resumo.total_pendencias }}</strong>
+                        <p>Leituras com erro ou confiança insuficiente.</p>
+                    </article>
+                </section>
 
-        <section class="card processamento-gallery-card">
-            <div class="section-head">
-                <div>
-                    <span class="section-kicker">Conferência</span>
-                    <h2>Imagens do lote</h2>
-                </div>
-                <span class="section-badge">{{ imagens_debug|length }} imagem(ns)</span>
-            </div>
+                <section class="card processamento-actions-card">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Ações</span>
+                            <h2>Próximas etapas</h2>
+                        </div>
+                    </div>
 
-            {% if imagens_debug %}
-                <p class="card-description">{{ imagens_debug|length }} imagem(ns) de debug encontrada(s).</p>
-
-                <div class="grid-imagens">
-                    {% for imagem in imagens_debug %}
-                        <a href="/imagem/{{ nome_processamento }}/{{ imagem }}" target="_blank">
-                            <img src="/imagem/{{ nome_processamento }}/{{ imagem }}" alt="{{ imagem }}">
-                            <span>{{ imagem }}</span>
+                    <div class="actions action-grid">
+                        <a class="btn-primary link-btn" href="/correcao/{{ nome_processamento }}">
+                            Abrir painel de correção
                         </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="muted">Nenhuma imagem de debug encontrada.</p>
-            {% endif %}
-        </section>
-    </main>
+                        <a class="btn-secondary link-btn" href="/validacao/{{ nome_processamento }}">
+                            Abrir validação cadastral
+                        </a>
+                        <a class="btn-secondary link-btn" href="/leituras/{{ nome_processamento }}" target="_blank">
+                            Ver leituras OMR
+                        </a>
+                        <a class="btn-secondary link-btn" href="/download-log/{{ nome_processamento }}">
+                            Baixar log
+                        </a>
+                        <a class="btn-light link-btn" href="/">
+                            Novo processamento
+                        </a>
+                    </div>
+                </section>
+
+                <section class="card processamento-gallery-card">
+                    <div class="section-head">
+                        <div>
+                            <span class="section-kicker">Conferência</span>
+                            <h2>Imagens do lote</h2>
+                        </div>
+                        <span class="section-badge">{{ imagens_debug|length }} imagem(ns)</span>
+                    </div>
+
+                    {% if imagens_debug %}
+                        <p class="card-description">{{ imagens_debug|length }} imagem(ns) de debug encontrada(s).</p>
+
+                        <div class="grid-imagens">
+                            {% for imagem in imagens_debug %}
+                                <a href="/imagem/{{ nome_processamento }}/{{ imagem }}" target="_blank">
+                                    <img src="/imagem/{{ nome_processamento }}/{{ imagem }}" alt="{{ imagem }}">
+                                    <span>{{ imagem }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="muted">Nenhuma imagem de debug encontrada.</p>
+                    {% endif %}
+                </section>
+            </div>
+        </main>
+    </div>
 </body>
 </html>

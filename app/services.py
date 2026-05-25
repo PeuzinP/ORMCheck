@@ -74,23 +74,55 @@ def _rotulo_data_processamento(nome_pasta: str, pasta: Path) -> str:
     return dias_semana.get(data_referencia.weekday(), "Lote")
 
 
+from pathlib import Path
+import os
+
 def listar_processamentos():
-    itens = []
+    """
+    Lista todos os lotes de cartões-resposta escaneados a partir
+    do diretório configurado pelo aplicativo.
+    """
+    nomes_lotes = []
 
-    for pasta in sorted(PASTA_PROCESSAMENTOS.glob("processamento_*"), reverse=True):
-        if pasta.is_dir():
-            data_formatada, hora_formatada = _formatar_data_hora_processamento(pasta.name, pasta)
-            rotulo = _rotulo_data_processamento(pasta.name, pasta)
-            itens.append({
-                "nome": pasta.name,
-                "caminho": str(pasta),
-                "data": data_formatada,
-                "hora": hora_formatada,
-                "titulo": f"{data_formatada} às {hora_formatada}",
-                "rotulo": rotulo
-            })
+    if PASTA_PROCESSAMENTOS.exists() and PASTA_PROCESSAMENTOS.is_dir():
+        for subpasta in PASTA_PROCESSAMENTOS.iterdir():
+            if subpasta.is_dir() and not subpasta.name.startswith("."):
+                nomes_lotes.append(subpasta.name)
 
-    return itens
+    return sorted(nomes_lotes, reverse=True)
+
+
+def listar_processamentos_recentes():
+    """
+    Monta os metadados exibidos na home para os lotes recentes.
+    """
+    lotes = []
+
+    if not PASTA_PROCESSAMENTOS.exists() or not PASTA_PROCESSAMENTOS.is_dir():
+        return lotes
+
+    for subpasta in PASTA_PROCESSAMENTOS.iterdir():
+        if not subpasta.is_dir() or subpasta.name.startswith("."):
+            continue
+
+        data_texto, hora_texto = _formatar_data_hora_processamento(subpasta.name, subpasta)
+        lotes.append(
+            {
+                "nome": subpasta.name,
+                "titulo": subpasta.name.replace("_", " "),
+                "rotulo": _rotulo_data_processamento(subpasta.name, subpasta),
+                "data": data_texto,
+                "hora": hora_texto,
+                "timestamp": _obter_data_hora_processamento(subpasta.name, subpasta),
+            }
+        )
+
+    lotes.sort(key=lambda item: item["timestamp"], reverse=True)
+
+    for item in lotes:
+        item.pop("timestamp", None)
+
+    return lotes
 
 
 def resumo_processamento(nome_processamento: str):
@@ -201,6 +233,27 @@ async def processar_uploads(arquivos):
 def caminho_imagem_debug(nome_processamento: str, nome_imagem: str):
     return PASTA_PROCESSAMENTOS / nome_processamento / "debug_omr" / nome_imagem
 
+def carregar_leitura(nome_avaliacao: str, em_json: bool = True):
+    """
+    Resolve o arquivo principal do lote a partir do diretório configurado.
+    """
+    caminho_principal = caminho_leituras(nome_avaliacao)
+    if caminho_principal.exists():
+        return caminho_principal
+
+    nome_puro = str(nome_avaliacao or "").replace("processamento_", "")
+    candidatos = [
+        PASTA_PROCESSAMENTOS / nome_avaliacao / "leituras_omr.json",
+        PASTA_PROCESSAMENTOS / nome_puro / "leituras_omr.json",
+        PASTA_PROCESSAMENTOS / f"{nome_avaliacao}.json",
+        PASTA_PROCESSAMENTOS / f"{nome_puro}.json",
+    ]
+
+    for candidato in candidatos:
+        if candidato.exists() and candidato.is_file():
+            return candidato
+
+    return caminho_principal
 
 def caminho_leituras(nome_processamento: str):
     return PASTA_PROCESSAMENTOS / nome_processamento / "leituras_omr.json"

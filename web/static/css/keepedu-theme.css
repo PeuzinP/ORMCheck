@@ -1,0 +1,1101 @@
+.keepedu-app-page,
+.keepedu-auth-page {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: #566273;
+}
+
+.keepedu-app-page {
+    background: #dedede;
+}
+
+.keepedu-app-page .topbar {
+    display: none;
+}
+
+.ke-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 0 24px;
+    background: #060606;
+    color: #ffffff;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.ke-header-left,
+.ke-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ke-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.ke-logo-mark {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #ffffff;
+    border-radius: 9px;
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.ke-logo-mark::before,
+.ke-logo-mark::after {
+    content: "";
+    position: absolute;
+    background: #ffffff;
+    border-radius: 999px;
+}
+
+.ke-logo-mark::before {
+    left: 6px;
+    top: 6px;
+    bottom: 6px;
+    width: 4px;
+}
+
+.ke-logo-mark::after {
+    left: 10px;
+    top: 9px;
+    width: 16px;
+    height: 4px;
+    transform: rotate(-34deg);
+    transform-origin: left center;
+}
+
+.ke-logo-word {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.ke-header-menu {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    position: relative;
+    cursor: default;
+    flex: 0 0 auto;
+}
+
+.ke-header-menu::before,
+.ke-header-menu::after,
+.ke-header-menu span {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.82);
+    border-radius: 999px;
+}
+
+.ke-header-menu::before {
+    top: 13px;
+}
+
+.ke-header-menu span {
+    top: 20px;
+}
+
+.ke-header-menu::after {
+    top: 27px;
+}
+
+.ke-user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.ke-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.ke-user-name {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ke-header-link {
+    color: rgba(255, 255, 255, 0.88);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ke-shell {
+    display: grid;
+    grid-template-columns: 212px minmax(0, 1fr);
+    min-height: calc(100vh - 70px);
+}
+
+.ke-sidebar {
+    background: #f6f6f6;
+    border-right: 1px solid #d6d9dd;
+    padding: 18px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.ke-sidebar-title {
+    padding: 0 14px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #2b2f36;
+}
+
+.ke-nav {
+    display: grid;
+    gap: 2px;
+}
+
+.ke-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 0 16px;
+    color: #646f80;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ke-nav-item:hover {
+    background: #ececec;
+    color: #23456d;
+}
+
+.ke-nav-item.is-active {
+    background: #f2f4f7;
+    border-left-color: #2a84d2;
+    color: #2a84d2;
+}
+
+.ke-nav-icon {
+    width: 20px;
+    text-align: center;
+    color: inherit;
+    font-size: 14px;
+}
+
+.ke-sidebar-panel {
+    margin: auto 14px 0;
+    padding: 14px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #d9dde4;
+}
+
+.ke-sidebar-panel span {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #7d8796;
+    margin-bottom: 8px;
+}
+
+.ke-sidebar-panel strong,
+.ke-sidebar-panel a {
+    display: block;
+    color: #38516f;
+    text-decoration: none;
+    line-height: 1.5;
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.ke-sidebar-group {
+    display: grid;
+    gap: 10px;
+    padding: 0 14px;
+}
+
+.ke-sidebar-group-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #7a8595;
+}
+
+.ke-side-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid #d9dde4;
+    color: #4f6075;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.ke-side-link:hover {
+    background: #f4f8fc;
+    border-color: #cad6e5;
+    color: #2f5f97;
+}
+
+.ke-side-link::after {
+    content: ">";
+    color: #8c99ab;
+    font-size: 12px;
+}
+
+.ke-side-link.is-current {
+    background: #eef5fc;
+    border-color: #c9dced;
+    color: #2a84d2;
+}
+
+.ke-side-meta {
+    display: grid;
+    gap: 10px;
+}
+
+.ke-side-meta-item {
+    padding: 12px;
+    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid #d9dde4;
+}
+
+.ke-side-meta-item span {
+    display: block;
+    margin-bottom: 6px;
+    color: #7d8796;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ke-side-meta-item strong,
+.ke-side-meta-item p {
+    margin: 0;
+    color: #415166;
+    line-height: 1.5;
+}
+
+.ke-side-meta-item strong {
+    font-size: 13px;
+}
+
+.ke-side-meta-item p {
+    font-size: 12px;
+}
+
+.ke-main {
+    min-width: 0;
+    padding: 8px 18px 28px;
+}
+
+.ke-page-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 8px 14px;
+}
+
+.ke-page-title h1 {
+    margin: 0;
+    color: #2d3848;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.ke-page-title small {
+    color: #8a95a5;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.ke-breadcrumbs {
+    text-align: right;
+    color: #93a0b1;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.ke-page-content.page,
+.ke-page-content.bernoulli-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+.keepedu-app-page .hero-shell,
+.keepedu-app-page .card,
+.keepedu-app-page .event-log-panel,
+.keepedu-app-page .sidebar,
+.keepedu-app-page .viewer,
+.keepedu-app-page .table-wrapper,
+.keepedu-app-page .home-hero-main,
+.keepedu-app-page .home-hero-panel,
+.keepedu-app-page .home-ops-card,
+.keepedu-app-page .home-history-card,
+.keepedu-app-page .upload-command-card,
+.keepedu-app-page .bernoulli-hero,
+.keepedu-app-page .bernoulli-form-card,
+.keepedu-app-page .bernoulli-log-card,
+.keepedu-app-page .bernoulli-help-card,
+.keepedu-app-page .bernoulli-track-card {
+    background: #ffffff !important;
+    border: 1px solid #d7dce3 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .section-kicker,
+.keepedu-app-page .eyebrow,
+.keepedu-app-page .panel-kicker {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    color: #8b95a4 !important;
+    font-size: 12px !important;
+    letter-spacing: 0 !important;
+    text-transform: uppercase;
+}
+
+.keepedu-app-page .hero h1,
+.keepedu-app-page .home-hero-main h1,
+.keepedu-app-page .bernoulli-hero h1,
+.keepedu-app-page .section-head h2,
+.keepedu-app-page .card h2 {
+    color: #49566a !important;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.keepedu-app-page .hero p,
+.keepedu-app-page .card-description,
+.keepedu-app-page .home-hero-main p,
+.keepedu-app-page .bernoulli-hero p,
+.keepedu-app-page .sidebar-description,
+.keepedu-app-page .viewer-help,
+.keepedu-app-page .muted {
+    color: #788394 !important;
+}
+
+.keepedu-app-page .btn-primary,
+.keepedu-app-page .btn-secondary,
+.keepedu-app-page .btn-light,
+.keepedu-app-page .link-btn,
+.keepedu-app-page .sidebar-filter-btn,
+.keepedu-app-page .bernoulli-day-btn {
+    min-height: 36px;
+    border-radius: 3px !important;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .btn-primary {
+    background: #2a8cdb !important;
+    border: 1px solid #2a8cdb !important;
+    color: #ffffff !important;
+}
+
+.keepedu-app-page .btn-primary:hover {
+    background: #227cc3 !important;
+}
+
+.keepedu-app-page .btn-secondary,
+.keepedu-app-page .btn-light,
+.keepedu-app-page .sidebar-filter-btn,
+.keepedu-app-page .bernoulli-day-btn {
+    background: #f9fbfd !important;
+    border: 1px solid #cfd7e2 !important;
+    color: #516071 !important;
+}
+
+.keepedu-app-page .btn-secondary:hover,
+.keepedu-app-page .btn-light:hover,
+.keepedu-app-page .sidebar-filter-btn:hover,
+.keepedu-app-page .bernoulli-day-btn:hover {
+    background: #eef3f8 !important;
+}
+
+.keepedu-app-page .sidebar-filter-btn.ativo,
+.keepedu-app-page .bernoulli-day-btn.active,
+.keepedu-app-page .corner-btn.ativo {
+    background: #2a8cdb !important;
+    color: #ffffff !important;
+    border-color: #2a8cdb !important;
+}
+
+.keepedu-app-page .input-text,
+.keepedu-app-page .toolbar input,
+.keepedu-app-page .toolbar select,
+.keepedu-app-page .manual-form input,
+.keepedu-app-page .corner-toolbar select,
+.keepedu-app-page .field-block input[type="file"] {
+    background: #ffffff !important;
+    border: 1px solid #cfd7e2 !important;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .input-text:focus,
+.keepedu-app-page .toolbar input:focus,
+.keepedu-app-page .toolbar select:focus,
+.keepedu-app-page .manual-form input:focus,
+.keepedu-app-page .corner-toolbar select:focus,
+.keepedu-app-page .field-block input[type="file"]:focus {
+    border-color: #2a8cdb !important;
+    box-shadow: 0 0 0 3px rgba(42, 140, 219, 0.12) !important;
+}
+
+.keepedu-app-page .home-hero,
+.keepedu-app-page .home-dashboard,
+.keepedu-app-page .bernoulli-layout,
+.keepedu-app-page .layout-correcao {
+    gap: 16px !important;
+}
+
+.keepedu-app-page .home-hero {
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.keepedu-app-page .home-dashboard {
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+}
+
+.keepedu-app-page .home-hero-main,
+.keepedu-app-page .upload-command-card,
+.keepedu-app-page .home-ops-card,
+.keepedu-app-page .home-history-card,
+.keepedu-app-page .home-hero-panel,
+.keepedu-app-page .hero-shell,
+.keepedu-app-page .card {
+    padding: 22px;
+}
+
+.keepedu-app-page .home-hero-panel {
+    background: #ffffff !important;
+}
+
+.keepedu-app-page .home-flow-item,
+.keepedu-app-page .home-metric-card,
+.keepedu-app-page .home-ops-item,
+.keepedu-app-page .home-history-item,
+.keepedu-app-page .event-log-item,
+.keepedu-app-page .summary-card,
+.keepedu-app-page .stat-card,
+.keepedu-app-page .sidebar-stat,
+.keepedu-app-page .bernoulli-mini-card,
+.keepedu-app-page .bernoulli-meta-item,
+.keepedu-app-page .bernoulli-rule-item,
+.keepedu-app-page .bernoulli-log-stat,
+.keepedu-app-page .log-summary-item,
+.keepedu-app-page .item-imagem {
+    background: #f8fafc !important;
+    border: 1px solid #d9e0e8 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .home-flow-item strong,
+.keepedu-app-page .home-metric-card strong,
+.keepedu-app-page .home-ops-item strong,
+.keepedu-app-page .home-history-copy strong,
+.keepedu-app-page .item-imagem-title,
+.keepedu-app-page .bernoulli-mini-card strong {
+    color: #4c596d !important;
+}
+
+.keepedu-app-page .home-flow-item span,
+.keepedu-app-page .home-metric-card p,
+.keepedu-app-page .home-ops-item p,
+.keepedu-app-page .home-history-copy span,
+.keepedu-app-page .item-imagem-subtitle,
+.keepedu-app-page .item-imagem-detail,
+.keepedu-app-page .bernoulli-mini-card span {
+    color: #7a8493 !important;
+}
+
+.keepedu-app-page .home-history-list,
+.keepedu-app-page .upload-lista,
+.keepedu-app-page .summary-grid,
+.keepedu-app-page .stats-grid,
+.keepedu-app-page .log-summary,
+.keepedu-app-page .sidebar-summary {
+    gap: 12px;
+}
+
+.keepedu-app-page .section-badge,
+.keepedu-app-page .highlight-pill,
+.keepedu-app-page .home-history-tag,
+.keepedu-app-page .item-imagem-chip,
+.keepedu-app-page .item-imagem-pill,
+.keepedu-app-page .status-badge {
+    background: #edf3f8 !important;
+    color: #5f6e80 !important;
+    border: 1px solid #d7e0ea !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .status-validado,
+.keepedu-app-page .status-badge.ok {
+    background: #e3f7e8 !important;
+    border-color: #c5ebd1 !important;
+    color: #2a7e44 !important;
+}
+
+.keepedu-app-page .status-pendente,
+.keepedu-app-page .status-badge.erro,
+.keepedu-app-page .status-badge.pendencia {
+    background: #fdeceb !important;
+    border-color: #f5d4d0 !important;
+    color: #b65248 !important;
+}
+
+.keepedu-app-page .table-toolbar,
+.keepedu-app-page .toolbar,
+.keepedu-app-page .corner-toolbar {
+    background: #f7f9fb !important;
+    border: 1px solid #d7dce3 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+.keepedu-app-page .table-wrapper {
+    overflow: auto;
+}
+
+.keepedu-app-page .data-table {
+    min-width: 980px;
+    background: #ffffff;
+}
+
+.keepedu-app-page .data-table th {
+    background: #eff3f7 !important;
+    color: #59677b !important;
+    border-bottom: 1px solid #d6dce4 !important;
+    text-transform: none !important;
+}
+
+.keepedu-app-page .data-table td {
+    border-bottom: 1px solid #e6ebf1 !important;
+    color: #59677b !important;
+}
+
+.keepedu-app-page .data-table tbody tr:hover td {
+    background: #f8fbfe !important;
+}
+
+.keepedu-app-page .linha-pendente td {
+    background: #fff8f7 !important;
+}
+
+.keepedu-app-page .linha-validada td {
+    background: #fbfdfc !important;
+}
+
+.keepedu-app-page .grid-imagens {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.keepedu-app-page .grid-imagens a {
+    border-radius: 4px !important;
+    padding: 10px;
+    background: #f8fafc !important;
+    border: 1px solid #d9e0e8 !important;
+}
+
+.keepedu-app-page .grid-imagens img {
+    height: 180px;
+    background: #ffffff;
+    border-radius: 2px !important;
+}
+
+.keepedu-app-page .page-processando,
+.keepedu-app-page .page-processamento,
+.keepedu-app-page .page-validacao,
+.keepedu-app-page .page-correcao {
+    max-width: none;
+    margin: 0;
+}
+
+.keepedu-app-page .layout-correcao {
+    grid-template-columns: 318px 1fr;
+}
+
+.keepedu-app-page .sidebar,
+.keepedu-app-page .viewer {
+    height: calc(100vh - 190px);
+}
+
+.keepedu-app-page .sidebar {
+    overflow: auto;
+}
+
+.keepedu-app-page .viewer {
+    overflow: hidden;
+}
+
+.keepedu-app-page .image-area {
+    background: #eceff4 !important;
+    border: 1px solid #d7dde5 !important;
+    border-radius: 4px !important;
+}
+
+.keepedu-app-page .event-log-empty,
+.keepedu-app-page .sidebar-empty {
+    background: #f7f9fb !important;
+    border: 1px dashed #d0d7e2 !important;
+    border-radius: 4px !important;
+}
+
+.keepedu-app-page .progress-card,
+.keepedu-app-page .log-processamento {
+    background: #ffffff !important;
+    border: 1px solid #d7dce3 !important;
+    border-radius: 4px !important;
+}
+
+.keepedu-app-page .progress-bar,
+.keepedu-app-page .log-processamento .progress-bar {
+    height: 12px;
+    background: #e5ebf2 !important;
+    border: 1px solid #d4dce6 !important;
+    border-radius: 999px !important;
+}
+
+.keepedu-app-page .progress-fill,
+.keepedu-app-page .log-processamento .progress-fill {
+    background: linear-gradient(90deg, #2a8cdb, #5db6fb) !important;
+}
+
+.keepedu-app-page .erro-box {
+    border-radius: 4px !important;
+    background: #fff5f4 !important;
+    border: 1px solid #f1c7c2 !important;
+    color: #b65248 !important;
+}
+
+.keepedu-app-page .app-modal-dialog {
+    border-radius: 8px !important;
+}
+
+.keepedu-app-page .app-modal-image-stage {
+    background: #f4f7fb;
+    border-radius: 4px;
+}
+
+.keepedu-app-page .app-modal-image-preview {
+    border-radius: 4px !important;
+}
+
+.keepedu-auth-page .topbar {
+    display: none;
+}
+
+.keepedu-auth-page {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+        radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+        radial-gradient(circle at 12% 82%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+        radial-gradient(circle at 84% 82%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+        linear-gradient(180deg, #8d47ce 0%, #6d27ae 100%);
+    background-size: 40px 40px, 40px 40px, 40px 40px, 40px 40px, auto;
+}
+
+.ke-auth-header {
+    min-height: 76px;
+    padding: 0 34px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.ke-auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #4152d8;
+    font-size: 28px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.ke-auth-brand .ke-logo-mark {
+    border-color: #4152d8;
+}
+
+.ke-auth-brand .ke-logo-mark::before,
+.ke-auth-brand .ke-logo-mark::after {
+    background: #4152d8;
+}
+
+.ke-auth-brand .ke-logo-word {
+    color: #4152d8;
+    font-size: 24px;
+}
+
+.ke-auth-header img {
+    height: 44px;
+    width: auto;
+}
+
+.ke-auth-main {
+    min-height: calc(100vh - 76px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 38px 20px;
+}
+
+.ke-auth-card {
+    width: min(100%, 470px);
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 28px 30px 24px;
+    box-shadow: 0 28px 80px rgba(49, 13, 93, 0.28);
+}
+
+.ke-auth-card img {
+    height: 56px;
+    width: auto;
+    display: block;
+    margin: 0 auto 12px;
+}
+
+.ke-auth-card h1 {
+    margin: 0;
+    text-align: center;
+    color: #2f68d2;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.ke-auth-card p {
+    margin: 8px 0 0;
+    text-align: center;
+    color: #5a6880;
+    line-height: 1.6;
+}
+
+.ke-auth-form {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.ke-auth-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2f3a4c;
+    font-weight: 700;
+}
+
+.ke-auth-input {
+    position: relative;
+}
+
+.ke-auth-input span {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #738097;
+    font-size: 14px;
+}
+
+.ke-auth-input input {
+    width: 100%;
+    height: 46px;
+    padding: 0 14px 0 38px;
+    border: 1px solid #d4dbe6;
+    border-radius: 12px;
+    background: #f8fbff;
+    font-size: 14px;
+}
+
+.ke-auth-input input:focus {
+    outline: none;
+    border-color: #4b7de6;
+    box-shadow: 0 0 0 4px rgba(75, 125, 230, 0.12);
+}
+
+.ke-auth-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: -2px;
+    color: #5d6980;
+    font-size: 13px;
+}
+
+.ke-auth-row a {
+    color: #2f68d2;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.ke-auth-submit {
+    width: 100%;
+    height: 46px;
+    border: 0;
+    border-radius: 12px;
+    background: #21b967;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.ke-auth-submit:hover {
+    background: #1da45c;
+}
+
+.ke-auth-alert {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff4f2;
+    border: 1px solid #f3d0cc;
+    color: #b45248;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ke-auth-meta {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #edf1f6;
+    display: grid;
+    gap: 10px;
+}
+
+.ke-auth-meta-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #66758a;
+    font-size: 13px;
+}
+
+.ke-auth-meta-item strong {
+    color: #38455a;
+}
+
+@media (max-width: 1100px) {
+    .ke-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .ke-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid #d6d9dd;
+        padding-bottom: 14px;
+    }
+
+    .ke-nav {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        padding-inline: 10px;
+    }
+
+    .ke-sidebar-panel {
+        margin-top: 0;
+    }
+
+    .keepedu-app-page .home-hero,
+    .keepedu-app-page .home-dashboard,
+    .keepedu-app-page .bernoulli-layout,
+    .keepedu-app-page .layout-correcao {
+        grid-template-columns: 1fr !important;
+    }
+
+    .keepedu-app-page .sidebar,
+    .keepedu-app-page .viewer {
+        height: auto;
+    }
+}
+
+@media (max-width: 780px) {
+    .ke-header,
+    .ke-auth-header {
+        padding-inline: 16px;
+    }
+
+    .ke-user-name {
+        max-width: 180px;
+    }
+
+    .ke-page-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ke-breadcrumbs {
+        text-align: left;
+    }
+
+    .keepedu-app-page .hero-stats-row,
+    .keepedu-app-page .summary-grid,
+    .keepedu-app-page .stats-grid,
+    .keepedu-app-page .home-hero-metrics {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==========================================================================
+   CORREÇÃO: Ajuste de textos longos e quebra de linha no Menu Lateral (KeepEdu)
+   ========================================================================== */
+
+/* Força o painel lateral de contexto e metadados a respeitar a largura máxima */
+.ke-sidebar-panel,
+.ke-side-meta-item,
+.ke-sidebar-group {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Evita que qualquer elemento vaze visualmente */
+}
+
+/* Força qualquer texto contínuo muito longo (strings sem espaço) a quebrar de linha */
+.ke-sidebar-panel strong,
+.ke-sidebar-panel a,
+.ke-side-meta-item strong,
+.ke-side-meta-item p,
+.ke-sidebar-group strong {
+    word-break: break-all;      /* Força a quebra em qualquer caractere se necessário */
+    overflow-wrap: anywhere;    /* Garante compatibilidade em múltiplos navegadores */
+    white-space: normal;        /* Permite que o texto use mais de uma linha naturalmente */
+    display: block;
+}
+
+/* Garante comportamento idêntico caso a classe antiga do OMRCheck (.sidebar) ainda seja injetada */
+.keepedu-app-page .sidebar .context-card,
+.keepedu-app-page .sidebar p,
+.keepedu-app-page .sidebar strong {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+/* ==========================================================================
+   CORREÇÃO: Fixar a Barra Lateral Permanentemente na Tela (Sem Rolagem)
+   ========================================================================== */
+
+/* 1. Garante que o container pai ocupe toda a altura da tela sem criar rolagem dupla */
+.ke-shell {
+    height: calc(100vh - 70px); /* Desconta a altura exata da sua topbar ke-header */
+    overflow: hidden;           /* Impede a página inteira de rolar desordenadamente */
+}
+
+/* 2. Deixa a barra lateral estática e fixa no canto esquerdo */
+.ke-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100%;               /* Ocupa exatamente a altura do container pai */
+    overflow-y: auto;           /* Se o menu tiver muitos itens, ele rola apenas dentro dele mesmo */
+    flex: 0 0 212px;            /* Mantém a largura estável de 212px */
+}
+
+/* 3. Libera a rolagem (scroll) APENAS na área principal de dados (tabelas e painéis) */
+.ke-main {
+    height: 100%;
+    overflow-y: auto;           /* O scroll vertical agora acontece exclusivamente aqui */
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   INTERAÇÃO: Recolher e Expandir o Menu Lateral (Sidebar Toggle)
+   ========================================================================== */
+
+.ke-header-menu {
+    cursor: pointer !important;
+    transition: opacity 0.2s ease;
+}
+.ke-header-menu:hover {
+    opacity: 0.8;
+}
+
+.ke-shell {
+    transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ke-shell.sidebar-collapsed {
+    grid-template-columns: 60px minmax(0, 1fr) !important;
+}
+
+.ke-shell.sidebar-collapsed .ke-sidebar {
+    padding-inline: 4px;
+    align-items: center;
+}
+
+.ke-shell.sidebar-collapsed .ke-sidebar-title,
+.ke-shell.sidebar-collapsed .ke-sidebar-panel,
+.ke-shell.sidebar-collapsed .ke-sidebar-group,
+.ke-shell.sidebar-collapsed .ke-nav-item span,
+.ke-shell.sidebar-collapsed .ke-nav-item::after {
+    display: none !important;
+}
+
+.ke-shell.sidebar-collapsed .ke-nav-item {
+    justify-content: center;
+    padding: 0;
+    border-left-width: 0;
+    margin-inline: 4px;
+}
+
+.ke-shell.sidebar-collapsed .ke-nav-icon {
+    width: auto;
+    font-size: 16px;
+}

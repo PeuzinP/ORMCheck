@@ -25,16 +25,15 @@ class Base(DeclarativeBase):
 
 
 def _montar_database_url() -> str:
-    if DATABASE_URL:
-        return DATABASE_URL
-
+    # Em vez de tentar tratar a string do DATABASE_URL e arriscar quebras de caracteres,
+    # montamos a URL de forma nativa e segura usando as variáveis tratadas do seu .env
     return URL.create(
         drivername="mysql+pymysql",
-        username=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        host=MYSQL_HOST,
-        port=MYSQL_PORT,
-        database=MYSQL_DATABASE,
+        username=MYSQL_USER,      # Puxa 'omrcheck'
+        password=MYSQL_PASSWORD,  # Puxa 'Pensar2026@root' puro, sem precisar mascarar com %40
+        host=MYSQL_HOST,          # Puxa '127.0.0.1'
+        port=MYSQL_PORT,          # Puxa 3306
+        database=MYSQL_DATABASE,  # Puxa 'omrcheck'
         query={"charset": "utf8mb4"},
     ).render_as_string(hide_password=False)
 

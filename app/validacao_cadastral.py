@@ -3,15 +3,15 @@ import json
 from app.alunos_client import buscar_aluno_por_ra
 from app.services import caminho_leituras
 
-def caminho_validacao_manual(nome_processamento: str):
-    caminho_leitura = caminho_leituras(nome_processamento)
+def caminho_validacao_manual(nome_avaliacao: str):
+    caminho_leitura = caminho_leituras(nome_avaliacao)
     pasta_processamento = caminho_leitura.parent
 
     return pasta_processamento / "validacao_manual.json"
 
 
-def carregar_validacao_manual(nome_processamento: str):
-    caminho = caminho_validacao_manual(nome_processamento)
+def carregar_validacao_manual(nome_avaliacao: str):
+    caminho = caminho_validacao_manual(nome_avaliacao)
 
     if not caminho.exists():
         return {}
@@ -20,14 +20,14 @@ def carregar_validacao_manual(nome_processamento: str):
         return json.load(f)
 
 
-def caminho_pendencias_importacao(nome_processamento: str):
-    caminho_leitura = caminho_leituras(nome_processamento)
+def caminho_pendencias_importacao(nome_avaliacao: str):
+    caminho_leitura = caminho_leituras(nome_avaliacao)
     pasta_processamento = caminho_leitura.parent
     return pasta_processamento / "pendencias_importacao.json"
 
 
-def carregar_pendencias_importacao(nome_processamento: str):
-    caminho = caminho_pendencias_importacao(nome_processamento)
+def carregar_pendencias_importacao(nome_avaliacao: str):
+    caminho = caminho_pendencias_importacao(nome_avaliacao)
 
     if not caminho.exists():
         return {}
@@ -36,8 +36,8 @@ def carregar_pendencias_importacao(nome_processamento: str):
         return json.load(f)
 
 
-def salvar_pendencias_importacao(nome_processamento: str, dados: dict):
-    caminho = caminho_pendencias_importacao(nome_processamento)
+def salvar_pendencias_importacao(nome_avaliacao: str, dados: dict):
+    caminho = caminho_pendencias_importacao(nome_avaliacao)
     caminho.parent.mkdir(parents=True, exist_ok=True)
 
     with open(caminho, "w", encoding="utf-8") as f:
@@ -47,40 +47,48 @@ def salvar_pendencias_importacao(nome_processamento: str, dados: dict):
 
 
 def registrar_pendencia_importacao(
-    nome_processamento: str,
+    nome_avaliacao: str,
     nome_imagem: str,
     status_validacao: str,
     motivo: str,
     detalhes: dict | None = None,
 ):
-    dados = carregar_pendencias_importacao(nome_processamento)
+    dados = carregar_pendencias_importacao(nome_avaliacao)
     dados[nome_imagem] = {
         "status_validacao": status_validacao,
         "motivo": str(motivo or "").strip(),
         "detalhes": detalhes or {},
     }
-    salvar_pendencias_importacao(nome_processamento, dados)
+    salvar_pendencias_importacao(nome_avaliacao, dados)
     return dados[nome_imagem]
 
 
-def limpar_pendencia_importacao(nome_processamento: str, nome_imagem: str):
-    dados = carregar_pendencias_importacao(nome_processamento)
+def limpar_pendencia_importacao(nome_avaliacao: str, nome_imagem: str):
+    dados = carregar_pendencias_importacao(nome_avaliacao)
 
     if nome_imagem in dados:
         dados.pop(nome_imagem, None)
-        salvar_pendencias_importacao(nome_processamento, dados)
+        salvar_pendencias_importacao(nome_avaliacao, dados)
         return True
 
     return False
 
 
-def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manual: str):
+def salvar_correcao_manual(
+    nome_avaliacao: str = "",
+    nome_imagem: str = "",
+    valor_manual: str = "",
+    nome_processamento: str | None = None,
+):
+    if nome_processamento and not nome_avaliacao:
+        nome_avaliacao = nome_processamento
+
     valor_manual = str(valor_manual or "").strip()
 
     if not valor_manual:
         raise ValueError("Informe o ID do aluno ou o código completo.")
 
-    leituras = carregar_leituras(nome_processamento)
+    leituras = carregar_leituras(nome_avaliacao)
 
     dados_cartao = leituras.get(nome_imagem)
 
@@ -91,7 +99,7 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
                 break
 
     if not dados_cartao:
-        raise ValueError(f"Cartão não encontrado no processamento: {nome_imagem}")
+        raise ValueError(f"Cartão não encontrado na avaliação: {nome_imagem}")
 
     codigo_barras_detectado = extrair_codigo_barras_possivel(dados_cartao)
     id_prova_detectado, _ = quebrar_codigo_barras(codigo_barras_detectado)
@@ -122,14 +130,14 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
 
         else:
             raise ValueError(
-                "Não foi possível identificar o ID da prova deste cartão. "
+                "Não foi possível identificar o ID da prova para este cartão. "
                 "Informe o código completo no formato 12479A29684."
             )
 
         codigo_barras_final = f"{id_prova}A{id_final}"
 
-    caminho = caminho_validacao_manual(nome_processamento)
-    dados = carregar_validacao_manual(nome_processamento)
+    caminho = caminho_validacao_manual(nome_avaliacao)
+    dados = carregar_validacao_manual(nome_avaliacao)
 
     dados[nome_imagem] = {
         "id_final": id_final,
@@ -142,11 +150,11 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-    limpar_pendencia_importacao(nome_processamento, nome_imagem)
+    limpar_pendencia_importacao(nome_avaliacao, nome_imagem)
     return dados[nome_imagem]
 
-def carregar_leituras(nome_processamento: str):
-    caminho = caminho_leituras(nome_processamento)
+def carregar_leituras(nome_avaliacao: str):
+    caminho = caminho_leituras(nome_avaliacao)
 
     if not caminho.exists():
         return {}
@@ -155,8 +163,8 @@ def carregar_leituras(nome_processamento: str):
         return json.load(f)
 
 
-def salvar_validacao(nome_processamento: str, dados_validacao: dict):
-    caminho_leitura = caminho_leituras(nome_processamento)
+def salvar_validacao(nome_avaliacao: str, dados_validacao: dict):
+    caminho_leitura = caminho_leituras(nome_avaliacao)
     pasta_processamento = caminho_leitura.parent
     caminho_saida = pasta_processamento / "validacao_cadastral.json"
     pasta_processamento.mkdir(parents=True, exist_ok=True)
@@ -167,14 +175,14 @@ def salvar_validacao(nome_processamento: str, dados_validacao: dict):
     return caminho_saida
 
 
-def caminho_validacao_cadastral(nome_processamento: str):
-    caminho_leitura = caminho_leituras(nome_processamento)
+def caminho_validacao_cadastral(nome_avaliacao: str):
+    caminho_leitura = caminho_leituras(nome_avaliacao)
     pasta_processamento = caminho_leitura.parent
     return pasta_processamento / "validacao_cadastral.json"
 
 
-def carregar_validacao_cadastral_salva(nome_processamento: str):
-    caminho = caminho_validacao_cadastral(nome_processamento)
+def carregar_validacao_cadastral_salva(nome_avaliacao: str):
+    caminho = caminho_validacao_cadastral(nome_avaliacao)
 
     if not caminho.exists():
         return None
@@ -182,15 +190,15 @@ def carregar_validacao_cadastral_salva(nome_processamento: str):
     with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def caminho_validacao_manual(nome_processamento: str):
-    caminho_leitura = caminho_leituras(nome_processamento)
+def caminho_validacao_manual(nome_avaliacao: str):
+    caminho_leitura = caminho_leituras(nome_avaliacao)
     pasta_processamento = caminho_leitura.parent
 
     return pasta_processamento / "validacao_manual.json"
 
 
-def carregar_validacao_manual(nome_processamento: str):
-    caminho = caminho_validacao_manual(nome_processamento)
+def carregar_validacao_manual(nome_avaliacao: str):
+    caminho = caminho_validacao_manual(nome_avaliacao)
 
     if not caminho.exists():
         return {}
@@ -199,13 +207,21 @@ def carregar_validacao_manual(nome_processamento: str):
         return json.load(f)
 
 
-def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manual: str):
+def salvar_correcao_manual(
+    nome_avaliacao: str = "",
+    nome_imagem: str = "",
+    valor_manual: str = "",
+    nome_processamento: str | None = None,
+):
+    if nome_processamento and not nome_avaliacao:
+        nome_avaliacao = nome_processamento
+
     valor_manual = str(valor_manual or "").strip()
 
     if not valor_manual:
         raise ValueError("Informe o ID do aluno ou o código completo.")
 
-    leituras = carregar_leituras(nome_processamento)
+    leituras = carregar_leituras(nome_avaliacao)
     id_prova_processamento = detectar_id_prova_do_processamento(leituras)
 
     if "A" in valor_manual:
@@ -224,14 +240,14 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
 
         if not id_prova_processamento:
             raise ValueError(
-                "Não foi possível identificar o ID da prova no processamento. "
+                "Não foi possível identificar o ID da prova na avaliação. "
                 "Informe o código completo no formato 12347A38121."
             )
 
         codigo_barras_final = f"{id_prova_processamento}A{id_final}"
 
-    caminho = caminho_validacao_manual(nome_processamento)
-    dados = carregar_validacao_manual(nome_processamento)
+    caminho = caminho_validacao_manual(nome_avaliacao)
+    dados = carregar_validacao_manual(nome_avaliacao)
 
     dados[nome_imagem] = {
         "id_final": id_final,
@@ -244,7 +260,7 @@ def salvar_correcao_manual(nome_processamento: str, nome_imagem: str, valor_manu
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-    limpar_pendencia_importacao(nome_processamento, nome_imagem)
+    limpar_pendencia_importacao(nome_avaliacao, nome_imagem)
     return dados[nome_imagem]
 
 def extrair_codigo_barras_possivel(dados_cartao: dict):
@@ -358,7 +374,7 @@ def extrair_nome_possivel(dados_cartao: dict):
 def detectar_id_prova_do_processamento(leituras: dict):
     """
     Procura em qualquer cartão processado um código de barras válido
-    para descobrir o ID da prova daquele processamento.
+    para descobrir o ID da prova daquela avaliação.
     """
 
     for dados_cartao in leituras.values():
@@ -395,7 +411,7 @@ def _aplicar_pendencia_importacao(resultado: dict, pendencia_importacao: dict | 
 def validar_cartao(
     nome_imagem: str,
     dados_cartao: dict,
-    id_prova_processamento: str,
+    id_prova_avaliacao: str,
     validacoes_manuais: dict,
     pendencias_importacao: dict,
 ):
@@ -475,7 +491,7 @@ def validar_cartao(
         if aluno.get("encontrado") and aluno.get("id"):
             id_final = str(aluno.get("id"))
 
-            if not id_prova_processamento:
+            if not id_prova_avaliacao:
                 resultado["id_final"] = id_final
                 resultado["origem_id"] = "API_RA"
                 resultado["status_validacao"] = "PENDENTE_SEM_ID_PROVA"
@@ -488,7 +504,7 @@ def validar_cartao(
                 return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
             resultado["id_final"] = id_final
-            resultado["codigo_barras_final"] = f"{id_prova_processamento}A{id_final}"
+            resultado["codigo_barras_final"] = f"{id_prova_avaliacao}A{id_final}"
             resultado["origem_id"] = "API_RA"
             resultado["status_validacao"] = "VALIDADO_API_RA"
             resultado["motivo"] = "ID do aluno localizado pela API a partir do RA e código final montado com o ID da prova detectado."
@@ -510,12 +526,12 @@ def validar_cartao(
     return _aplicar_pendencia_importacao(resultado, pendencia_importacao)
 
 
-def gerar_validacao_cadastral(nome_processamento: str):
-    leituras = carregar_leituras(nome_processamento)
+def gerar_validacao_cadastral(nome_avaliacao: str):
+    leituras = carregar_leituras(nome_avaliacao)
 
-    id_prova_processamento = detectar_id_prova_do_processamento(leituras)
-    validacoes_manuais = carregar_validacao_manual(nome_processamento)
-    pendencias_importacao = carregar_pendencias_importacao(nome_processamento)
+    id_prova_avaliacao = detectar_id_prova_do_processamento(leituras)
+    validacoes_manuais = carregar_validacao_manual(nome_avaliacao)
+    pendencias_importacao = carregar_pendencias_importacao(nome_avaliacao)
 
     validacoes = {}
     resumo = {
@@ -527,14 +543,14 @@ def gerar_validacao_cadastral(nome_processamento: str):
         "sem_identificacao": 0,
         "sem_id_prova": 0,
         "fora_avaliacao": 0,
-        "id_prova_processamento": id_prova_processamento
+        "id_prova_processamento": id_prova_avaliacao
     }
 
     for nome_imagem, dados_cartao in leituras.items():
         validacao = validar_cartao(
         nome_imagem,
         dados_cartao,
-        id_prova_processamento,
+        id_prova_avaliacao,
         validacoes_manuais,
         pendencias_importacao
     )
@@ -563,11 +579,11 @@ def gerar_validacao_cadastral(nome_processamento: str):
             resumo["fora_avaliacao"] += 1
 
     dados_saida = {
-        "nome_processamento": nome_processamento,
+        "nome_avaliacao": nome_avaliacao,
         "resumo": resumo,
         "validacoes": validacoes
     }
 
-    salvar_validacao(nome_processamento, dados_saida)
+    salvar_validacao(nome_avaliacao, dados_saida)
 
     return dados_saida

@@ -5,25 +5,79 @@
     <title>OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
     <link rel="stylesheet" href="/static/css/style.css?v=73">
+    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
 </head>
-<body>
-    <header class="topbar">
-        <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-            <img src="/assets/LogoPensar.png" alt="Grupo Pensar" class="brand-side-image brand-side-image-pensar">
+<body class="keepedu-app-page">
+    <header class="ke-header">
+    <div class="ke-header-left">
+        <a href="/" class="ke-logo" style="display: flex; align-items: center;">
+            <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
         </a>
-        <a class="brand-center brand-link" href="/" aria-label="Abrir início do OMRCheck">
-            <strong>OMRCheck</strong>
-            <span>Leitura, revisão e exportação de cartões em um fluxo claro e confiável</span>
-        </a>
-        <div class="topbar-right">
-            <a class="btn-light" href="/logout">Sair</a>
-            <a class="brand-side brand-link" href="/" aria-label="Voltar para o início">
-                <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" class="brand-side-image brand-side-image-proposito">
-            </a>
+
+        <button class="ke-header-menu" aria-label="Recolher menu" style="margin-left: 10px;">
+            <span></span>
+        </button>
+
+        <div style="color: rgba(255, 255, 255, 0.85); font-size: 16px; margin-left: 12px; display: flex; align-items: center; cursor: pointer;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
         </div>
+    </div>
+
+    <div class="ke-header-right">
+        <div class="ke-user-chip" style="background: transparent; border: 0; cursor: pointer;">
+            <span class="ke-user-name">PEDRO PAULO MENDES SANTOS</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; color: rgba(255,255,255,0.7);">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </div>
+
+        <a href="/logout" class="ke-header-link" style="opacity: 0.85; transition: opacity 0.2s; margin-left: 15px;">Sair</a>
+    </div>
+</header>
+</div>
     </header>
 
-    <main class="page page-home">
+    <div class="ke-shell">
+        <aside class="ke-sidebar">
+            <div class="ke-sidebar-title">Menu</div>
+            <nav class="ke-nav">
+                <a class="ke-nav-item is-active" href="/">
+                    <span class="ke-nav-icon">⌂</span>
+                    <span>Painel</span>
+                </a>
+                <a class="ke-nav-item" href="#novo-processamento">
+                    <span class="ke-nav-icon">+</span>
+                    <span>Novo processamento</span>
+                </a>
+                <a class="ke-nav-item" href="#processamentos-recentes">
+                    <span class="ke-nav-icon">↺</span>
+                    <span>Processamentos</span>
+                </a>
+                <a class="ke-nav-item" href="/bernoulli">
+                    <span class="ke-nav-icon">⇄</span>
+                    <span>Bernoulli</span>
+                </a>
+            </nav>
+            <div class="ke-sidebar-panel">
+                <span>Ambiente</span>
+                <strong>Colégio Propósito</strong>
+                <a href="/">OMRCheck | KeepEdu</a>
+            </div>
+        </aside>
+
+        <main class="ke-main">
+            <div class="ke-page-bar">
+                <div class="ke-page-title">
+                    <h1>Painel <small>(Administrador)</small></h1>
+                </div>
+                <div class="ke-breadcrumbs">
+                    Colégio Propósito | Keep Edu &nbsp;&gt;&nbsp; Painel <small>(Administrador)</small>
+                </div>
+            </div>
+
+            <div class="page page-home ke-page-content">
         <section class="home-hero">
             <div class="home-hero-main">
                 <span class="eyebrow">Início</span>
@@ -271,7 +325,9 @@
                     {% endif %}
                 </section>
         </section>
-    </main>
+            </div>
+        </main>
+    </div>
         <script>
         const formProcessamento = document.getElementById("form-processamento");
         const logBox = document.getElementById("log-processamento");
@@ -579,6 +635,20 @@
 
         inicializarFiltroHistorico();
         aplicarFiltroHistorico();
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Busca o botão de 3 traços e o container do layout
+            const menuBtn = document.querySelector(".ke-header-menu");
+            const shell = document.querySelector(".ke-shell");
+
+            if (menuBtn && shell) {
+                menuBtn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    // Injeta ou remove a classe que o CSS usa para encolher
+                    shell.classList.toggle("sidebar-collapsed");
+                });
+            }
+        });
     </script>
 </body>
 </html>

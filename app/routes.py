@@ -1,4 +1,6 @@
-from app.gerador_csv import gerar_csv_final, caminho_csv_final, carregar_leituras
+import ast
+from urllib.parse import unquote
+from app.gerador_csv import gerar_csv_final, caminho_csv_final
 from app.bernoulli import transformar_vetor_keepedu_para_bernoulli, EXTENSOES_PLANILHA, PASTA_BERNOULLI
 from app.keepedu_importacao import (
     contar_alunos_importacao,
@@ -17,6 +19,7 @@ from app.settings import (
     ID_PROVA_KEEPEDU,
     KEEPEDU_LOGIN_SCHOOL,
     KEEPEDU_LOGIN_URL,
+    PASTA_PROCESSAMENTOS,
     PASTA_UPLOADS_TEMP,
     MAX_UPLOAD_FILES,
     MAX_FILE_SIZE_MB,
@@ -28,20 +31,23 @@ from app.services import processar_pasta_temporaria_com_progresso
 from fastapi import APIRouter, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel
+from pathlib import Path
 
 from app.services import (
+    carregar_json,
+    caminho_leituras,
     listar_processamentos,
+    listar_processamentos_recentes,
     listar_imagens_debug,
+    localizar_imagem_original,
     resumo_processamento,
     processar_pasta_local,
     processar_uploads,
     caminho_imagem_debug,
-    caminho_leituras,
     caminho_log,
     caminho_correcoes_web,
     reprocessar_imagem_processamento
 )
-
 
 router = APIRouter()
 EXTENSOES_PERMITIDAS = {".jpg", ".jpeg", ".png"}
@@ -62,6 +68,40 @@ class ImportarRespostasPayload(BaseModel):
     usuario_id: str | int | None = None
     idAluno: str | int | None = None
 
+def listar_processamentos_local():
+    return listar_processamentos()
+
+@router.get("/validacao/")
+@router.get("/validacao")
+async def tratar_validacao_vazia():
+    lotes = listar_processamentos_local()
+    if lotes:
+        lote_recente = lotes[0]
+        return RedirectResponse(url=f"/validacao/{lote_recente}", status_code=303)
+    return HTMLResponse("<h1>Avaliação não encontrada.</h1><p>Nenhuma pasta de lote foi detectada no diretório físico de processamentos.</p>", status_code=404)
+
+def carregar_leitura(nome_avaliacao: str, em_json: bool = True):
+    """
+    Resolve o arquivo principal do lote a partir do diretório configurado.
+    """
+    caminho_principal = caminho_leituras(nome_avaliacao)
+    if caminho_principal.exists():
+        return caminho_principal
+
+    nome_puro = nome_avaliacao.replace("processamento_", "")
+    candidatos = [
+        PASTA_PROCESSAMENTOS / nome_avaliacao / "leituras_omr.json",
+        PASTA_PROCESSAMENTOS / nome_puro / "leituras_omr.json",
+        PASTA_PROCESSAMENTOS / f"{nome_avaliacao}.json",
+        PASTA_PROCESSAMENTOS / f"{nome_puro}.json",
+    ]
+
+    for candidato in candidatos:
+        if candidato.exists() and candidato.is_file():
+            return candidato
+
+    return caminho_principal
+
 
 def render_template(request: Request, nome_template: str, contexto: dict, status_code: int = 200):
     resposta = request.app.state.templates.TemplateResponse(
@@ -78,17 +118,14 @@ def render_template(request: Request, nome_template: str, contexto: dict, status
 
 def _destino_pos_login(destino: str | None) -> str:
     texto = str(destino or "").strip()
-
     if not texto.startswith("/") or texto.startswith("//"):
         return "/"
-
     return texto
 
 
 def _resultado_job_importacao(resultado: dict | None):
     if not isinstance(resultado, dict):
         return {}
-
     return {
         "status": resultado.get("status", ""),
         "success": bool(resultado.get("success")),
@@ -107,7 +144,7 @@ def _resultado_job_importacao(resultado: dict | None):
 
 def _executar_importacao_respostas_em_background(
     job_id: str,
-    nome_processamento: str,
+    nome_avaliacao: str,
     payload: ImportarRespostasPayload,
     modo: str,
 ):
@@ -128,7 +165,6 @@ def _executar_importacao_respostas_em_background(
             arquivo_atual=arquivo_atual,
             resultado=_resultado_job_importacao(resultado),
         )
-
         if titulo:
             registrar_evento_job(
                 job_id,
@@ -143,18 +179,18 @@ def _executar_importacao_respostas_em_background(
             job_id,
             status="processando",
             percentual=1,
-            mensagem="Preparando envio em JSON...",
+            mensagem="Preparando envio de Vetores...",
         )
         registrar_evento_job(
             job_id,
             "info",
             "Envio iniciado",
-            f"Lote {nome_processamento} em modo {modo}.",
+            f"Lote {nome_avaliacao} em modo {modo}.",
         )
 
         if modo == "simulacao":
             resultado = simular_importacao_respostas_presenciais(
-                nome_processamento=nome_processamento,
+                nome_avaliacao=nome_avaliacao,
                 id_aval=payload.idAval,
                 dia_aval=payload.diaAval,
                 usuario_id=payload.usuario_id,
@@ -163,7 +199,7 @@ def _executar_importacao_respostas_em_background(
             )
         else:
             resultado = importar_respostas_presenciais(
-                nome_processamento=nome_processamento,
+                nome_avaliacao=nome_avaliacao,
                 id_aval=payload.idAval,
                 dia_aval=payload.diaAval,
                 usuario_id=payload.usuario_id,
@@ -179,7 +215,7 @@ def _executar_importacao_respostas_em_background(
                 job_id,
                 status="erro",
                 percentual=100,
-                mensagem="Envio em JSON encerrado com erro.",
+                mensagem="Envio de Vetores encerrado com erro.",
                 erro=" | ".join(resultado.get("mensagem", [])[:3]) or "Erro na importação.",
                 resultado=resultado_job,
             )
@@ -198,7 +234,7 @@ def _executar_importacao_respostas_em_background(
             mensagem=(
                 "Simulação concluída."
                 if modo == "simulacao" else
-                "Envio em JSON concluído."
+                "Progresso de envio de Vetores concluído."
             ),
             resultado=resultado_job,
         )
@@ -214,7 +250,7 @@ def _executar_importacao_respostas_em_background(
             job_id,
             status="erro",
             percentual=100,
-            mensagem="Erro ao executar envio em JSON.",
+            mensagem="Erro ao executar envio de Vetores.",
             erro=str(erro),
         )
         registrar_evento_job(
@@ -238,12 +274,10 @@ async def salvar_uploads_em_pasta(arquivos: list[UploadFile], pasta_upload):
 
     for arquivo in arquivos:
         nome_arquivo = os.path.basename(arquivo.filename)
-
         if not nome_arquivo:
             continue
 
         extensao = os.path.splitext(nome_arquivo)[1].lower()
-
         if extensao not in EXTENSOES_PERMITIDAS:
             continue
 
@@ -256,60 +290,45 @@ async def salvar_uploads_em_pasta(arquivos: list[UploadFile], pasta_upload):
             )
 
         total_bytes += tamanho_arquivo
-
         if total_bytes > limite_total_bytes:
             raise ValueError(
                 f"O envio excedeu o limite total de {MAX_TOTAL_UPLOAD_SIZE_MB} MB."
             )
 
         destino = pasta_upload / nome_arquivo
-
         with open(destino, "wb") as f:
             f.write(conteudo)
 
         total_salvos += 1
-
     return total_salvos
 
 
 async def salvar_arquivo_upload(arquivo: UploadFile, pasta_destino):
     nome_arquivo = os.path.basename(arquivo.filename or "")
-
     if not nome_arquivo:
         raise ValueError("Arquivo enviado sem nome.")
 
     extensao = os.path.splitext(nome_arquivo)[1].lower()
-
     if extensao not in EXTENSOES_PLANILHA:
         raise ValueError(f"Formato não suportado: {nome_arquivo}")
 
     conteudo = await arquivo.read()
     destino = pasta_destino / nome_arquivo
-
     with open(destino, "wb") as f:
         f.write(conteudo)
-
     return destino
 
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    processamentos = listar_processamentos()
-
-    return render_template(
-        request,
-        "index.html",
-        {
-            "processamentos": processamentos
-        }
-    )
+    processamentos = listar_processamentos_recentes()
+    return render_template(request, "index.html", {"processamentos": processamentos})
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/"):
     if not APP_ENABLE_AUTH:
         return RedirectResponse(url="/", status_code=303)
-
     if request.session.get("authenticated"):
         return RedirectResponse(url=_destino_pos_login(next), status_code=303)
 
@@ -337,7 +356,6 @@ async def login_submit(
         return RedirectResponse(url="/", status_code=303)
 
     sucesso, mensagem, dados_usuario = autenticar_keepedu(email, senha)
-
     if not sucesso:
         return render_template(
             request,
@@ -356,7 +374,6 @@ async def login_submit(
     request.session["authenticated"] = True
     request.session["user_email"] = str(dados_usuario.get("email") or email or "").strip()
     request.session["auth_source"] = str(dados_usuario.get("origem") or "keepedu")
-
     return RedirectResponse(url=_destino_pos_login(next_url), status_code=303)
 
 
@@ -368,11 +385,7 @@ async def logout(request: Request):
 
 @router.get("/bernoulli", response_class=HTMLResponse)
 async def bernoulli(request: Request):
-    return render_template(
-        request,
-        "bernoulli.html",
-        {}
-    )
+    return render_template(request, "bernoulli.html", {})
 
 
 def _rotulo_dia_bernoulli(dia: str) -> str:
@@ -381,45 +394,20 @@ def _rotulo_dia_bernoulli(dia: str) -> str:
 
 def _montar_logs_bernoulli(resultado: dict, nome_arquivo_entrada: str, nome_arquivo_download: str):
     return [
-        {
-            "tipo": "info",
-            "titulo": "Arquivo recebido",
-            "descricao": nome_arquivo_entrada
-        },
-        {
-            "tipo": "info",
-            "titulo": "Modo selecionado",
-            "descricao": f"{_rotulo_dia_bernoulli(resultado.get('dia', '1'))} | q{resultado.get('primeira_questao', 1)} a q{resultado.get('ultima_questao', 90)}"
-        },
-        {
-            "tipo": "success",
-            "titulo": "Estrutura validada",
-            "descricao": f"{resultado['questoes_encontradas_no_keepedu']} coluna(s) de questao reconhecida(s)."
-        },
-        {
-            "tipo": "success",
-            "titulo": "Consulta Bernoulli concluida",
-            "descricao": f"{resultado['rmb_encontrados']} RMB(s) localizado(s) e {resultado['sem_rmb']} pendencia(s) de inscricao."
-        },
-        {
-            "tipo": "success",
-            "titulo": "Arquivo pronto",
-            "descricao": nome_arquivo_download
-        }
+        {"tipo": "info", "titulo": "Arquivo recebido", "descricao": nome_arquivo_entrada},
+        {"tipo": "info", "titulo": "Modo selecionado", "descricao": f"{_rotulo_dia_bernoulli(resultado.get('dia', '1'))} | q{resultado.get('primeira_questao', 1)} a q{resultado.get('ultima_questao', 90)}"},
+        {"tipo": "success", "titulo": "Estrutura validada", "descricao": f"{resultado['questoes_encontradas_no_keepedu']} coluna(s) de questao reconhecida(s)."},
+        {"tipo": "success", "titulo": "Consulta Bernoulli concluida", "descricao": f"{resultado['rmb_encontrados']} RMB(s) localizado(s) e {resultado['sem_rmb']} pendencia(s) de inscricao."},
+        {"tipo": "success", "titulo": "Arquivo pronto", "descricao": nome_arquivo_download}
     ]
 
 
 def _processar_arquivo_bernoulli(caminho_keepedu, nome_arquivo_entrada: str, dia: str, progresso_callback=None):
     resultado = transformar_vetor_keepedu_para_bernoulli(
-        caminho_arquivo_keepedu=caminho_keepedu,
-        dia=dia,
-        progresso_callback=progresso_callback
+        caminho_arquivo_keepedu=caminho_keepedu, dia=dia, progresso_callback=progresso_callback
     )
     nome_saida_real = os.path.basename(str(resultado["caminho_saida"]))
-    nome_arquivo_download = (
-        f"vetor_bernoulli_dia{resultado['dia']}_{resultado['linhas']}lin_"
-        f"q{resultado['primeira_questao']}-q{resultado['ultima_questao']}.xlsx"
-    )
+    nome_arquivo_download = f"vetor_bernoulli_dia{resultado['dia']}_{resultado['linhas']}lin_q{resultado['primeira_questao']}-q{resultado['ultima_questao']}.xlsx"
 
     return {
         "resultado": resultado,
@@ -441,119 +429,34 @@ def _resultado_job_bernoulli(dados: dict):
     }
 
 
-async def executar_processamento_bernoulli(arquivo_keepedu: UploadFile, dia: str = "1", progresso_callback=None):
-    pasta_tmp = PASTA_UPLOADS_TEMP / f"bernoulli_{os.urandom(8).hex()}"
-    pasta_tmp.mkdir(parents=True, exist_ok=True)
-
-    try:
-        caminho_keepedu = await salvar_arquivo_upload(arquivo_keepedu, pasta_tmp)
-        return _processar_arquivo_bernoulli(
-            caminho_keepedu=caminho_keepedu,
-            nome_arquivo_entrada=os.path.basename(arquivo_keepedu.filename or caminho_keepedu.name),
-            dia=dia,
-            progresso_callback=progresso_callback
-        )
-    finally:
-        for arquivo in pasta_tmp.glob("*"):
-            try:
-                arquivo.unlink(missing_ok=True)
-            except Exception:
-                pass
-
-        try:
-            pasta_tmp.rmdir()
-        except Exception:
-            pass
-
-
 def processar_arquivo_bernoulli_em_background(job_id: str, caminho_keepedu, nome_arquivo_entrada: str, dia: str):
     pasta_tmp = caminho_keepedu.parent
-
     def progresso_callback(percentual, mensagem, tipo=None, titulo=None, descricao="", resultado=None):
-        atualizar_job(
-            job_id,
-            status="processando",
-            percentual=percentual,
-            mensagem=mensagem,
-            arquivo_atual=nome_arquivo_entrada,
-            resultado=resultado
-        )
-
+        atualizar_job(job_id, status="processando", percentual=percentual, mensagem=mensagem, arquivo_atual=nome_arquivo_entrada, resultado=resultado)
         if titulo:
-            registrar_evento_job(
-                job_id,
-                tipo or "info",
-                titulo,
-                descricao or mensagem,
-                arquivo=nome_arquivo_entrada
-            )
+            registrar_evento_job(job_id, tipo or "info", titulo, descricao or mensagem, arquivo=nome_arquivo_entrada)
 
     try:
-        atualizar_job(
-            job_id,
-            status="processando",
-            percentual=5,
-            mensagem=f"Arquivo recebido. Preparando processamento do {_rotulo_dia_bernoulli(dia)}...",
-            arquivo_atual=nome_arquivo_entrada
-        )
+        atualizar_job(job_id, status="processando", percentual=5, mensagem=f"Arquivo recebido. Preparando processamento...", arquivo_atual=nome_arquivo_entrada)
         registrar_evento_job(job_id, "info", "Arquivo recebido", nome_arquivo_entrada, arquivo=nome_arquivo_entrada)
 
-        dados = _processar_arquivo_bernoulli(
-            caminho_keepedu=caminho_keepedu,
-            nome_arquivo_entrada=nome_arquivo_entrada,
-            dia=dia,
-            progresso_callback=progresso_callback
-        )
+        dados = _processar_arquivo_bernoulli(caminho_keepedu=caminho_keepedu, nome_arquivo_entrada=nome_arquivo_entrada, dia=dia, progresso_callback=progresso_callback)
 
-        registrar_evento_job(
-            job_id,
-            "success",
-            "Arquivo pronto",
-            dados["nome_arquivo_download"],
-            arquivo=nome_arquivo_entrada
-        )
-        atualizar_job(
-            job_id,
-            status="concluido",
-            percentual=100,
-            mensagem="Simulado Bernoulli gerado com sucesso.",
-            arquivo_atual=nome_arquivo_entrada,
-            resultado=_resultado_job_bernoulli(dados)
-        )
+        registrar_evento_job(job_id, "success", "Arquivo pronto", dados["nome_arquivo_download"], arquivo=nome_arquivo_entrada)
+        atualizar_job(job_id, status="concluido", percentual=100, mensagem="Simulado Bernoulli gerado com sucesso.", arquivo_atual=nome_arquivo_entrada, resultado=_resultado_job_bernoulli(dados))
     except Exception as erro:
-        atualizar_job(
-            job_id,
-            status="erro",
-            percentual=100,
-            mensagem="Erro ao gerar o Simulado Bernoulli.",
-            arquivo_atual=nome_arquivo_entrada,
-            erro=str(erro)
-        )
-        registrar_evento_job(
-            job_id,
-            "error",
-            "Falha na conversao",
-            str(erro),
-            arquivo=nome_arquivo_entrada
-        )
+        atualizar_job(job_id, status="erro", percentual=100, mensagem="Erro ao gerar o Simulado Bernoulli.", arquivo_atual=nome_arquivo_entrada, erro=str(erro))
+        registrar_evento_job(job_id, "error", "Falha na conversao", str(erro), arquivo=nome_arquivo_entrada)
     finally:
         for arquivo in pasta_tmp.glob("*"):
-            try:
-                arquivo.unlink(missing_ok=True)
-            except Exception:
-                pass
-
-        try:
-            pasta_tmp.rmdir()
-        except Exception:
-            pass
+            try: arquivo.unlink(missing_ok=True)
+            except Exception: pass
+        try: pasta_tmp.rmdir()
+        except Exception: pass
 
 
 @router.post("/bernoulli/processar")
-async def bernoulli_processar(
-    arquivo_keepedu: UploadFile = File(...),
-    dia: str = Form("1")
-):
+async def bernoulli_processar(arquivo_keepedu: UploadFile = File(...), dia: str = Form("1")):
     try:
         dados = await executar_processamento_bernoulli(arquivo_keepedu, dia=dia)
         return FileResponse(
@@ -561,644 +464,280 @@ async def bernoulli_processar(
             filename=dados["nome_arquivo_download"],
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    except ValueError as e:
-        return HTMLResponse(
-            f"""
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Erro no Simulado Bernoulli</title>
-                </head>
-                <body style="font-family: Arial; padding: 30px;">
-                    <h1>Erro ao gerar Simulado Bernoulli</h1>
-                    <p>{escape(str(e))}</p>
-                    <p><a href="/bernoulli">Voltar</a></p>
-                </body>
-            </html>
-            """,
-            status_code=400
-        )
     except Exception as e:
-        return HTMLResponse(
-            f"""
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Erro no Simulado Bernoulli</title>
-                </head>
-                <body style="font-family: Arial; padding: 30px;">
-                    <h1>Erro interno ao gerar Simulado Bernoulli</h1>
-                    <p>{escape(str(e))}</p>
-                    <p><a href="/bernoulli">Voltar</a></p>
-                </body>
-            </html>
-            """,
-            status_code=500
-        )
+        return HTMLResponse(f"<h1>Erro</h1><p>{escape(str(e))}</p>", status_code=400)
 
 
 @router.post("/bernoulli/processar-ajax")
-async def bernoulli_processar_ajax(
-    background_tasks: BackgroundTasks,
-    arquivo_keepedu: UploadFile = File(...),
-    dia: str = Form("1")
-):
+async def bernoulli_processar_ajax(background_tasks: BackgroundTasks, arquivo_keepedu: UploadFile = File(...), dia: str = Form("1")):
     job_id = criar_job(total_arquivos=1)
     pasta_tmp = PASTA_UPLOADS_TEMP / f"bernoulli_{job_id}"
     pasta_tmp.mkdir(parents=True, exist_ok=True)
-
     try:
         caminho_keepedu = await salvar_arquivo_upload(arquivo_keepedu, pasta_tmp)
         nome_arquivo_entrada = os.path.basename(arquivo_keepedu.filename or caminho_keepedu.name)
-        atualizar_job(
-            job_id,
-            status="processando",
-            percentual=3,
-            mensagem=f"Arquivo recebido. Aguardando inicio do processamento do {_rotulo_dia_bernoulli(dia)}...",
-            arquivo_atual=nome_arquivo_entrada
-        )
-        background_tasks.add_task(
-            processar_arquivo_bernoulli_em_background,
-            job_id,
-            caminho_keepedu,
-            nome_arquivo_entrada,
-            dia
-        )
-
-        return JSONResponse(
-            {
-                "status": "ok",
-                "job_id": job_id
-            }
-        )
-    except ValueError as erro:
-        atualizar_job(
-            job_id,
-            status="erro",
-            percentual=100,
-            mensagem="Erro ao receber o arquivo do KeepEdu.",
-            erro=str(erro)
-        )
-        try:
-            pasta_tmp.rmdir()
-        except Exception:
-            pass
-        return JSONResponse(
-            {
-                "status": "erro",
-                "job_id": job_id,
-                "mensagem": str(erro)
-            },
-            status_code=400
-        )
+        atualizar_job(job_id, status="processando", percentual=3, mensagem="Aguardando início...", arquivo_atual=nome_arquivo_entrada)
+        background_tasks.add_task(processar_arquivo_bernoulli_em_background, job_id, caminho_keepedu, nome_arquivo_entrada, dia)
+        return JSONResponse({"status": "ok", "job_id": job_id})
     except Exception as erro:
-        atualizar_job(
-            job_id,
-            status="erro",
-            percentual=100,
-            mensagem="Erro ao iniciar o processamento do Simulado Bernoulli.",
-            erro=str(erro)
-        )
-        for arquivo in pasta_tmp.glob("*"):
-            try:
-                arquivo.unlink(missing_ok=True)
-            except Exception:
-                pass
-        try:
-            pasta_tmp.rmdir()
-        except Exception:
-            pass
-        return JSONResponse(
-            {
-                "status": "erro",
-                "job_id": job_id,
-                "mensagem": str(erro)
-            },
-            status_code=500
-        )
+        atualizar_job(job_id, status="erro", percentual=100, mensagem="Erro", erro=str(erro))
+        return JSONResponse({"status": "erro", "mensagem": str(erro)}, status_code=400)
 
 
 @router.get("/bernoulli/download/{nome_arquivo}")
 async def bernoulli_download(nome_arquivo: str):
     nome_seguro = os.path.basename(nome_arquivo or "")
-
-    if not nome_seguro:
-        return HTMLResponse("<h1>Arquivo inválido.</h1>", status_code=400)
-
     caminho_saida = (PASTA_BERNOULLI / nome_seguro).resolve()
-
-    try:
-        caminho_saida.relative_to(PASTA_BERNOULLI.resolve())
-    except ValueError:
-        return HTMLResponse("<h1>Arquivo inválido.</h1>", status_code=400)
-
     if not caminho_saida.exists():
         return HTMLResponse("<h1>Arquivo não encontrado.</h1>", status_code=404)
-
-    return FileResponse(
-        str(caminho_saida),
-        filename=nome_seguro,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    return FileResponse(str(caminho_saida), filename=nome_seguro)
 
 
-@router.post("/processar-pasta")
-async def rota_processar_pasta(pasta_origem: str = Form(...)):
+@router.post("/nova-avaliacao-pasta")
+async def rota_nova_avaliacao_pasta(pasta_origem: str = Form(...)):
     try:
-        nome_processamento = processar_pasta_local(pasta_origem)
-
-        return RedirectResponse(
-            url=f"/processamento/{nome_processamento}",
-            status_code=303
-        )
-
+        nome_avaliacao = processar_pasta_local(pasta_origem)
+        return RedirectResponse(url=f"/avaliacao/{nome_avaliacao}", status_code=303)
     except Exception as e:
-        return HTMLResponse(
-            f"""
-            <h1>Erro ao processar pasta</h1>
-            <p>{str(e)}</p>
-            <p><a href="/">Voltar</a></p>
-            """,
-            status_code=400
-        )
+        return HTMLResponse(f"<h1>Erro</h1><p>{escape(str(e))}</p>", status_code=400)
 
 
-@router.post("/processar")
-async def rota_processar_upload(
+# CORREÇÃO AQUI: Esta rota agora responde com JSON Puro para alinhar com o JavaScript AJAX
+@router.post("/processar-ajax")
+async def rota_nova_avaliacao_upload(
     background_tasks: BackgroundTasks,
     arquivos: list[UploadFile] = File(...)
 ):
     job_id = criar_job(total_arquivos=len(arquivos))
-
     pasta_upload = PASTA_UPLOADS_TEMP / f"upload_{job_id}"
     pasta_upload.mkdir(parents=True, exist_ok=True)
 
     try:
         total_salvos = await salvar_uploads_em_pasta(arquivos, pasta_upload)
-
         if total_salvos == 0:
-            atualizar_job(
-                job_id,
-                status="erro",
-                percentual=100,
-                mensagem="Nenhuma imagem válida foi enviada.",
-                erro="Nenhuma imagem .jpg, .jpeg ou .png encontrada."
-            )
+            atualizar_job(job_id, status="erro", percentual=100, mensagem="Nenhuma imagem válida.", erro="Sem arquivos válidos.")
+            return JSONResponse({"status": "erro", "job_id": job_id, "mensagem": "Nenhuma imagem válida foi enviada."})
 
-            return RedirectResponse(
-                url=f"/processando/{job_id}",
-                status_code=303
-            )
-
-        atualizar_job(
-            job_id,
-            status="processando",
-            percentual=5,
-            mensagem=f"{total_salvos} imagem(ns) recebida(s). Preparando leitura..."
-        )
-
-        background_tasks.add_task(
-            processar_pasta_temporaria_com_progresso,
-            job_id,
-            pasta_upload
-        )
-
-        return RedirectResponse(
-            url=f"/processando/{job_id}",
-            status_code=303
-        )
-
+        atualizar_job(job_id, status="processando", percentual=5, mensagem=f"{total_salvos} imagem(ns) recebida(s). Lendo...")
+        background_tasks.add_task(processar_pasta_temporaria_com_progresso, job_id, pasta_upload)
+        
+        return JSONResponse({"status": "ok", "job_id": job_id})
     except Exception as e:
-        atualizar_job(
-            job_id,
-            status="erro",
-            percentual=100,
-            mensagem="Erro ao receber imagens.",
-            erro=str(e)
-        )
-
-        return RedirectResponse(
-            url=f"/processando/{job_id}",
-            status_code=303
-        )
+        atualizar_job(job_id, status="erro", percentual=100, mensagem="Erro", erro=str(e))
+        return JSONResponse({"status": "erro", "job_id": job_id, "mensagem": str(e)})
 
 
-@router.get("/processamento/{nome_processamento}", response_class=HTMLResponse)
-async def ver_processamento(request: Request, nome_processamento: str):
-    imagens_debug = listar_imagens_debug(nome_processamento)
-    resumo = resumo_processamento(nome_processamento)
-
+@router.get("/avaliacao/{nome_avaliacao}", response_class=HTMLResponse)
+async def ver_avaliacao(request: Request, nome_avaliacao: str):
+    imagens_debug = listar_imagens_debug(nome_avaliacao)
+    resumo = resumo_processamento(nome_avaliacao)
     return render_template(
         request,
         "processamento.html",
         {
-            "nome_processamento": nome_processamento,
+            "nome_processamento": nome_avaliacao,
             "imagens_debug": imagens_debug,
-            "resumo": resumo
-        }
+            "resumo": resumo,
+        },
     )
 
 
-@router.get("/correcao/{nome_processamento}", response_class=HTMLResponse)
-async def correcao(request: Request, nome_processamento: str):
-    imagens_debug = listar_imagens_debug(nome_processamento)
-
-    return render_template(
-        request,
-        "correcao.html",
-        {
-            "nome_processamento": nome_processamento,
-            "imagens_debug": imagens_debug
-        }
-    )
-
-
-@router.get("/imagem/{nome_processamento}/{nome_imagem}")
-async def servir_imagem(nome_processamento: str, nome_imagem: str):
-    caminho = caminho_imagem_debug(nome_processamento, nome_imagem)
-
+@router.get("/imagem/{nome_avaliacao}/{nome_imagem}")
+async def servir_imagem(nome_avaliacao: str, nome_imagem: str):
+    caminho = caminho_imagem_debug(nome_avaliacao, nome_imagem)
     if not caminho.exists():
-        return JSONResponse(
-            {"erro": "Imagem não encontrada."},
-            status_code=404
-        )
-
+        leituras = carregar_json(caminho_leituras(nome_avaliacao), {})
+        caminho = localizar_imagem_original(nome_avaliacao, nome_imagem, leituras)
+    if not caminho or not caminho.exists():
+        return JSONResponse({"erro": "Imagem não encontrada."}, status_code=404)
     return FileResponse(str(caminho))
 
 
-@router.get("/leituras/{nome_processamento}")
-async def obter_leituras(nome_processamento: str):
-    caminho = caminho_leituras(nome_processamento)
-
-    if not caminho.exists():
+@router.get("/leituras/{nome_avaliacao}")
+async def obter_leituras(nome_avaliacao: str):
+    caminho = carregar_leitura(nome_avaliacao, em_json=True)
+    if not caminho or not caminho.exists():
         return JSONResponse({})
-
     return FileResponse(str(caminho), media_type="application/json")
 
 
-@router.get("/download-log/{nome_processamento}")
-async def download_log(nome_processamento: str):
-    caminho = caminho_log(nome_processamento)
-
+@router.get("/download-log/{nome_avaliacao}")
+async def download_log(nome_avaliacao: str):
+    caminho = caminho_log(nome_avaliacao)
     if not caminho.exists():
-        return JSONResponse(
-            {"erro": "Log não encontrado."},
-            status_code=404
-        )
-
-    return FileResponse(
-        str(caminho),
-        filename="log_leitura_omr.csv"
-    )
+        return JSONResponse({"erro": "Log não encontrado."}, status_code=404)
+    return FileResponse(str(caminho), filename=f"log_avaliacao_{nome_avaliacao}.csv")
 
 
-@router.get("/correcoes/{nome_processamento}")
-async def obter_correcoes(nome_processamento: str):
-    caminho = caminho_correcoes_web(nome_processamento)
-
+@router.get("/correcoes/{nome_avaliacao}")
+async def obter_correcoes(nome_avaliacao: str):
+    caminho = caminho_correcoes_web(nome_avaliacao)
     if not caminho.exists():
         return JSONResponse({})
-
     return FileResponse(str(caminho), media_type="application/json")
 
 
-@router.post("/correcoes/{nome_processamento}")
-async def salvar_correcoes(nome_processamento: str, payload: CorrecoesPayload):
-    caminho = caminho_correcoes_web(nome_processamento)
-
+@router.post("/correcoes/{nome_avaliacao}")
+async def salvar_correcoes(nome_avaliacao: str, payload: CorrecoesPayload):
+    caminho = caminho_correcoes_web(nome_avaliacao)
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(payload.correcoes, f, ensure_ascii=False, indent=4)
-
-    return {
-        "status": "ok",
-        "arquivo": str(caminho)
-    }
+    return {"status": "ok", "arquivo": str(caminho)}
 
 
-@router.post("/reprocessar-imagem/{nome_processamento}")
-async def rota_reprocessar_imagem(nome_processamento: str, payload: ReprocessarImagemPayload):
+@router.post("/reprocessar-imagem/{nome_avaliacao}")
+async def rota_reprocessar_imagem(nome_avaliacao: str, payload: ReprocessarImagemPayload):
     try:
-        return JSONResponse(
-            reprocessar_imagem_processamento(
-                nome_processamento=nome_processamento,
-                nome_imagem=payload.nome_imagem,
-                pontos_cantos=payload.pontos_cantos
-            )
-        )
+        return JSONResponse(reprocessar_imagem_processamento(nome_processamento=nome_avaliacao, nome_imagem=payload.nome_imagem, pontos_cantos=payload.pontos_cantos))
     except Exception as e:
-        return JSONResponse(
-            {
-                "status": "erro",
-                "mensagem": str(e)
-            },
-            status_code=400
-        )
-    
-@router.get("/validacao/{nome_processamento}", response_class=HTMLResponse)
-async def validacao_cadastral(request: Request, nome_processamento: str):
-    caminho = caminho_leituras(nome_processamento)
+        return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=400)
 
-    if not caminho.exists():
-        return HTMLResponse(
-            (
-                "<h1>Processamento não encontrado.</h1>"
-                "<p>O lote solicitado não existe no diretório configurado em APP_PROCESSAMENTOS_DIR.</p>"
-            ),
-            status_code=404,
-        )
 
-    dados_validacao = gerar_validacao_cadastral(nome_processamento)
-    resumo = dados_validacao["resumo"]
-
-    return render_template(
-        request,
-        "validacao.html",
-        {
-            "nome_processamento": nome_processamento,
-            "resumo": resumo,
-            "validacoes": dados_validacao["validacoes"],
-            "importacao_defaults": {
-                "id_aval": resumo.get("id_prova_processamento") or ID_PROVA_KEEPEDU
-            }
-        }
-    )
-    
-@router.get("/gerar-csv/{nome_processamento}")
-async def rota_gerar_csv(nome_processamento: str, forcar: bool = False):
-    resultado = gerar_csv_final(nome_processamento, forcar=forcar)
-
+@router.get("/gerar-csv/{nome_avaliacao}")
+async def rota_gerar_csv(nome_avaliacao: str, forcar: bool = False):
+    resultado = gerar_csv_final(nome_avaliacao, forcar=forcar)
     if resultado["status"] != "ok":
         return JSONResponse(resultado, status_code=400)
-
-    return RedirectResponse(
-        url=f"/download-csv/{nome_processamento}",
-        status_code=303
-    )
+    return RedirectResponse(url=f"/download-csv/{nome_avaliacao}", status_code=303)
 
 
-@router.get("/download-csv/{nome_processamento}")
-async def rota_download_csv(nome_processamento: str):
-    caminho = caminho_csv_final(nome_processamento)
-
+@router.get("/download-csv/{nome_avaliacao}")
+async def rota_download_csv(nome_avaliacao: str):
+    caminho = caminho_csv_final(nome_avaliacao)
     if not caminho.exists():
-        return JSONResponse(
-            {"erro": "CSV final não encontrado."},
-            status_code=404
-        )
-
-    return FileResponse(
-        str(caminho),
-        filename=f"{nome_processamento}_csv_final_keepedu.csv",
-        media_type="text/csv"
-    )
+        return JSONResponse({"erro": "CSV não encontrado."}, status_code=404)
+    return FileResponse(str(caminho), filename=f"{nome_avaliacao}_csv_final.csv", media_type="text/csv")
 
 
-@router.post("/importar-respostas-presenciais/{nome_processamento}")
-async def rota_importar_respostas_presenciais(
-    nome_processamento: str,
-    payload: ImportarRespostasPayload
-):
-    resultado = importar_respostas_presenciais(
-        nome_processamento=nome_processamento,
-        id_aval=payload.idAval,
-        dia_aval=payload.diaAval,
-        usuario_id=payload.usuario_id,
-        id_aluno=payload.idAluno,
-    )
-
-    if resultado.get("status") == "erro":
-        return JSONResponse(resultado, status_code=400)
-
+@router.post("/importar-respostas-presenciais/{nome_avaliacao}")
+async def rota_importar_respostas_presenciais(nome_avaliacao: str, payload: ImportarRespostasPayload):
+    resultado = importar_respostas_presenciais(nome_avaliacao=nome_avaliacao, id_aval=payload.idAval, dia_aval=payload.diaAval, usuario_id=payload.usuario_id, id_aluno=payload.idAluno)
+    if resultado.get("status") == "erro": return JSONResponse(resultado, status_code=400)
     return JSONResponse(resultado)
 
 
-@router.post("/importar-respostas-presenciais-ajax/{nome_processamento}")
-async def rota_importar_respostas_presenciais_ajax(
-    nome_processamento: str,
-    payload: ImportarRespostasPayload,
-    background_tasks: BackgroundTasks,
-):
-    total_arquivos = contar_alunos_importacao(nome_processamento, id_aluno=payload.idAluno)
+@router.post("/importar-respostas-presenciais-ajax/{nome_avaliacao}")
+async def rota_importar_respostas_presenciais_ajax(nome_avaliacao: str, payload: ImportarRespostasPayload, background_tasks: BackgroundTasks):
+    total_arquivos = contar_alunos_importacao(nome_avaliacao, id_aluno=payload.idAluno)
     job_id = criar_job(total_arquivos=total_arquivos)
-
-    background_tasks.add_task(
-        _executar_importacao_respostas_em_background,
-        job_id,
-        nome_processamento,
-        payload,
-        "importacao",
-    )
-
-    return JSONResponse(
-        {
-            "status": "ok",
-            "job_id": job_id,
-            "mensagem": "Envio em JSON iniciado.",
-        }
-    )
+    background_tasks.add_task(_executar_importacao_respostas_em_background, job_id, nome_avaliacao, payload, "importacao")
+    return JSONResponse({"status": "ok", "job_id": job_id, "mensagem": "Envio de Vetores iniciado."})
 
 
-@router.post("/simular-importacao-respostas-presenciais/{nome_processamento}")
-async def rota_simular_importacao_respostas_presenciais(
-    nome_processamento: str,
-    payload: ImportarRespostasPayload
-):
-    resultado = simular_importacao_respostas_presenciais(
-        nome_processamento=nome_processamento,
-        id_aval=payload.idAval,
-        dia_aval=payload.diaAval,
-        usuario_id=payload.usuario_id,
-        id_aluno=payload.idAluno,
-    )
-
-    if resultado.get("status") == "erro":
-        return JSONResponse(resultado, status_code=400)
-
+@router.post("/simular-importacao-respostas-presenciais/{nome_avaliacao}")
+async def rota_simular_importacao_respostas_presenciais(nome_avaliacao: str, payload: ImportarRespostasPayload):
+    resultado = simular_importacao_respostas_presenciais(nome_avaliacao=nome_avaliacao, id_aval=payload.idAval, dia_aval=payload.diaAval, usuario_id=payload.usuario_id, id_aluno=payload.idAluno)
+    if resultado.get("status") == "erro": return JSONResponse(resultado, status_code=400)
     return JSONResponse(resultado)
 
 
-@router.post("/simular-importacao-respostas-presenciais-ajax/{nome_processamento}")
-async def rota_simular_importacao_respostas_presenciais_ajax(
-    nome_processamento: str,
-    payload: ImportarRespostasPayload,
-    background_tasks: BackgroundTasks,
-):
-    total_arquivos = contar_alunos_importacao(nome_processamento, id_aluno=payload.idAluno)
+@router.post("/simular-importacao-respostas-presenciais-ajax/{nome_avaliacao}")
+async def rota_simular_importacao_respostas_presenciais_ajax(nome_avaliacao: str, payload: ImportarRespostasPayload, background_tasks: BackgroundTasks):
+    total_arquivos = contar_alunos_importacao(nome_avaliacao, id_aluno=payload.idAluno)
     job_id = criar_job(total_arquivos=total_arquivos)
+    background_tasks.add_task(_executar_importacao_respostas_em_background, job_id, nome_avaliacao, payload, "simulacao")
+    return JSONResponse({"status": "ok", "job_id": job_id, "mensagem": "Simulação de Vetores iniciada."})
 
-    background_tasks.add_task(
-        _executar_importacao_respostas_em_background,
-        job_id,
-        nome_processamento,
-        payload,
-        "simulacao",
-    )
-
-    return JSONResponse(
-        {
-            "status": "ok",
-            "job_id": job_id,
-            "mensagem": "Simulação em JSON iniciada.",
-        }
-    )
 
 @router.post("/mock/importar-respostas-presenciais")
 async def mock_importar_respostas_presenciais(request: Request):
-    try:
-        dados = await request.json()
-    except Exception:
-        return JSONResponse(
-            {
-                "success": False,
-                "mensagem": ["JSON inválido no corpo da requisição."],
-                "arquivoErros": []
-            },
-            status_code=400
-        )
-
+    try: dados = await request.json()
+    except Exception: return JSONResponse({"success": False, "mensagem": ["JSON inválido."]}, status_code=400)
     status_code, resposta = processar_mock_importacao_keepedu(dados)
     return JSONResponse(resposta, status_code=status_code)
-    
-@router.post("/validacao/manual/{nome_processamento}")
-async def rota_salvar_validacao_manual(
-    request: Request,
-    nome_processamento: str,
-    nome_imagem: str = Form(...),
-    id_aluno_manual: str = Form(...)
-):
+
+
+@router.post("/validacao/manual/{nome_avaliacao}")
+async def rota_salvar_validacao_manual(request: Request, nome_avaliacao: str, nome_imagem: str = Form(...), id_aluno_manual: str = Form(...)):
     try:
-        registro = salvar_correcao_manual(
-            nome_processamento=nome_processamento,
-            nome_imagem=nome_imagem,
-            valor_manual=id_aluno_manual
-        )
-
-        aceita_json = (
-            request.query_params.get("ajax") == "1"
-            or request.query_params.get("modo") == "ajax"
-            or
-            "application/json" in (request.headers.get("accept") or "").lower()
-            or (request.headers.get("x-requested-with") or "").lower() == "fetch"
-        )
-
-        if aceita_json:
-            return JSONResponse(
-                {
-                    "status": "ok",
-                    "nome_imagem": nome_imagem,
-                    "registro": registro,
-                }
-            )
-
-        return RedirectResponse(
-            url=f"/validacao/{nome_processamento}",
-            status_code=303
-        )
-
+        registro = salvar_correcao_manual(nome_processamento=nome_avaliacao, nome_imagem=nome_imagem, valor_manual=id_aluno_manual)
+        aceita_json = "application/json" in (request.headers.get("accept") or "").lower() or (request.headers.get("x-requested-with") or "").lower() == "fetch"
+        if aceita_json: return JSONResponse({"status": "ok", "nome_imagem": nome_imagem, "registro": registro})
+        return RedirectResponse(url=f"/validacao/{nome_avaliacao}", status_code=303)
     except Exception as e:
-        aceita_json = (
-            request.query_params.get("ajax") == "1"
-            or request.query_params.get("modo") == "ajax"
-            or
-            "application/json" in (request.headers.get("accept") or "").lower()
-            or (request.headers.get("x-requested-with") or "").lower() == "fetch"
-        )
-
-        if aceita_json:
-            return JSONResponse(
-                {"status": "erro", "mensagem": str(e)},
-                status_code=400
-            )
-
-        return HTMLResponse(
-            f"""
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Erro na validação manual</title>
-                </head>
-                <body style="font-family: Arial; padding: 30px;">
-                    <h1>Erro ao salvar validação manual</h1>
-                    <p>{str(e)}</p>
-                    <p><a href="/validacao/{nome_processamento}">Voltar para validação</a></p>
-                </body>
-            </html>
-            """,
-            status_code=400
-        )
-
-@router.get("/processando/{job_id}", response_class=HTMLResponse)
-async def tela_processando(request: Request, job_id: str):
-    return render_template(
-        request,
-        "processando.html",
-        {
-            "job_id": job_id
-        }
-    )
+        return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=400)
 
 
 @router.get("/status-processamento/{job_id}")
 async def status_processamento(job_id: str):
     return JSONResponse(obter_job(job_id))
 
-@router.post("/processar-ajax")
-async def rota_processar_ajax(
-    background_tasks: BackgroundTasks,
-    arquivos: list[UploadFile] = File(...)
-):
-    job_id = criar_job(total_arquivos=len(arquivos))
 
+@router.post("/nova-avaliacao-ajax")
+async def rota_nova_avaliacao_ajax(background_tasks: BackgroundTasks, arquivos: list[UploadFile] = File(...)):
+    job_id = criar_job(total_arquivos=len(arquivos))
     pasta_upload = PASTA_UPLOADS_TEMP / f"upload_{job_id}"
     pasta_upload.mkdir(parents=True, exist_ok=True)
-
     try:
         total_salvos = await salvar_uploads_em_pasta(arquivos, pasta_upload)
-
-        if total_salvos == 0:
-            atualizar_job(
-                job_id,
-                status="erro",
-                percentual=100,
-                mensagem="Nenhuma imagem válida foi enviada.",
-                erro="Nenhuma imagem .jpg, .jpeg ou .png encontrada."
-            )
-
-            return JSONResponse({
-                "status": "erro",
-                "job_id": job_id,
-                "mensagem": "Nenhuma imagem válida foi enviada."
-            })
-
-        atualizar_job(
-            job_id,
-            status="processando",
-            percentual=5,
-            mensagem=f"{total_salvos} imagem(ns) recebida(s). Preparando leitura..."
-        )
-
-        background_tasks.add_task(
-            processar_pasta_temporaria_com_progresso,
-            job_id,
-            pasta_upload
-        )
-
-        return JSONResponse({
-            "status": "ok",
-            "job_id": job_id
-        })
-
+        if total_salvos == 0: return JSONResponse({"status": "erro", "job_id": job_id, "mensagem": "Nenhuma imagem válida."})
+        atualizar_job(job_id, status="processando", percentual=5, mensagem="Lendo imagens...")
+        background_tasks.add_task(processar_pasta_temporaria_com_progresso, job_id, pasta_upload)
+        return JSONResponse({"status": "ok", "job_id": job_id})
     except Exception as e:
-        atualizar_job(
-            job_id,
-            status="erro",
-            percentual=100,
-            mensagem="Erro ao receber imagens.",
-            erro=str(e)
-        )
+        return JSONResponse({"status": "erro", "job_id": job_id, "mensagem": str(e)})
+    
+# Rota de compatibilidade para a tela de monitoramento/detalhes
+@router.get("/processamento/{nome_avaliacao}")
+async def redirecionar_processamento_antigo(nome_avaliacao: str):
+    return RedirectResponse(url=f"/avaliacao/{nome_avaliacao}", status_code=301)
 
-        return JSONResponse({
-            "status": "erro",
-            "job_id": job_id,
-            "mensagem": str(e)
-        })
+# Rota de compatibilidade caso o sistema tente monitorar o progresso com o nome antigo
+@router.get("/processando/{job_id}", response_class=HTMLResponse)
+async def tela_processando_compatibilidade(request: Request, job_id: str):
+    return render_template(request, "processando.html", {"job_id": job_id})
+
+def extrair_nome_lote_seguro(parametro: str) -> str:
+    """
+    Decodifica a URL e extrai o nome do lote mesmo se o frontend 
+    enviar um dicionário Python formatado como string.
+    """
+    texto_puro = unquote(parametro).strip()
+    
+    # Se o frontend enviou um dicionário mascarado de string (ex: {'nome': '...'})
+    if texto_puro.startswith("{") and ("['nome']" in texto_puro or "'nome'" in texto_puro):
+        try:
+            dados_dict = ast.literal_eval(texto_puro)
+            if isinstance(dados_dict, dict) and "nome" in dados_dict:
+                return str(dados_dict["nome"])
+        except Exception:
+            pass
+            
+    return texto_puro
+
+@router.get("/validacao/{nome_avaliacao:path}", response_class=HTMLResponse)
+async def validacao_cadastral(request: Request, nome_avaliacao: str):
+    # Limpa a sujeira do link se ela existir
+    nome_limpo = extrair_nome_lote_seguro(nome_avaliacao)
+    
+    # Se detectou que veio o dicionário no link, faz o redirecionamento limpo
+    if nome_limpo != nome_avaliacao:
+        return RedirectResponse(url=f"/validacao/{nome_limpo}", status_code=303)
+
+    caminho = carregar_leitura(nome_limpo, em_json=True)
+    if not caminho or not caminho.exists():
+        return HTMLResponse("<h1>Avaliação não encontrada.</h1><p>O lote solicitado não existe no diretório.</p>", status_code=404)
+
+    dados_validacao = gerar_validacao_cadastral(nome_limpo)
+    resumo = dados_validacao["resumo"]
+    return render_template(request, "validacao.html", {
+        "nome_processamento": nome_limpo,
+        "resumo": resumo,
+        "validacoes": dados_validacao["validacoes"],
+        "importacao_defaults": {"id_aval": resumo.get("id_prova_processamento") or ID_PROVA_KEEPEDU}
+    })
+
+@router.get("/correcao/{nome_avaliacao:path}", response_class=HTMLResponse)
+async def correcao(request: Request, nome_avaliacao: str):
+    # Limpa a sujeira do link se ela existir
+    nome_limpo = extrair_nome_lote_seguro(nome_avaliacao)
+    
+    # Se detectou que veio o dicionário no link, faz o redirecionamento limpo
+    if nome_limpo != nome_avaliacao:
+        return RedirectResponse(url=f"/correcao/{nome_limpo}", status_code=303)
+
+    imagens_debug = listar_imagens_debug(nome_limpo)
+    return render_template(request, "correcao.html", {
+        "nome_processamento": nome_limpo,
+        "imagens_debug": imagens_debug
+    })
