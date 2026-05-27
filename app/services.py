@@ -457,6 +457,7 @@ def reprocessar_imagem_processamento(nome_processamento: str, nome_imagem: str, 
         "total_pendencias_confianca": resultado.get("total_pendencias_confianca", 0)
     })
     leituras[nome_imagem] = leitura_atual
+    leitura_atual["status_revisao"] = "PENDENTE"
     salvar_json(caminho_leitura, leituras)
 
     caminho_manual = caminho_manual_arquivo(nome_processamento, nome_arquivo)
@@ -497,6 +498,7 @@ def reprocessar_imagem_processamento(nome_processamento: str, nome_imagem: str, 
     }
 
 def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
+    nome_processamento = None
     try:
         arquivos = [
             arquivo for arquivo in pasta_upload.iterdir()
@@ -611,7 +613,6 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
             titulo="Processamento concluído",
             descricao="Os arquivos já podem ser revisados no painel."
         )
-
     except Exception as e:
         registrar_evento_job(
             job_id,
@@ -629,3 +630,59 @@ def processar_pasta_temporaria_com_progresso(job_id, pasta_upload):
 
     finally:
         shutil.rmtree(pasta_upload, ignore_errors=True)
+        
+def limpar_pos_importacao_keepedu(nome_processamento: str, imagens_enviadas: list[str] | None = None):
+    try:
+        print(f"[LIMPEZA KEEPEDU] Iniciando limpeza para imagens enviadas em: {nome_processamento}")
+        
+        if not imagens_enviadas:
+            print("[LIMPEZA KEEPEDU] Nenhuma imagem para limpar.")
+            return
+
+        pasta_processamento = caminho_pasta_processamento(nome_processamento)
+
+        print(f"[DEBUG LIMPEZA] Pasta encontrada: {pasta_processamento}")
+        print(f"[DEBUG LIMPEZA] Existe? {pasta_processamento.exists()}")
+
+        pastas_para_remover = [
+            pasta_processamento / "debug_omr",
+            pasta_processamento / "originais",
+            pasta_processamento / "pendencias",
+            pasta_processamento / "manual_omr",
+        ]
+
+        for pasta in pastas_para_remover:
+            print(f"[DEBUG LIMPEZA] Tentando remover: {pasta}")
+            print(f"[DEBUG LIMPEZA] Existe? {pasta.exists()}")
+
+            if pasta.exists() and pasta.is_dir():
+                shutil.rmtree(pasta, ignore_errors=True)
+                
+        for nome_imagem_original in imagens_enviadas:
+            # 1. Delete from debug_omr
+            nome_debug = f"template_{nome_imagem_original}"
+            caminho_debug = pasta_processamento / "debug_omr" / nome_debug
+            if caminho_debug.exists():
+                caminho_debug.unlink(missing_ok=True)
+
+            # 2. Delete from originais
+            caminho_original = pasta_processamento / "originais" / nome_imagem_original
+            if caminho_original.exists():
+                caminho_original.unlink(missing_ok=True)
+
+            # 3. Delete from pendencias
+            caminho_pendencia = pasta_processamento / "pendencias" / nome_imagem_original
+            if caminho_pendencia.exists():
+                caminho_pendencia.unlink(missing_ok=True)
+
+            # 4. Delete from manual_omr
+            nome_base_sem_ext = Path(nome_imagem_original).stem
+            caminho_manual = pasta_processamento / "manual_omr" / f"{nome_base_sem_ext}.json"
+            if caminho_manual.exists():
+                caminho_manual.unlink(missing_ok=True)
+        
+        print(f"[LIMPEZA KEEPEDU] Limpeza de {len(imagens_enviadas)} imagem(ns) concluída.")
+    except Exception as e:
+        import traceback
+        print("[ERRO LIMPEZA KEEPEDU]")
+        traceback.print_exc()

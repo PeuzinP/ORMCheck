@@ -404,7 +404,7 @@ def transformar_vetor_keepedu_para_bernoulli(
         saida["Lingua Estrangeira (ING ou ESP)"] = df[coluna_lingua].astype(str).str.strip()
 
     for indice, numero in enumerate(range(primeiro_numero_questao, ultimo_numero_questao + 1), start=1):
-        coluna_origem = colunas_questoes.get(indice)
+        coluna_origem = colunas_questoes.get(numero) or colunas_questoes.get(indice)
 
         if coluna_origem:
             saida[f"q{numero}"] = df[coluna_origem].apply(_normalizar_resposta)

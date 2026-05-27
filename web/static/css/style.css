@@ -1,28 +1,4 @@
-:root {
-    --bg: #f4f4f2;
-    --surface: #ffffff;
-    --surface-soft: #faf9f6;
-    --border: #dde2e8;
-    --border-strong: #c9d1dc;
 
-    --primary: #17407c;
-    --primary-dark: #0f254d;
-    --primary-soft: #edf3fb;
-    --primary-strong: #123465;
-
-    --accent: #ad8a45;
-    --accent-soft: #efe5cd;
-    --success: #067647;
-    --danger: #b42318;
-
-    --text: #203047;
-    --muted: #6c7788;
-
-    --shadow-soft: 0 6px 16px rgba(15, 37, 77, 0.045);
-    --shadow-card: 0 12px 28px rgba(15, 37, 77, 0.055);
-    --radius: 16px;
-    --radius-sm: 10px;
-}
 
 * {
     box-sizing: border-box;
@@ -2429,27 +2405,7 @@ body::before {
 
 /* UI REFRESH 2026 */
 
-:root {
-    --bg: #e6ebf1;
-    --surface: rgba(243, 247, 251, 0.94);
-    --surface-soft: #edf2f7;
-    --border: rgba(43, 72, 109, 0.16);
-    --border-strong: rgba(43, 72, 109, 0.24);
-    --primary: #1f436d;
-    --primary-dark: #183454;
-    --primary-soft: #eef3f8;
-    --primary-strong: #132b46;
-    --accent: #b5944d;
-    --accent-soft: #efe3c8;
-    --success: #0b7a52;
-    --danger: #b94034;
-    --text: #223145;
-    --muted: #667386;
-    --shadow-soft: 0 18px 38px rgba(18, 38, 64, 0.06);
-    --shadow-card: 0 28px 64px rgba(18, 38, 64, 0.08);
-    --radius: 24px;
-    --radius-sm: 16px;
-}
+
 
 body {
     min-height: 100vh;
@@ -4089,17 +4045,7 @@ body::before {
 
 /* PREMIUM FINISH */
 
-:root {
-    --premium-bg-top: #d9e2ed;
-    --premium-bg-bottom: #edf2f7;
-    --premium-surface-top: rgba(250, 252, 255, 0.96);
-    --premium-surface-bottom: rgba(238, 244, 250, 0.95);
-    --premium-line: rgba(255, 255, 255, 0.72);
-    --premium-border: rgba(35, 66, 103, 0.15);
-    --premium-shadow: 0 20px 44px rgba(14, 32, 56, 0.08);
-    --premium-shadow-strong: 0 28px 62px rgba(14, 32, 56, 0.12);
-    --premium-gold: rgba(201, 168, 76, 0.22);
-}
+
 
 body {
     background:
@@ -5352,4 +5298,72 @@ body::before {
 
 #abrir-processamento {
     margin-top: 12px;
+}
+/* =========================
+   FIX GLOBAL LAYOUT
+========================= */
+
+* {
+    box-sizing: border-box;
+}
+
+.page-content,
+.dashboard-grid,
+.main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    align-items: start;
+}
+
+.card,
+.panel,
+.dashboard-card {
+    background: #fff;
+    border: 1px solid #d9dee7;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.card-body,
+.panel-body {
+    padding: 24px;
+}
+
+.info-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 120px;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+.sidebar,
+.dashboard-sidebar {
+    width: 100%;
+}
+
+.content-area {
+    min-width: 0;
+}
+
+/* remove alturas quebradas */
+.card,
+.panel,
+.sidebar,
+.content-area {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+/* evita quebra visual */
+.row,
+.grid-row {
+    align-items: stretch;
 }

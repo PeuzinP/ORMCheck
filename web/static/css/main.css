@@ -1,0 +1,9 @@
+@import '_variables.css';
+@import 'base.css';
+@import '_layout.css';
+@import '_components.css';
+@import '_utilities.css';
+
+/* Integração das folhas de estilo principais */
+@import 'style.css';
+@import 'keepedu-theme.css';

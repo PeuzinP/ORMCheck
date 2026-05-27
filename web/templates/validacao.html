@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validação Cadastral | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=75">
-    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
+    <link rel="stylesheet" href="/static/css/main.css?v=2">
 </head>
 <body class="keepedu-app-page">
     <header class="ke-header">
-        <div class="ke-header-left">
-            <a class="ke-logo" href="/" aria-label="Abrir painel">
-                <span class="ke-logo-mark" aria-hidden="true"></span>
-                <span class="ke-logo-word">KeepEdu</span>
-            </a>
+    <div class="ke-header-left">
+        <a href="/" class="ke-logo" style="display: flex; align-items: center;">
+            <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
+        </a>
             <button class="ke-header-menu" type="button" aria-label="Menu">
                 <span></span>
             </button>
@@ -198,10 +196,10 @@
                         <input type="text" id="json-id-aval" class="input-text" value="{{ importacao_defaults.id_aval }}" placeholder="Ex.: 12310" required>
                         
                         <button type="submit" class="btn-secondary" id="btn-enviar-json-direto" style="width: 100%;">
-                            Enviar Um Aluno
+                            Enviar Um Aluno (Vetor)
                         </button>
                         <button type="button" class="btn-light" id="btn-enviar-imagem-cartao-resposta" style="width: 100%;">
-                            Enviar Imagem do cartão
+                            Enviar uma Imagem do cartão
                         </button>
                     </div>
 
@@ -416,858 +414,464 @@
         </div>
     </div>
     <script>
-        window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
+    window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
 
-        const modalConfirmacaoImportacao = document.getElementById("confirmacao-importacao-modal");
-        const modalConfirmacaoImportacaoTexto = document.getElementById("confirmacao-importacao-texto");
-        const modalConfirmacaoImportacaoConfirmar = document.getElementById("confirmacao-importacao-confirmar");
-        const modalConfirmacaoImportacaoCancelar = document.getElementById("confirmacao-importacao-cancelar");
-        const modalConfirmacaoImportacaoFechar = document.getElementById("confirmacao-importacao-fechar");
-        const modalConfirmacaoCsv = document.getElementById("confirmacao-csv-modal");
-        const modalConfirmacaoCsvConfirmar = document.getElementById("confirmacao-csv-confirmar");
-        const modalConfirmacaoCsvCancelar = document.getElementById("confirmacao-csv-cancelar");
-        const modalConfirmacaoCsvFechar = document.getElementById("confirmacao-csv-fechar");
-        const modalVisualizacaoImagem = document.getElementById("visualizacao-imagem-modal");
-        const modalVisualizacaoImagemFechar = document.getElementById("visualizacao-imagem-fechar");
-        const modalVisualizacaoImagemPreview = document.getElementById("visualizacao-imagem-preview");
-        const modalVisualizacaoImagemTitulo = document.getElementById("visualizacao-imagem-titulo");
-        const modalVisualizacaoImagemStage = document.getElementById("visualizacao-imagem-stage");
-        const modalVisualizacaoImagemZoomOut = document.getElementById("visualizacao-imagem-zoom-out");
-        const modalVisualizacaoImagemZoomReset = document.getElementById("visualizacao-imagem-zoom-reset");
-        const modalVisualizacaoImagemZoomFit = document.getElementById("visualizacao-imagem-zoom-fit");
-        const modalVisualizacaoImagemZoomIn = document.getElementById("visualizacao-imagem-zoom-in");
-        const modalVisualizacaoImagemZoomLabel = document.getElementById("visualizacao-imagem-zoom-label");
-        const jsonImportProgressBox = document.getElementById("json-import-progress-box");
-        const jsonImportProgressFill = document.getElementById("json-import-progress-fill");
-        const jsonImportProgressPercent = document.getElementById("json-import-progress-percent");
-        const jsonImportProgressMessage = document.getElementById("json-import-progress-message");
-        const jsonImportProgressFile = document.getElementById("json-import-progress-file");
-        let jsonImportJobId = null;
-        let zoomModalImagem = 1;
+    // Elementos Globais de Modais Existentes
+    const modalConfirmacaoImportacao = document.getElementById("confirmacao-importacao-modal");
+    const modalConfirmacaoImportacaoTexto = document.getElementById("confirmacao-importacao-texto");
+    const modalConfirmacaoImportacaoConfirmar = document.getElementById("confirmacao-importacao-confirmar");
+    const modalConfirmacaoImportacaoCancelar = document.getElementById("confirmacao-importacao-cancelar");
+    const modalConfirmacaoImportacaoFechar = document.getElementById("confirmacao-importacao-fechar");
+    const modalConfirmacaoCsv = document.getElementById("confirmacao-csv-modal");
+    const modalConfirmacaoCsvConfirmar = document.getElementById("confirmacao-csv-confirmar");
+    const modalConfirmacaoCsvCancelar = document.getElementById("confirmacao-csv-cancelar");
+    const modalConfirmacaoCsvFechar = document.getElementById("confirmacao-csv-fechar");
+    const modalVisualizacaoImagem = document.getElementById("visualizacao-imagem-modal");
+    const modalVisualizacaoImagemFechar = document.getElementById("visualizacao-imagem-fechar");
+    const modalVisualizacaoImagemPreview = document.getElementById("visualizacao-imagem-preview");
+    const modalVisualizacaoImagemTitulo = document.getElementById("visualizacao-imagem-titulo");
+    const modalVisualizacaoImagemStage = document.getElementById("visualizacao-imagem-stage");
+    const modalVisualizacaoImagemZoomOut = document.getElementById("visualizacao-imagem-zoom-out");
+    const modalVisualizacaoImagemZoomReset = document.getElementById("visualizacao-imagem-zoom-reset");
+    const modalVisualizacaoImagemZoomFit = document.getElementById("visualizacao-imagem-zoom-fit");
+    const modalVisualizacaoImagemZoomIn = document.getElementById("visualizacao-imagem-zoom-in");
+    const modalVisualizacaoImagemZoomLabel = document.getElementById("visualizacao-imagem-zoom-label");
+    const jsonImportProgressBox = document.getElementById("json-import-progress-box");
+    const jsonImportProgressFill = document.getElementById("json-import-progress-fill");
+    const jsonImportProgressPercent = document.getElementById("json-import-progress-percent");
+    const jsonImportProgressMessage = document.getElementById("json-import-progress-message");
+    const jsonImportProgressFile = document.getElementById("json-import-progress-file");
+    let jsonImportJobId = null;
+    let zoomModalImagem = 1;
 
-        function atualizarZoomModalImagem() {
-            if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemZoomLabel) {
-                return;
-            }
-
-            const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
-            if (larguraNatural) {
-                modalVisualizacaoImagemPreview.style.width = `${Math.round(larguraNatural * zoomModalImagem)}px`;
-            }
-            modalVisualizacaoImagemZoomLabel.textContent = `${Math.round(zoomModalImagem * 100)}%`;
+    // Funções de Zoom da Visualização do Cartão OMR
+    function atualizarZoomModalImagem() {
+        if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemZoomLabel) return;
+        const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
+        if (larguraNatural) {
+            modalVisualizacaoImagemPreview.style.width = `${Math.round(larguraNatural * zoomModalImagem)}px`;
         }
+        modalVisualizacaoImagemZoomLabel.textContent = `${Math.round(zoomModalImagem * 100)}%`;
+    }
 
-        function ajustarZoomModalImagem() {
-            if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemStage) {
-                return;
-            }
+    function ajustarZoomModalImagem() {
+        if (!modalVisualizacaoImagemPreview || !modalVisualizacaoImagemStage) return;
+        const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
+        const alturaNatural = modalVisualizacaoImagemPreview.naturalHeight || 0;
+        const larguraDisponivel = modalVisualizacaoImagemStage.clientWidth || 0;
+        const alturaDisponivel = modalVisualizacaoImagemStage.clientHeight || 0;
 
-            const larguraNatural = modalVisualizacaoImagemPreview.naturalWidth || 0;
-            const alturaNatural = modalVisualizacaoImagemPreview.naturalHeight || 0;
-            const larguraDisponivel = modalVisualizacaoImagemStage.clientWidth || 0;
-            const alturaDisponivel = modalVisualizacaoImagemStage.clientHeight || 0;
-
-            if (!larguraNatural || !alturaNatural || !larguraDisponivel || !alturaDisponivel) {
-                zoomModalImagem = 1;
-                atualizarZoomModalImagem();
-                return;
-            }
-
-            const fatorLargura = larguraDisponivel / larguraNatural;
-            const fatorAltura = alturaDisponivel / alturaNatural;
-            zoomModalImagem = Math.min(fatorLargura, fatorAltura, 1);
-            atualizarZoomModalImagem();
-            modalVisualizacaoImagemStage.scrollTop = 0;
-            modalVisualizacaoImagemStage.scrollLeft = 0;
-        }
-
-        function abrirModalConfirmacaoCsv() {
-            return new Promise((resolve) => {
-                const concluir = (confirmado) => {
-                    modalConfirmacaoCsv.classList.add("hidden");
-                    modalConfirmacaoCsv.setAttribute("aria-hidden", "true");
-                    modalConfirmacaoCsvConfirmar.removeEventListener("click", onConfirmar);
-                    modalConfirmacaoCsvCancelar.removeEventListener("click", onCancelar);
-                    modalConfirmacaoCsvFechar.removeEventListener("click", onCancelar);
-                    modalConfirmacaoCsv.removeEventListener("click", onBackdrop);
-                    document.removeEventListener("keydown", onEscape);
-                    resolve(confirmado);
-                };
-
-                const onConfirmar = () => concluir(true);
-                const onCancelar = () => concluir(false);
-                const onBackdrop = (event) => {
-                    if (event.target?.dataset?.closeModal === "true") {
-                        concluir(false);
-                    }
-                };
-                const onEscape = (event) => {
-                    if (event.key === "Escape") {
-                        concluir(false);
-                    }
-                };
-
-                modalConfirmacaoCsv.classList.remove("hidden");
-                modalConfirmacaoCsv.setAttribute("aria-hidden", "false");
-
-                modalConfirmacaoCsvConfirmar.addEventListener("click", onConfirmar);
-                modalConfirmacaoCsvCancelar.addEventListener("click", onCancelar);
-                modalConfirmacaoCsvFechar.addEventListener("click", onCancelar);
-                modalConfirmacaoCsv.addEventListener("click", onBackdrop);
-                document.addEventListener("keydown", onEscape);
-
-                modalConfirmacaoCsvConfirmar.focus();
-            });
-        }
-
-        function abrirModalConfirmacaoImportacao({ idAval, idAluno, enviarTodos }) {
-            return new Promise((resolve) => {
-                const concluir = (confirmado) => {
-                    modalConfirmacaoImportacao.classList.add("hidden");
-                    modalConfirmacaoImportacao.setAttribute("aria-hidden", "true");
-                    modalConfirmacaoImportacaoConfirmar.removeEventListener("click", onConfirmar);
-                    modalConfirmacaoImportacaoCancelar.removeEventListener("click", onCancelar);
-                    modalConfirmacaoImportacaoFechar.removeEventListener("click", onCancelar);
-                    modalConfirmacaoImportacao.removeEventListener("click", onBackdrop);
-                    document.removeEventListener("keydown", onEscape);
-                    resolve(confirmado);
-                };
-
-                const onConfirmar = () => concluir(true);
-                const onCancelar = () => concluir(false);
-                const onBackdrop = (event) => {
-                    if (event.target?.dataset?.closeImportModal === "true") {
-                        concluir(false);
-                    }
-                };
-                const onEscape = (event) => {
-                    if (event.key === "Escape") {
-                        concluir(false);
-                    }
-                };
-
-                if (modalConfirmacaoImportacaoTexto) {
-                    modalConfirmacaoImportacaoTexto.textContent = enviarTodos
-                        ? (
-                            `Você tem certeza que deseja enviar todos os alunos deste lote `
-                            + `para a avaliação ${idAval}?`
-                        )
-                        : (
-                            `Você tem certeza que deseja enviar somente o aluno ${idAluno} `
-                            + `para a avaliação ${idAval}?`
-                        );
-                }
-
-                modalConfirmacaoImportacao.classList.remove("hidden");
-                modalConfirmacaoImportacao.setAttribute("aria-hidden", "false");
-
-                modalConfirmacaoImportacaoConfirmar.addEventListener("click", onConfirmar);
-                modalConfirmacaoImportacaoCancelar.addEventListener("click", onCancelar);
-                modalConfirmacaoImportacaoFechar.addEventListener("click", onCancelar);
-                modalConfirmacaoImportacao.addEventListener("click", onBackdrop);
-                document.addEventListener("keydown", onEscape);
-
-                modalConfirmacaoImportacaoConfirmar.focus();
-            });
-        }
-
-        function nomeArquivoDoHeader(contentDisposition, nomePadrao) {
-            if (!contentDisposition) {
-                return nomePadrao;
-            }
-
-            const matchUtf8 = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
-            if (matchUtf8?.[1]) {
-                return decodeURIComponent(matchUtf8[1]);
-            }
-
-            const matchSimples = contentDisposition.match(/filename="?([^"]+)"?/i);
-            if (matchSimples?.[1]) {
-                return matchSimples[1];
-            }
-
-            return nomePadrao;
-        }
-
-        async function salvarBlobComEscolha(blob, nomeArquivo) {
-            if ("showSaveFilePicker" in window) {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: nomeArquivo,
-                    types: [
-                        {
-                            description: "Arquivo CSV",
-                            accept: {
-                                "text/csv": [".csv"]
-                            }
-                        }
-                    ]
-                });
-
-                const writable = await handle.createWritable();
-                await writable.write(blob);
-                await writable.close();
-                return;
-            }
-
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = nomeArquivo;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
-        }
-
-        function fecharModalImagem() {
-            if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview) {
-                return;
-            }
-
-            modalVisualizacaoImagem.classList.add("hidden");
-            modalVisualizacaoImagem.setAttribute("aria-hidden", "true");
-            modalVisualizacaoImagemPreview.src = "";
-            modalVisualizacaoImagemPreview.alt = "";
-            modalVisualizacaoImagemPreview.style.width = "";
+        if (!larguraNatural || !alturaNatural || !larguraDisponivel || !alturaDisponivel) {
             zoomModalImagem = 1;
+            atualizarZoomModalImagem();
+            return;
         }
+        const fatorLargura = larguraDisponivel / larguraNatural;
+        const fatorAltura = alturaDisponivel / alturaNatural;
+        zoomModalImagem = Math.min(fatorLargura, fatorAltura, 1);
+        atualizarZoomModalImagem();
+        modalVisualizacaoImagemStage.scrollTop = 0;
+        modalVisualizacaoImagemStage.scrollLeft = 0;
+    }
 
-        function abrirModalImagem(urlImagem, nomeImagem) {
-            if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview || !modalVisualizacaoImagemTitulo) {
-                return;
-            }
-
-            modalVisualizacaoImagemPreview.src = urlImagem;
-            modalVisualizacaoImagemPreview.alt = nomeImagem || "Imagem do cartão";
-            modalVisualizacaoImagemTitulo.textContent = nomeImagem || "Imagem do cartão";
-            modalVisualizacaoImagem.classList.remove("hidden");
-            modalVisualizacaoImagem.setAttribute("aria-hidden", "false");
-            modalVisualizacaoImagemPreview.onload = () => {
-                ajustarZoomModalImagem();
+    // Modal de Confirmação do CSV KeepEdu
+    function abrirModalConfirmacaoCsv() {
+        return new Promise((resolve) => {
+            const concluir = (confirmado) => {
+                modalConfirmacaoCsv.classList.add("hidden");
+                modalConfirmacaoCsv.setAttribute("aria-hidden", "true");
+                modalConfirmacaoCsvConfirmar.removeEventListener("click", onConfirmar);
+                modalConfirmacaoCsvCancelar.removeEventListener("click", onCancelar);
+                modalConfirmacaoCsvFechar.removeEventListener("click", onCancelar);
+                resolve(confirmado);
             };
-            modalVisualizacaoImagemFechar?.focus();
-        }
+            const onConfirmar = () => concluir(true);
+            const onCancelar = () => concluir(false);
 
-        async function gerarCsvFinal(forcar) {
-            const status = document.getElementById("csv-export-status");
-            const botoes = document.querySelectorAll(".btn-gerar-csv");
-            const nomeProcessamento = window.NOME_PROCESSAMENTO;
+            modalConfirmacaoCsv.classList.remove("hidden");
+            modalConfirmacaoCsv.setAttribute("aria-hidden", "false");
+            modalConfirmacaoCsvConfirmar.addEventListener("click", onConfirmar);
+            modalConfirmacaoCsvCancelar.addEventListener("click", onCancelar);
+            modalConfirmacaoCsvFechar.addEventListener("click", onCancelar);
+            modalConfirmacaoCsvConfirmar.focus();
+        });
+    }
 
-            if (forcar) {
-                const confirmou = await abrirModalConfirmacaoCsv();
+    // Modal de Confirmação do Envio de Vetores (JSON)
+    function abrirModalConfirmacaoImportacao({ idAval, idAluno, enviarTodos }) {
+        return new Promise((resolve) => {
+            const concluir = (confirmado) => {
+                modalConfirmacaoImportacao.classList.add("hidden");
+                modalConfirmacaoImportacao.setAttribute("aria-hidden", "true");
+                modalConfirmacaoImportacaoConfirmar.removeEventListener("click", onConfirmar);
+                modalConfirmacaoImportacaoCancelar.removeEventListener("click", onCancelar);
+                modalConfirmacaoImportacaoFechar.removeEventListener("click", onCancelar);
+                resolve(confirmado);
+            };
+            const onConfirmar = () => concluir(true);
+            const onCancelar = () => concluir(false);
 
-                if (!confirmou) {
-                    return;
-                }
+            if (modalConfirmacaoImportacaoTexto) {
+                modalConfirmacaoImportacaoTexto.textContent = enviarTodos
+                    ? `Você tem certeza que deseja enviar todos os alunos (VETORES) deste lote para a avaliação ${idAval}?`
+                    : `Você tem certeza que deseja enviar somente o Vetor do aluno ${idAluno} para a avaliação ${idAval}?`;
             }
 
-            status.textContent = "Gerando CSV final...";
-            botoes.forEach((botao) => {
-                botao.disabled = true;
+            modalConfirmacaoImportacao.classList.remove("hidden");
+            modalConfirmacaoImportacao.setAttribute("aria-hidden", "false");
+            modalConfirmacaoImportacaoConfirmar.addEventListener("click", onConfirmar);
+            modalConfirmacaoImportacaoCancelar.addEventListener("click", onCancelar);
+            modalConfirmacaoImportacaoFechar.addEventListener("click", onCancelar);
+            modalConfirmacaoImportacaoConfirmar.focus();
+        });
+    }
+
+    function fecharModalImagem() {
+        if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview) return;
+        modalVisualizacaoImagem.classList.add("hidden");
+        modalVisualizacaoImagem.setAttribute("aria-hidden", "true");
+        modalVisualizacaoImagemPreview.src = "";
+        zoomModalImagem = 1;
+    }
+
+    function abrirModalImagem(urlImagem, nomeImagem) {
+        if (!modalVisualizacaoImagem || !modalVisualizacaoImagemPreview || !modalVisualizacaoImagemTitulo) return;
+        modalVisualizacaoImagemPreview.src = urlImagem;
+        modalVisualizacaoImagemPreview.alt = nomeImagem || "Imagem do cartão";
+        modalVisualizacaoImagemTitulo.textContent = nomeImagem || "Imagem do cartão";
+        modalVisualizacaoImagem.classList.remove("hidden");
+        modalVisualizacaoImagem.setAttribute("aria-hidden", "false");
+        modalVisualizacaoImagemPreview.onload = () => { ajustarZoomModalImagem(); };
+    }
+
+    // Tratamento de Donwload de arquivos Blob
+    function nomeArquivoDoHeader(contentDisposition, nomePadrao) {
+        if (!contentDisposition) return nomePadrao;
+        const matchUtf8 = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (matchUtf8?.[1]) return decodeURIComponent(matchUtf8[1]);
+        const matchSimples = contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (matchSimples?.[1]) return matchSimples[1];
+        return nomePadrao;
+    }
+
+    async function salvarBlobComEscolha(blob, nomeArquivo) {
+        if ("showSaveFilePicker" in window) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: nomeArquivo,
+                types: [{ description: "Arquivo CSV", accept: { "text/csv": [".csv"] } }]
             });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = nomeArquivo;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
 
-            try {
-                const resposta = await fetch(
-                    `/gerar-csv/${encodeURIComponent(nomeProcessamento)}${forcar ? "?forcar=true" : ""}`
-                );
+    // Lógica de Geração do CSV KeepEdu
+    async function gerarCsvFinal(forcar) {
+        const status = document.getElementById("csv-export-status");
+        const botoes = document.querySelectorAll(".btn-gerar-csv");
+        const nomeProcessamento = window.NOME_PROCESSAMENTO;
 
-                if (!resposta.ok) {
-                    const erro = await resposta.json().catch(() => ({}));
-                    throw new Error(erro.motivo || erro.erro || erro.mensagem || "Não foi possível gerar o CSV.");
-                }
-
-                const blob = await resposta.blob();
-                const nomeArquivo = nomeArquivoDoHeader(
-                    resposta.headers.get("content-disposition"),
-                    `${nomeProcessamento}_csv_final_keepedu.csv`
-                );
-
-                await salvarBlobComEscolha(blob, nomeArquivo);
-                status.textContent = "CSV final gerado com sucesso.";
-            } catch (error) {
-                status.textContent = `Erro ao gerar CSV: ${error.message}`;
-            } finally {
-                botoes.forEach((botao) => {
-                    botao.disabled = false;
-                });
-            }
+        if (forcar) {
+            const confirmou = await abrirModalConfirmacaoCsv();
+            if (!confirmou) return;
         }
 
-        function resumirImportacaoDireta(dados) {
-            const total = Number(dados?.total || 0);
-            const importadas = Number(dados?.importadas || 0);
-            const erros = Number(dados?.erros || 0);
-            const mensagens = Array.isArray(dados?.mensagem)
-                ? dados.mensagem.filter((item) => String(item || "").trim()).slice(0, 3)
-                : [];
+        status.textContent = "Gerando CSV final...";
+        botoes.forEach(b => b.disabled = true);
 
-            const prefixo = erros > 0
-                ? `Envio concluído com pendências: ${importadas}/${total} importada(s) e ${erros} erro(s).`
-                : `Envio concluído: ${importadas}/${total} importada(s).`;
-
-            if (!mensagens.length) {
-                return prefixo;
+        try {
+            const resposta = await fetch(`/gerar-csv/${encodeURIComponent(nomeProcessamento)}${forcar ? "?forcar=true" : ""}`);
+            if (!resposta.ok) {
+                const erro = await resposta.json().catch(() => ({}));
+                throw new Error(erro.motivo || "Não foi possível gerar o CSV.");
             }
-
-            return `${prefixo} ${mensagens.join(" | ")}`;
+            const blob = await resposta.blob();
+            const nomeArquivo = nomeArquivoDoHeader(resposta.headers.get("content-disposition"), `${nomeProcessamento}_csv_final_keepedu.csv`);
+            await salvarBlobComEscolha(blob, nomeArquivo);
+            status.textContent = "CSV final gerado com sucesso.";
+        } catch (error) {
+            status.textContent = `Erro ao gerar CSV: ${error.message}`;
+        } finally {
+            botoes.forEach(b => b.disabled = false);
         }
+    }
 
-        function atualizarPainelImportacao(percentual, mensagem, arquivoAtual) {
-            if (!jsonImportProgressBox || !jsonImportProgressFill || !jsonImportProgressPercent || !jsonImportProgressMessage) {
-                return;
-            }
+    // Monitoramento do Progresso de Envio Ativo
+    function resumirImportacaoDireta(dados) {
+        const total = Number(dados?.total || 0);
+        const importadas = Number(dados?.importadas || 0);
+        const erros = Number(dados?.erros || 0);
+        const mensagens = Array.isArray(dados?.mensagem) ? dados.mensagem.filter(item => String(item || "").trim()).slice(0, 3) : [];
+        const prefixo = erros > 0 ? `Envio concluído: ${importadas}/${total} processados, com ${erros} pendência(s).` : `Envio concluído com sucesso total para ${importadas} aluno(s).`;
+        return mensagens.length ? `${prefixo} Detalhe: ${mensagens.join(" | ")}` : prefixo;
+    }
 
-            const percentualFinal = Math.max(0, Math.min(100, Number(percentual || 0)));
-            jsonImportProgressBox.style.display = "block";
-            jsonImportProgressFill.style.width = `${percentualFinal}%`;
-            jsonImportProgressPercent.textContent = `${percentualFinal}%`;
-            jsonImportProgressMessage.textContent = `${percentualFinal}% | ${mensagem || "Processando..."}`;
+    function atualizarPainelImportacao(percentual, mensagem, arquivoAtual) {
+        if (!jsonImportProgressBox || !jsonImportProgressFill || !jsonImportProgressPercent || !jsonImportProgressMessage) return;
+        const percentualFinal = Math.max(0, Math.min(100, Number(percentual || 0)));
+        jsonImportProgressBox.style.display = "block";
+        jsonImportProgressFill.style.width = `${percentualFinal}%`;
+        jsonImportProgressPercent.textContent = `${percentualFinal}%`;
+        jsonImportProgressMessage.textContent = `${percentualFinal}% | ${mensagem || "Processando..."}`;
+        if (jsonImportProgressFile) jsonImportProgressFile.textContent = arquivoAtual ? `Lendo item: ${arquivoAtual}` : "";
+    }
 
-            if (jsonImportProgressFile) {
-                jsonImportProgressFile.textContent = arquivoAtual ? `Arquivo atual: ${arquivoAtual}` : "";
-            }
-        }
+    async function consultarStatusImportacao(jobId, modo, botoesControle, status) {
+        try {
+            const resposta = await fetch(`/status-processamento/${jobId}`);
+            const dados = await resposta.json();
+            const percentual = Number(dados?.percentual || 0);
+            atualizarPainelImportacao(percentual, dados?.mensagem || "Processando...", dados?.arquivo_atual || "");
 
-        async function consultarStatusImportacao(jobId, modo, botoesControle, status) {
-            try {
-                const resposta = await fetch(`/status-processamento/${jobId}`);
-                const dados = await resposta.json();
-                const percentual = Number(dados?.percentual || 0);
-                const mensagem = dados?.mensagem || "Processando...";
-                atualizarPainelImportacao(percentual, mensagem, dados?.arquivo_atual || "");
-
-                if (dados.status === "concluido") {
-                    const resultado = dados?.resultado || {};
-                    const resumo = resumirImportacaoDireta(resultado);
-                    status.textContent = modo === "simulacao"
-                        ? `Simulação concluída. ${resumo}`
-                        : resumo;
-
-                    if (modo === "importacao" && resultado?.validacao_atualizada) {
-                        status.textContent = `${resumo} O painel foi mantido sem recarregar a página.`;
-                    }
-
-                    botoesControle.forEach((botao) => {
-                        if (botao) {
-                            botao.disabled = false;
-                        }
-                    });
-                    jsonImportJobId = null;
-                    return;
-                }
-
-                if (dados.status === "erro") {
-                    status.textContent = dados?.erro || mensagem || "Erro ao executar envio em JSON.";
-                    botoesControle.forEach((botao) => {
-                        if (botao) {
-                            botao.disabled = false;
-                        }
-                    });
-                    jsonImportJobId = null;
-                    return;
-                }
-
-                window.setTimeout(() => consultarStatusImportacao(jobId, modo, botoesControle, status), 700);
-            } catch (error) {
-                status.textContent = "Erro ao consultar o progresso do envio.";
-                botoesControle.forEach((botao) => {
-                    if (botao) {
-                        botao.disabled = false;
-                    }
-                });
+            if (dados.status === "concluido" || dados.status === "erro") {
+                const resultado = dados?.resultado || {};
+                status.textContent = dados.status === "erro" ? (dados?.erro || "Falha na comunicação de fila.") : resumirImportacaoDireta(resultado);
+                botoesControle.forEach(b => { if (b) b.disabled = false; });
                 jsonImportJobId = null;
+                return;
             }
+            window.setTimeout(() => consultarStatusImportacao(jobId, modo, botoesControle, status), 700);
+        } catch (error) {
+            status.textContent = "Erro ao consultar o progresso do servidor.";
+            botoesControle.forEach(b => { if (b) b.disabled = false; });
+        }
+    }
+
+    // Execução Dinâmica de Importação Separada
+    async function executarImportacaoDireta(modo, enviarTodos = false) {
+        const status = document.getElementById("json-export-status");
+        const btnVetorUnico = document.getElementById("btn-enviar-json-direto");
+        const btnVetorTodos = document.getElementById("btn-enviar-todos-json-direto");
+        const idAvalInput = document.getElementById("json-id-aval");
+        const idAlunoInput = document.getElementById("json-id-aluno");
+
+        const idAval = String(idAvalInput?.value || "").trim();
+        const idAluno = String(idAlunoInput?.value || "").trim();
+
+        if (!idAval) {
+            status.textContent = "Informe o ID da avaliação antes de enviar.";
+            idAvalInput?.focus();
+            return;
+        }
+        if (!enviarTodos && !idAluno) {
+            status.textContent = "Informe o ID do aluno para enviar somente um Vetor.";
+            idAlunoInput?.focus();
+            return;
         }
 
-        async function executarImportacaoDireta(modo, enviarTodos = false) {
-            const status = document.getElementById("json-export-status");
-            const botao = document.getElementById("btn-enviar-json-direto");
-            const botaoEnviarTodos = document.getElementById("btn-enviar-todos-json-direto");
-            const botaoSimular = document.getElementById("btn-simular-json-direto");
-            const nomeProcessamento = window.NOME_PROCESSAMENTO;
-            const idAvalInput = document.getElementById("json-id-aval");
-            const idAlunoInput = document.getElementById("json-id-aluno");
+        if (modo === "importacao") {
+            const confirmou = await abrirModalConfirmacaoImportacao({ idAval, idAluno, enviarTodos });
+            if (!confirmou) return;
+        }
 
-            const idAval = String(idAvalInput?.value || "").trim();
-            const idAluno = String(idAlunoInput?.value || "").trim();
+        if (btnVetorUnico) btnVetorUnico.disabled = true;
+        if (btnVetorTodos) btnVetorTodos.disabled = true;
 
-            if (!idAval) {
-                status.textContent = "Informe o ID da avaliação antes de enviar.";
-                idAvalInput?.focus();
-                return;
+        const tituloProgresso = document.querySelector("#json-import-progress-box h3");
+        if (tituloProgresso) tituloProgresso.textContent = "Progresso do envio dos Vetores (JSON Textual)";
+
+        atualizarPainelImportacao(0, "Inicializando transmissão dos vetores textuais...", "");
+        status.textContent = enviarTodos ? "Transmitindo respostas em JSON para a plataforma..." : `Transmitindo resposta do aluno ${idAluno}...`;
+
+        try {
+            const rota = `/importar-respostas-presenciais-ajax/${encodeURIComponent(window.NOME_PROCESSAMENTO)}`;
+            const resposta = await fetch(rota, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({ idAval, idAluno: enviarTodos ? "" : idAluno })
+            });
+
+            const dados = await resposta.json().catch(() => ({}));
+            if (!resposta.ok) throw new Error(dados.mensagem || "Não foi possível enviar os dados textuais.");
+
+            jsonImportJobId = dados.job_id;
+            consultarStatusImportacao(dados.job_id, modo, [btnVetorUnico, btnVetorTodos], status);
+        } catch (error) {
+            status.textContent = `Erro no envio: ${error.message}`;
+            if (btnVetorUnico) btnVetorUnico.disabled = false;
+            if (btnVetorTodos) btnVetorTodos.disabled = false;
+        }
+    }
+
+    // Execuções e Listeners de Paginação da Tabela de Registros
+    document.querySelectorAll(".btn-gerar-csv").forEach(b => {
+        b.addEventListener("click", () => { gerarCsvFinal(b.dataset.forcar === "true"); });
+    });
+
+    document.getElementById("json-import-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        executarImportacaoDireta("importacao", false);
+    });
+    document.getElementById("btn-enviar-todos-json-direto")?.addEventListener("click", () => {
+        executarImportacaoDireta("importacao", true);
+    });
+
+    document.querySelectorAll(".validacao-image-preview-btn").forEach(b => {
+        b.addEventListener("click", () => { abrirModalImagem(b.dataset.imageUrl || "", b.dataset.imageName || "Imagem"); });
+    });
+
+    const validacaoSearch = document.getElementById("validacao-search");
+    const validacaoRows = Array.from(document.querySelectorAll("#validacao-tbody tr"));
+    const validacaoSearchInfo = document.getElementById("validacao-search-info");
+    const validacaoPageInfo = document.getElementById("validacao-page-info");
+    const validacaoPrev = document.getElementById("validacao-prev");
+    const validacaoNext = document.getElementById("validacao-next");
+    const validacaoPorPagina = 20;
+    let validacaoPaginaAtual = 1;
+
+    function renderizarPaginacaoValidacao() {
+        if (!validacaoRows.length) return;
+        const termo = (validacaoSearch?.value || "").trim().toLowerCase();
+        const filtradas = validacaoRows.filter(r => !termo || r.textContent.toLowerCase().includes(termo));
+        
+        const total = filtradas.length;
+        const totalPaginas = Math.max(1, Math.ceil(total / validacaoPorPagina));
+        validacaoPaginaAtual = Math.min(validacaoPaginaAtual, totalPaginas);
+
+        const inicio = (validacaoPaginaAtual - 1) * validacaoPorPagina;
+        const fim = inicio + validacaoPorPagina;
+        const visiveis = new Set(filtradas.slice(inicio, fim));
+
+        validacaoRows.forEach(r => r.style.display = visiveis.has(r) ? "" : "none");
+        if (validacaoSearchInfo) validacaoSearchInfo.textContent = `Mostrando ${Math.min(total, fim) - (total ? inicio : 0)} de ${total} registro(s)`;
+        if (validacaoPageInfo) validacaoPageInfo.textContent = `Página ${validacaoPaginaAtual} de ${totalPaginas}`;
+        if (validacaoPrev) validacaoPrev.disabled = validacaoPaginaAtual <= 1;
+        if (validacaoNext) validacaoNext.disabled = validacaoPaginaAtual >= totalPaginas;
+    }
+
+    validacaoSearch?.addEventListener("input", () => { validacaoPaginaAtual = 1; renderizarPaginacaoValidacao(); });
+    validacaoPrev?.addEventListener("click", () => { if (validacaoPaginaAtual > 1) { validacaoPaginaAtual -= 1; renderizarPaginacaoValidacao(); } });
+    validacaoNext?.addEventListener("click", () => {
+        const totalPaginas = Math.ceil(validacaoRows.length / validacaoPorPagina);
+        if (validacaoPaginaAtual < totalPaginas) { validacaoPaginaAtual += 1; renderizarPaginacaoValidacao(); }
+    });
+
+    // =========================================================
+    // SCRIPT DO MODAL DE IMAGENS CORRIGIDO E INTERLIGADO
+    // =========================================================
+    document.addEventListener("DOMContentLoaded", function() {
+        const btnEnviarImagemUnica = document.getElementById("btn-enviar-imagem-cartao-resposta");
+        const btnEnviarTodasImagens = document.getElementById("btn-enviar-todas-imagens");
+        
+        // Elementos do Modal recuperados com as IDs corretas
+        const modalImg = document.getElementById("modal-confirmacao-imagem");
+        const btnFecharX = document.getElementById("btn-fechar-modal-img");
+        const btnCancelarImg = document.getElementById("btn-cancelar-img");
+        const btnConfirmarImg = document.getElementById("btn-confirmar-img");
+        const textoModalImg = document.getElementById("texto-modal-imagem");
+
+        let avaliacaoAtual = "";
+        let alunoAtual = "";
+        let isEnvioEmMassa = false;
+
+        // Função de fechamento segura (Adiciona classe utilitária e atualiza ARIA)
+        const ocultarModalDeImagens = () => {
+            if (modalImg) {
+                modalImg.classList.add("hidden");
+                modalImg.setAttribute("aria-hidden", "true");
             }
+        };
 
-            if (!enviarTodos && !idAluno) {
-                status.textContent = "Informe o ID do aluno para enviar somente um Vetor.";
-                idAlunoInput?.focus();
-                return;
-            }
+        // ASSINATURA DOS EVENTOS DE FECHAMENTO (CORREÇÃO DE TRAVAMENTO)
+        if (btnFecharX) btnFecharX.addEventListener("click", ocultarModalDeImagens);
+        if (btnCancelarImg) btnCancelarImg.addEventListener("click", ocultarModalDeImagens);
 
-            if (modo === "importacao") {
-                const confirmou = await abrirModalConfirmacaoImportacao({
-                    idAval,
-                    idAluno,
-                    enviarTodos
-                });
+        // Abertura para Imagem Única
+        if (btnEnviarImagemUnica) {
+            btnEnviarImagemUnica.addEventListener("click", function(e) {
+                e.preventDefault();
+                const idAval = document.getElementById("json-id-aval")?.value.trim();
+                const idAluno = document.getElementById("json-id-aluno")?.value.trim();
 
-                if (!confirmou) {
+                if (!idAval || !idAluno) {
+                    alert("Por favor, preencha o ID da Avaliação e o ID do Aluno para o envio individual.");
                     return;
                 }
-            }
 
-            if (botao) {
-                botao.disabled = true;
-            }
-            if (botaoEnviarTodos) {
-                botaoEnviarTodos.disabled = true;
-            }
-            if (botaoSimular) {
-                botaoSimular.disabled = true;
-            }
-            if (botaoSimular) {
-                botaoSimular.disabled = true;
-            }
+                avaliacaoAtual = idAval;
+                alunoAtual = idAluno;
+                isEnvioEmMassa = false;
 
-            // -> ADICIONE ESTAS 4 LINHAS AQUI PARA RESTAURAR O TÍTULO PADRÃO:
-            const tituloProgresso = document.querySelector("#json-import-progress-box h3");
-            if (tituloProgresso) {
-                tituloProgresso.textContent = "Progresso do envio Vetor";
-            }
-
-            atualizarPainelImportacao(0, modo === "simulacao"
-                ? "Preparando simulação em JSON..."
-                : "Preparando envio em JSON...", "");
-            status.textContent = modo === "simulacao"
-                ? (
-                    enviarTodos
-                        ? "Simulando envio em JSON para todos os alunos..."
-                        : `Simulando envio em JSON para o aluno ${idAluno}...`
-                )
-                : (
-                    enviarTodos
-                        ? "Enviando respostas em JSON para todos os alunos..."
-                        : `Enviando resposta em JSON para o aluno ${idAluno}...`
-                );
-
-            try {
-                const rota = modo === "simulacao"
-                    ? `/simular-importacao-respostas-presenciais-ajax/${encodeURIComponent(nomeProcessamento)}`
-                    : `/importar-respostas-presenciais-ajax/${encodeURIComponent(nomeProcessamento)}`;
-                const resposta = await fetch(rota, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    },
-                    body: JSON.stringify({
-                        idAval,
-                        idAluno: enviarTodos ? "" : idAluno
-                    })
-                });
-
-                const dados = await resposta.json().catch(() => ({}));
-
-                if (!resposta.ok) {
-                    throw new Error(dados.mensagem || dados.erro || "Não foi possível enviar o JSON direto.");
-                }
-
-                if (!dados?.job_id) {
-                    throw new Error("A execução foi iniciada sem um identificador de progresso.");
-                }
-
-                jsonImportJobId = dados.job_id;
-                status.textContent = dados.mensagem || "Envio iniciado.";
-                consultarStatusImportacao(
-                    dados.job_id,
-                    modo,
-                    [botao, botaoEnviarTodos, botaoSimular],
-                    status
-                );
-            } catch (error) {
-                status.textContent = modo === "simulacao"
-                    ? `Erro ao simular envio: ${error.message}`
-                    : `Erro ao enviar JSON direto: ${error.message}`;
-                [botao, botaoEnviarTodos, botaoSimular].forEach((item) => {
-                    if (item) {
-                        item.disabled = false;
-                    }
-                });
-            }
-        }
-
-        document.querySelectorAll(".btn-gerar-csv").forEach((botao) => {
-            botao.addEventListener("click", () => {
-                gerarCsvFinal(botao.dataset.forcar === "true");
-            });
-        });
-
-        document.getElementById("json-import-form")?.addEventListener("submit", (event) => {
-            event.preventDefault();
-            executarImportacaoDireta("importacao", false);
-        });
-        document.getElementById("btn-simular-json-direto")?.addEventListener("click", () => {
-            const idAluno = String(document.getElementById("json-id-aluno")?.value || "").trim();
-            executarImportacaoDireta("simulacao", !idAluno);
-        });
-        document.getElementById("btn-enviar-todos-json-direto")?.addEventListener("click", () => {
-            executarImportacaoDireta("importacao", true);
-        });
-
-        document.querySelectorAll(".validacao-image-preview-btn").forEach((botao) => {
-            botao.addEventListener("click", () => {
-                abrirModalImagem(botao.dataset.imageUrl || "", botao.dataset.imageName || "Imagem do cartão");
-            });
-        });
-
-        const validacaoSearch = document.getElementById("validacao-search");
-        const validacaoRows = Array.from(document.querySelectorAll("#validacao-tbody tr"));
-        const validacaoSearchInfo = document.getElementById("validacao-search-info");
-        const validacaoPageInfo = document.getElementById("validacao-page-info");
-        const validacaoPrev = document.getElementById("validacao-prev");
-        const validacaoNext = document.getElementById("validacao-next");
-        const validacaoPorPagina = 20;
-        let validacaoPaginaAtual = 1;
-
-        function formatarTextoStatus(valor) {
-            return String(valor || "-")
-                .replaceAll("_", " ")
-                .toLowerCase()
-                .replace(/\b\w/g, (letra) => letra.toUpperCase());
-        }
-
-        async function salvarValidacaoManualSemReload(formulario) {
-            const botaoSalvar = formulario.querySelector('button[type="submit"]');
-            const inputManual = formulario.querySelector('input[name="id_aluno_manual"]');
-            const linha = formulario.closest("tr");
-            const statusExportacao = document.getElementById("csv-export-status");
-
-            if (!botaoSalvar || !inputManual || !linha) {
-                return;
-            }
-
-            const textoOriginal = botaoSalvar.textContent;
-            const dadosFormulario = new FormData(formulario);
-            botaoSalvar.disabled = true;
-            inputManual.disabled = true;
-            botaoSalvar.textContent = "Salvando...";
-
-            try {
-                const resposta = await fetch(`${formulario.action}?ajax=1`, {
-                    method: "POST",
-                    body: dadosFormulario,
-                    headers: {
-                        "Accept": "application/json",
-                        "X-Requested-With": "fetch"
-                    }
-                });
-
-                const dados = await resposta.json().catch(() => ({}));
-
-                if (!resposta.ok || dados.status !== "ok") {
-                    throw new Error(dados.mensagem || "Não foi possível salvar o ID manual.");
-                }
-
-                const registro = dados.registro || {};
-                linha.classList.remove("linha-pendente");
-                linha.classList.add("linha-validada");
-
-                if (linha.cells[3]) {
-                    linha.cells[3].innerHTML = `<strong>${registro.id_final || "-"}</strong>`;
-                }
-
-                if (linha.cells[4]) {
-                    linha.cells[4].textContent = formatarTextoStatus(registro.origem_id || "-");
-                }
-
-                if (linha.cells[5]) {
-                    linha.cells[5].innerHTML = `
-                        <span class="status-badge status-validado">
-                            Resolvido
-                        </span>
-                    `;
-                }
-
-                if (linha.cells[6]) {
-                    linha.cells[6].textContent = registro.motivo || "ID informado manualmente na Validação Cadastral.";
-                }
-
-                if (linha.cells[7]) {
-                    linha.cells[7].innerHTML = '<span class="muted">Resolvido</span>';
-                }
-
-                if (statusExportacao) {
-                    statusExportacao.textContent = "ID manual salvo sem recarregar a página.";
-                }
-
-                renderizarPaginacaoValidacao();
-            } catch (error) {
-                botaoSalvar.disabled = false;
-                inputManual.disabled = false;
-                botaoSalvar.textContent = textoOriginal;
-                if (statusExportacao) {
-                    statusExportacao.textContent = error.message || "Erro ao salvar o ID manual.";
-                }
-            }
-        }
-
-        function obterLinhasFiltradasValidacao() {
-            const termo = (validacaoSearch?.value || "").trim().toLowerCase();
-
-            return validacaoRows.filter((linha) => {
-                if (!termo) {
-                    return true;
-                }
-
-                return (linha.textContent || "").toLowerCase().includes(termo);
+                textoModalImg.textContent = `Você tem certeza que deseja enviar a imagem somente do aluno ${idAluno} para a avaliação ${idAval}?`;
+                modalImg.classList.remove("hidden");
+                modalImg.setAttribute("aria-hidden", "false");
             });
         }
 
-        function renderizarPaginacaoValidacao() {
-            if (!validacaoRows.length) {
-                return;
-            }
+        // Abertura para Todas as Imagens (Massa)
+        if (btnEnviarTodasImagens) {
+            btnEnviarTodasImagens.addEventListener("click", function(e) {
+                e.preventDefault();
+                const idAval = document.getElementById("json-id-aval")?.value.trim();
 
-            const linhasFiltradas = obterLinhasFiltradasValidacao();
-            const total = linhasFiltradas.length;
-            const totalPaginas = Math.max(1, Math.ceil(total / validacaoPorPagina));
-            validacaoPaginaAtual = Math.min(validacaoPaginaAtual, totalPaginas);
+                if (!idAval) {
+                    alert("Por favor, preencha o ID da avaliação antes de prosseguir com o lote.");
+                    return;
+                }
 
-            const inicio = (validacaoPaginaAtual - 1) * validacaoPorPagina;
-            const fim = inicio + validacaoPorPagina;
-            const linhasVisiveis = new Set(linhasFiltradas.slice(inicio, fim));
+                avaliacaoAtual = idAval;
+                alunoAtual = "";
+                isEnvioEmMassa = true;
 
-            validacaoRows.forEach((linha) => {
-                linha.style.display = linhasVisiveis.has(linha) ? "" : "none";
+                textoModalImg.textContent = `Você tem certeza que deseja enviar as imagens de TODOS os alunos para a avaliação ${idAval}?`;
+                modalImg.classList.remove("hidden");
+                modalImg.setAttribute("aria-hidden", "false");
             });
-
-            if (validacaoSearchInfo) {
-                validacaoSearchInfo.textContent = `Mostrando ${Math.min(total, fim) - (total ? inicio : 0)} de ${total} registro(s)`;
-            }
-
-            if (validacaoPageInfo) {
-                validacaoPageInfo.textContent = `Página ${validacaoPaginaAtual} de ${totalPaginas}`;
-            }
-
-            if (validacaoPrev) {
-                validacaoPrev.disabled = validacaoPaginaAtual <= 1;
-            }
-
-            if (validacaoNext) {
-                validacaoNext.disabled = validacaoPaginaAtual >= totalPaginas;
-            }
         }
 
-        validacaoSearch?.addEventListener("input", () => {
-            validacaoPaginaAtual = 1;
-            renderizarPaginacaoValidacao();
-        });
+        // Execução do Upload Binário Real ao Confirmar
+        if (btnConfirmarImg) {
+            btnConfirmarImg.addEventListener("click", async function() {
+                ocultarModalDeImagens();
 
-        validacaoPrev?.addEventListener("click", () => {
-            if (validacaoPaginaAtual > 1) {
-                validacaoPaginaAtual -= 1;
-                renderizarPaginacaoValidacao();
-            }
-        });
+                const statusText = document.getElementById("json-export-status");
+                const tituloProgresso = document.querySelector("#json-import-progress-box h3");
+                
+                if (tituloProgresso) tituloProgresso.textContent = "Progresso de envio das Imagens Originais (.JPG)";
+                if (statusText) statusText.textContent = "Iniciando upload de arquivos para a KeepEdu...";
 
-        validacaoNext?.addEventListener("click", () => {
-            const totalPaginas = Math.max(1, Math.ceil(obterLinhasFiltradasValidacao().length / validacaoPorPagina));
+                atualizarPainelImportacao(5, "Conectando ao servidor de upload KeepEdu...", "");
 
-            if (validacaoPaginaAtual < totalPaginas) {
-                validacaoPaginaAtual += 1;
-                renderizarPaginacaoValidacao();
-            }
-        });
+                try {
+                    // Rota síncrona dedicada que criamos para processar o binário das fotos
+                    const response = await fetch(`/importar-respostas-presenciais`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            idAval: avaliacaoAtual,
+                            idAluno: alunoAtual,
+                            nome_processamento: window.NOME_PROCESSAMENTO
+                        })
+                    });
 
-        document.addEventListener("submit", async (event) => {
-            const formulario = event.target;
-
-            if (!(formulario instanceof HTMLFormElement) || !formulario.classList.contains("manual-form")) {
-                return;
-            }
-
-            event.preventDefault();
-
-            const inputManual = formulario.querySelector('input[name="id_aluno_manual"]');
-
-            if (!inputManual || !String(inputManual.value || "").trim()) {
-                inputManual?.focus();
-                return;
-            }
-
-            await salvarValidacaoManualSemReload(formulario);
-        });
-
-        modalVisualizacaoImagemFechar?.addEventListener("click", fecharModalImagem);
-        modalVisualizacaoImagemZoomIn?.addEventListener("click", () => {
-            zoomModalImagem = Math.min(zoomModalImagem + 0.1, 3);
-            atualizarZoomModalImagem();
-        });
-        modalVisualizacaoImagemZoomOut?.addEventListener("click", () => {
-            zoomModalImagem = Math.max(zoomModalImagem - 0.1, 0.2);
-            atualizarZoomModalImagem();
-        });
-        modalVisualizacaoImagemZoomReset?.addEventListener("click", () => {
-            zoomModalImagem = 1;
-            atualizarZoomModalImagem();
-        });
-        modalVisualizacaoImagemZoomFit?.addEventListener("click", ajustarZoomModalImagem);
-        modalVisualizacaoImagem?.addEventListener("click", (event) => {
-            if (event.target?.dataset?.closeImageModal === "true") {
-                fecharModalImagem();
-            }
-        });
-
-        document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape" && modalVisualizacaoImagem && !modalVisualizacaoImagem.classList.contains("hidden")) {
-                fecharModalImagem();
-            }
-        });
-
-        window.addEventListener("resize", () => {
-            if (modalVisualizacaoImagem && !modalVisualizacaoImagem.classList.contains("hidden")) {
-                ajustarZoomModalImagem();
-            }
-        });
-
-        renderizarPaginacaoValidacao();
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const btnEnviarImagem = document.getElementById("btn-enviar-imagem-cartao-resposta");
-            
-            // Elementos do Modal
-            const modal = document.getElementById("modal-confirmacao-imagem");
-            const btnFechar = document.getElementById("btn-fechar-modal-img");
-            const btnCancelar = document.getElementById("btn-cancelar-img");
-            const btnConfirmar = document.getElementById("btn-confirmar-img");
-            const textoModal = document.getElementById("texto-modal-imagem");
-
-            // Variáveis para guardar os dados até a confirmação
-            let avaliacaoAtual = "";
-            let alunoAtual = "";
-
-            // Função para fechar o modal
-            // Função para fechar o modal
-            const fecharModal = () => { 
-                modal.classList.add("hidden"); 
-                modal.setAttribute("aria-hidden", "true"); 
-            };
-
-            // 1. AÇÃO DE FECHAR O MODAL
-
-            if (btnEnviarImagem) {
-                btnEnviarImagem.addEventListener("click", function(event) {
-                    event.preventDefault(); 
-                    
-                    // 1. CAPTURANDO OS IDs CORRETAMENTE
-                    // ATENÇÃO: Verifique no seu HTML se o ID do input de avaliação é realmente esse.
-                    // Se o input não tiver ID, ele tentará buscar pelo "name".
-                    // 1. CAPTURANDO OS IDs CORRETAMENTE PELO HTML ORIGINAL
-                    const inputAvaliacao = document.getElementById("json-id-aval");
-                    if (!inputAvaliacao) {
-                        alert("Por favor, preencha o ID da avaliação antes de enviar.");
-                        return;
-                    }
-
-                    const inputAluno = document.getElementById("json-id-aluno");
-
-                    avaliacaoAtual = inputAvaliacao ? inputAvaliacao.value.trim() : null;
-                    alunoAtual = inputAluno ? inputAluno.value.trim() : "";
-
-                    // 2. Customiza o texto do modal e exibe na tela
-                    if (alunoAtual) {
-                        textoModal.textContent = `Você tem certeza que deseja enviar a imagem somente do aluno ${alunoAtual} para a avaliação ${avaliacaoAtual}?`;
+                    const result = await response.json();
+                    if (response.ok) {
+                        atualizarPainelImportacao(100, "Upload de imagens finalizado!", "");
+                        statusText.textContent = `Imagens vinculadas! Total: ${result.importadas || 0} processadas com sucesso.`;
                     } else {
-                        textoModal.textContent = `Você tem certeza que deseja enviar as imagens de TODOS os alunos para a avaliação ${avaliacaoAtual}?`;
+                        alert("Erro no upload: " + (result.mensagem || "Verifique as dependências."));
                     }
-                    
-                    // Remove a classe 'hidden' e ajusta o atributo de acessibilidade
-                    modal.classList.remove("hidden");
-                    modal.setAttribute("aria-hidden", "false");
-                });
-            }
+                } catch (error) {
+                    console.error(error);
+                    alert("Falha de conexão com a API de upload.");
+                }
+            });
+        }
+    });
 
-            // 3. AÇÃO DE CONFIRMAÇÃO DO MODAL
-            if (btnConfirmar) {
-                btnConfirmar.addEventListener("click", async function() {
-                    fecharModal(); // Esconde o modal imediatamente
-
-                    const nomeProcessamento = "{{ nome_processamento }}"; // Variável Jinja
-                    const textoOriginal = btnEnviarImagem.textContent;
-                    btnEnviarImagem.textContent = "Iniciando Envio...";
-                    btnEnviarImagem.disabled = true;
-
-                    try {
-                        // Dispara para o seu FastAPI
-                        const response = await fetch(`/importar-respostas-presenciais-ajax/${nomeProcessamento}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                idAval: avaliacaoAtual,
-                                idAluno: alunoAtual
-                            })
-                        });
-                        const btnEnviarTodasImagens = document.getElementById("btn-enviar-todas-imagens");
-
-                        if (btnEnviarTodasImagens) {
-                            btnEnviarTodasImagens.addEventListener("click", function(event) {
-                                event.preventDefault();
-                                
-                                // Pega o ID da avaliação que já está no campo
-                                const idAvaliacao = document.getElementById("json-id-aval")?.value;
-                                
-                                if (!idAvaliacao) {
-                                    alert("Preencha o ID da avaliação.");
-                                    return;
-                                }
-
-                                // Prepara o texto do modal para indicar que é um envio em massa
-                                textoModal.textContent = `Você tem certeza que deseja enviar as imagens de TODOS os alunos para a avaliação ${idAvaliacao}?`;
-                                
-                                // Define que não há aluno específico (vazio) para o backend entender como "todos"
-                                alunoAtual = ""; 
-                                avaliacaoAtual = idAvaliacao;
-                                
-                                // Abre o modal que já configuramos
-                                modal.classList.remove("hidden");
-                                modal.setAttribute("aria-hidden", "false");
-                            });
-                        }
-                        const result = await response.json();
-
-                        if (response.ok && result.status === "ok") {
-                            // 1. Muda o título da caixa de progresso dinamicamente
-                            const tituloProgresso = document.querySelector("#json-import-progress-box h3");
-                            if (tituloProgresso) {
-                                tituloProgresso.textContent = "Progresso de envio da/das imagens";
-                            }
-
-                            // 2. Prepara o texto de status
-                            const statusText = document.getElementById("json-export-status");
-                            if (statusText) {
-                                statusText.textContent = "Iniciando envio das imagens...";
-                            }
-
-                            // 3. Inicia a animação da barra chamando a função que você já tem no código
-                            consultarStatusImportacao(
-                                result.job_id, 
-                                "importacao", 
-                                [btnEnviarImagem], 
-                                statusText
-                            );
-                        } else {
-                            alert("Erro retornado: " + (result.mensagem || "Verifique os logs."));
-                        }
-                    } catch (error) {
-                        console.error("Erro na requisição:", error);
-                        alert("Falha de comunicação com o servidor.");
-                    } finally {
-                        btnEnviarImagem.textContent = textoOriginal;
-                        btnEnviarImagem.disabled = false;
-                    }
-                });
-            }
-        });
-    </script>
+    // Inicialização da Tabela
+    renderizarPaginacaoValidacao();
+</script>
     <div id="modal-confirmacao-imagem" class="app-modal hidden" aria-hidden="true">
         <div class="app-modal-backdrop" id="backdrop-modal-img"></div>
         <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-imagem">
@@ -1293,5 +897,20 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+                // Busca o botão de 3 traços e o container do layout
+                const menuBtn = document.querySelector(".ke-header-menu");
+                const shell = document.querySelector(".ke-shell");
+
+                if (menuBtn && shell) {
+                    menuBtn.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        // Injeta ou remove a classe que o CSS usa para encolher
+                        shell.classList.toggle("sidebar-collapsed");
+                    });
+                }
+            });
+    </script>
 </body>
 </html>

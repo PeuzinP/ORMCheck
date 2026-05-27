@@ -1,40 +1,102 @@
+# =========================
+# ENV
+# =========================
 .env
 .env.*
 !.env.example
-.envrc
 *.local
+
+# =========================
+# PYTHON
+# =========================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+
+# =========================
+# CACHE / TESTES
+# =========================
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache/
 .coverage
-.coverage.*
-.python-version
-uploads_temp/
+coverage.xml
+
+# =========================
+# VIRTUAL ENV
+# =========================
+.venv/
+venv/
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+.trae/
+
+# =========================
+# LOGS
+# =========================
 logs/
+*.log
+
+# =========================
+# PROCESSAMENTOS
+# =========================
 processamentos/
 docker-data/
-backups/
-logs/
-base/
 runtime/
 tmp/
 temp/
-*.log
+uploads_temp/
+debug_omr/
+
+# =========================
+# DATABASES
+# =========================
 *.sqlite
 *.sqlite3
 *.db
+
+# =========================
+# BACKUPS
+# =========================
+backups/
+base/
+
+# =========================
+# SEGURANÇA
+# =========================
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
+
+# =========================
+# SISTEMA
+# =========================
 Thumbs.db
 .DS_Store
-.vscode/
-.trae/
-.venv/
-venv/
+
+# =========================
+# FRONTEND
+# =========================
+node_modules/
+dist/
+build/
+
+# =========================
+# SESSÕES
+# =========================
+sessions/
+*.session
+
+# =========================
+# COMPACTADOS
+# =========================
+*.zip
+*.rar
+*.7z

@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
     let zoom = "fit-width";
     let imagemAtual = null;
@@ -50,6 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const botoesCanto = Array.from(document.querySelectorAll(".corner-btn"));
     const STORAGE_KEY = `correcao:${NOME_PROCESSAMENTO}:state`;
 
+    function ajustarOverlay() {
+        // O overlay é dimensionado via CSS com 'inset: 0' e seu contêiner '.image-wrapper'
+        // tem o tamanho ajustado na função aplicarZoom. Esta função vazia previne erros de referência.
+    }
+
     function obterLeituraAtual(nome = imagemAtual) {
         return leituras[nome] || {};
     }
@@ -83,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return erros.slice(0, 2).join(" | ");
     }
-
+    
     function obterResumoImagem(nome) {
         const leitura = obterLeituraAtual(nome);
         const erros = listarErros(leitura);
@@ -107,6 +113,57 @@ document.addEventListener("DOMContentLoaded", () => {
             metaCurta: manual ? "Ajuste manual" : "Sem erro",
             manual
         };
+    }
+
+    function selecionarImagem(nomeImagemSelecionada, preservarZoom = false) {
+
+        if (!nomeImagemSelecionada) {
+            console.log("sem nome");
+            return;
+        }
+
+        console.log("selecionando:", nomeImagemSelecionada);
+
+        imagemAtual = nomeImagemSelecionada;
+
+        const nomeLimpo = nomeImagemSelecionada;
+
+        const urlImagem = `/imagem/${NOME_PROCESSAMENTO}/${nomeLimpo}`;
+
+        console.log("URL:", urlImagem);
+
+        imagemPrincipal.onload = () => {
+
+            console.log("imagem carregada");
+
+            ajustarOverlay();
+
+            if (!preservarZoom) {
+                zoom = zoomSelect?.value || "fit-width";
+            }
+
+            aplicarZoom();
+            renderizarOverlay();
+            atualizarResumoViewer();
+            atualizarBotoesCanto();
+            salvarEstadoPainel();
+        };
+
+        imagemPrincipal.onerror = () => {
+            console.log("erro ao carregar");
+
+            mostrarToast(
+                `Erro ao carregar a imagem: ${nomeLimpo}`,
+                "error",
+                "Falha de leitura"
+            );
+        };
+
+        imagemPrincipal.src = urlImagem;
+
+        console.log("src definida:", imagemPrincipal.src);
+
+        nomeImagem.textContent = nomeLimpo;
     }
 
     function salvarEstadoPainel() {
@@ -439,8 +496,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const larguraNatural = imagemPrincipal.naturalWidth;
         const alturaNatural = imagemPrincipal.naturalHeight;
-        const larguraDisponivel = Math.max(imageArea.clientWidth - 40, 100);
-        const alturaDisponivel = Math.max(imageArea.clientHeight - 40, 100);
+        const larguraDisponivel = imageArea.clientWidth;
+        const alturaDisponivel = imageArea.clientHeight;
         let fatorZoom;
 
         if (zoom === "fit-width") {
@@ -463,56 +520,24 @@ document.addEventListener("DOMContentLoaded", () => {
         imageWrapper.style.width = `${novaLargura}px`;
         imageWrapper.style.height = `${novaAltura}px`;
 
+        // CORREÇÃO: Sincroniza o select visualmente
+        if (zoomSelect) {
+            // Se for modo automático (fit), mantém o texto correto
+            if (zoom === "fit-width" || zoom === "fit-window") {
+                zoomSelect.value = zoom;
+            } else {
+                // Se for manual, tenta achar a opção mais próxima
+                const valorFormatado = Number(fatorZoom).toFixed(2);
+                const opcaoMaisProxima = Array.from(zoomSelect.options).find(opt => 
+                    opt.value !== 'fit-width' && opt.value !== 'fit-window' && 
+                    Math.abs(Number(opt.value) - fatorZoom) < 0.05
+                );
+                if (opcaoMaisProxima) zoomSelect.value = opcaoMaisProxima.value;
+            }
+        }
+
         ajustarOverlay();
         renderizarOverlay();
-    }
-
-    function ajustarOverlay() {
-        if (!imagemPrincipal || !overlay || !imageWrapper) return;
-
-        overlay.style.width = `${imagemPrincipal.clientWidth}px`;
-        overlay.style.height = `${imagemPrincipal.clientHeight}px`;
-        overlay.style.left = "0px";
-        overlay.style.top = "0px";
-    }
-
-    function selecionarImagem(nome, bustCache = false) {
-        if (!nome) {
-            return;
-        }
-
-        imagemAtual = nome;
-        garantirEstadoDaImagem(nome);
-        nomeImagem.textContent = nome;
-        atualizarAjuda();
-        atualizarBotoesCanto();
-        atualizarResumoViewer();
-        salvarEstadoPainel();
-
-        let urlImagem = `/imagem/${NOME_PROCESSAMENTO}/${encodeURIComponent(nome)}`;
-
-        if (bustCache) {
-            urlImagem += `?v=${Date.now()}`;
-        }
-
-        imagemPrincipal.src = urlImagem;
-
-        imagemPrincipal.onload = () => {
-            garantirCantosVisiveis(nome);
-            zoom = zoomSelect.value || "fit-width";
-            atualizarBotoesCanto();
-            atualizarResumoViewer();
-            aplicarZoom();
-            salvarEstadoPainel();
-        };
-
-        imagemPrincipal.onerror = () => {
-            mostrarToast(
-                "Erro ao carregar a imagem. Confira se ela existe na pasta debug_omr.",
-                "error",
-                "Falha ao abrir imagem"
-            );
-        };
     }
 
     function coordenadaNaImagem(event) {
@@ -595,6 +620,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function adicionarMarcacao(event) {
         if (!imagemAtual) return;
+
+        garantirEstadoDaImagem(imagemAtual);
 
         const coord = coordenadaNaImagem(event);
 
@@ -810,21 +837,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("zoom-mais")?.addEventListener("click", () => {
-        if (zoom === "fit-width" || zoom === "fit-window") {
-            zoom = imagemPrincipal.clientWidth / imagemPrincipal.naturalWidth;
-        }
-
-        zoom = Math.min(Number(zoom) + 0.1, 3);
+        let valorAtual = (typeof zoom === 'number') ? zoom : (imagemPrincipal.clientWidth / imagemPrincipal.naturalWidth);
+        zoom = Math.min(valorAtual + 0.15, 3);
         aplicarZoom();
+        salvarEstadoPainel();
     });
 
     document.getElementById("zoom-menos")?.addEventListener("click", () => {
-        if (zoom === "fit-width" || zoom === "fit-window") {
-            zoom = imagemPrincipal.clientWidth / imagemPrincipal.naturalWidth;
-        }
-
-        zoom = Math.max(Number(zoom) - 0.1, 0.1);
+        let valorAtual = (typeof zoom === 'number') ? zoom : (imagemPrincipal.clientWidth / imagemPrincipal.naturalWidth);
+        zoom = Math.max(valorAtual - 0.15, 0.12);
         aplicarZoom();
+        salvarEstadoPainel();
     });
 
     zoomSelect?.addEventListener("change", () => {

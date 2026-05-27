@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulado Bernoulli | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=66">
-    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
+    <link rel="stylesheet" href="/static/css/main.css?v=2">
 </head>
 <body class="keepedu-app-page">
     <header class="ke-header">
         <div class="ke-header-left">
-            <a class="ke-logo" href="/" aria-label="Abrir painel">
-                <span class="ke-logo-mark" aria-hidden="true"></span>
-                <span class="ke-logo-word">KeepEdu</span>
-            </a>
+        <a href="/" class="ke-logo" style="display: flex; align-items: center;">
+            <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
+        </a>
             <button class="ke-header-menu" type="button" aria-label="Menu">
                 <span></span>
             </button>
@@ -74,25 +72,27 @@
             </div>
 
             <div class="page bernoulli-page ke-page-content">
+    
                 <section class="bernoulli-hero card">
                     <div class="bernoulli-hero-copy">
                         <span class="section-kicker">Bernoulli</span>
                         <h1>Gerar arquivo do Simulado Bernoulli</h1>
                         <p>Envie a planilha do KeepEdu, consulte o RMB e gere o arquivo final pronto para importação.</p>
                     </div>
-                    <div class="bernoulli-hero-meta">
-                        <div class="bernoulli-meta-item">
-                            <strong>Entrada</strong>
-                            <span>CSV, XLSX ou XLS</span>
-                        </div>
-                        <div class="bernoulli-meta-item">
-                            <strong>Consulta</strong>
-                            <span>RMB via API do Bernoulli</span>
-                        </div>
-                        <div class="bernoulli-meta-item">
-                            <strong>Saída</strong>
-                            <span>XLSX final pronto para uso</span>
-                        </div>
+                </section>
+
+                <section class="bernoulli-stats-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0 0 24px 0; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <div class="bernoulli-rule-item" style="margin: 0;">
+                        <strong style="color: #334e68; display: block; margin-bottom: 2px;">Entrada</strong>
+                        <p style="color: #627d98; margin: 0; font-size: 0.85rem;">CSV, XLSX ou XLS</p>
+                    </div>
+                    <div class="bernoulli-rule-item" style="margin: 0;">
+                        <strong style="color: #334e68; display: block; margin-bottom: 2px;">Consulta</strong>
+                        <p style="color: #627d98; margin: 0; font-size: 0.85rem;">RMB via API do Bernoulli</p>
+                    </div>
+                    <div class="bernoulli-rule-item" style="margin: 0;">
+                        <strong style="color: #334e68; display: block; margin-bottom: 2px;">Saída</strong>
+                        <p style="color: #627d98; margin: 0; font-size: 0.85rem;">XLSX final pronto para uso</p>
                     </div>
                 </section>
 
@@ -233,7 +233,7 @@
                                 <p id="bernoulli-arquivo" class="muted"></p>
                             </div>
 
-                            <div class="event-log-list bernoulli-log-list" id="bernoulli-log-list">
+                            <div class="event-log-list bernoulli-log-list ke-console-scroll" id="bernoulli-log-list">
                                 <div class="event-log-empty">Nenhum processamento iniciado.</div>
                             </div>
 
@@ -514,6 +514,30 @@
                 bernoulliSubmit.textContent = "Gerar Simulado Bernoulli";
             }
         });
+
+        // MONITOR AUTOMÁTICO DE ROLAGEM DOS LOGS
+        const inspecionarConsoleBernoulli = document.getElementById("bernoulli-log-list");
+
+        if (inspecionarConsoleBernoulli) {
+            const observadorLogs = new MutationObserver(() => {
+                // Toda vez que entrar um log novo, rola para o final
+                inspecionarConsoleBernoulli.scrollTop = inspecionarConsoleBernoulli.scrollHeight;
+            });
+
+            // Ativa o monitor para observar se novos textos/elementos entraram na div
+            observadorLogs.observe(inspecionarConsoleBernoulli, { childList: true, subtree: true });
+        }
+
+        // CONTROLE DO MENU LATERAL (HAMBURGUER)
+        const btnMenu = document.querySelector('.ke-header-menu');
+        const shellContainer = document.querySelector('.ke-shell');
+
+        if (btnMenu && shellContainer) {
+            btnMenu.addEventListener('click', () => {
+                // O toggle adiciona a classe se não existir, e remove se existir
+                shellContainer.classList.toggle('sidebar-collapsed');
+            });
+        }
     </script>
 </body>
 </html>

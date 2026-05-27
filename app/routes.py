@@ -3,6 +3,10 @@ from urllib.parse import unquote
 from app.gerador_csv import gerar_csv_final, caminho_csv_final
 from app.bernoulli import transformar_vetor_keepedu_para_bernoulli, EXTENSOES_PLANILHA, PASTA_BERNOULLI
 from app.keepedu_importacao import (
+    importar_respostas_presenciais,
+    importar_imagens_folha_resposta,
+)
+from app.keepedu_importacao import (
     contar_alunos_importacao,
     importar_respostas_presenciais,
     processar_mock_importacao_keepedu,
@@ -13,6 +17,10 @@ from app.validacao_cadastral import gerar_validacao_cadastral, salvar_correcao_m
 import json
 import os
 from html import escape
+from app.auth import gerenciar_lembre_me, verificar_autologin_cookie, remover_token_banco
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(BASE_DIR)
 
 from app.settings import (
     APP_ENABLE_AUTH,
@@ -28,7 +36,7 @@ from app.settings import (
 from app.progresso import criar_job, obter_job, atualizar_job, registrar_evento_job
 from app.services import processar_pasta_temporaria_com_progresso
 
-from fastapi import APIRouter, Request, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Request, UploadFile, File, Form, Response, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel
 from pathlib import Path
@@ -67,6 +75,9 @@ class ImportarRespostasPayload(BaseModel):
     diaAval: str | int | None = None
     usuario_id: str | int | None = None
     idAluno: str | int | None = None
+    nome_processamento: str | None = None
+    modelo_ia : str | None = None
+
 
 def listar_processamentos_local():
     return listar_processamentos()
@@ -188,9 +199,11 @@ def _executar_importacao_respostas_em_background(
             f"Lote {nome_avaliacao} em modo {modo}.",
         )
 
+        # PASSAGEM POSICIONAL PURA: Passando 'nome_avaliacao' direto como primeiro argumento
+        # Isso ignora se o nome interno é 'nome_processamento' ou 'nome_avaliacao' e preenche a posição correta.
         if modo == "simulacao":
             resultado = simular_importacao_respostas_presenciais(
-                nome_avaliacao=nome_avaliacao,
+                nome_avaliacao,  # <--- Sem chaves, direto na primeira posição
                 id_aval=payload.idAval,
                 dia_aval=payload.diaAval,
                 usuario_id=payload.usuario_id,
@@ -199,7 +212,7 @@ def _executar_importacao_respostas_em_background(
             )
         else:
             resultado = importar_respostas_presenciais(
-                nome_avaliacao=nome_avaliacao,
+                nome_avaliacao,  # <--- Sem chaves, direto na primeira posição
                 id_aval=payload.idAval,
                 dia_aval=payload.diaAval,
                 usuario_id=payload.usuario_id,
@@ -329,9 +342,25 @@ async def index(request: Request):
 async def login_page(request: Request, next: str = "/"):
     if not APP_ENABLE_AUTH:
         return RedirectResponse(url="/", status_code=303)
+        
+    # 1. Se o usuário já tiver uma sessão ativa na memória, joga direto para o painel
     if request.session.get("authenticated"):
         return RedirectResponse(url=_destino_pos_login(next), status_code=303)
 
+    # 2. FLUXO DO AUTO-LOGIN: Se não tiver sessão, checa o Cookie de "Lembre-me"
+    usuario_id_valido = verificar_autologin_cookie(request)
+    
+    if usuario_id_valido:
+        # Recupera as credenciais do banco ou define os padrões para recriar a sessão
+        # (Como o login original usa o e-mail vindo do formulário, aqui recriamos o escopo)
+        request.session["authenticated"] = True
+        request.session["user_email"] = "operador.lembrado@colegioproposito.com.br" # E-mail genérico ou recupere do banco se preferir
+        request.session["auth_source"] = "keepedu_remember"
+        
+        # Redireciona o usuário diretamente para o painel sem exibir a tela de login
+        return RedirectResponse(url=_destino_pos_login(next), status_code=303)
+
+    # 3. Se não houver cookie ou o token estiver vencido, renderiza a tela normalmente
     return render_template(
         request,
         "login.html",
@@ -348,8 +377,10 @@ async def login_page(request: Request, next: str = "/"):
 @router.post("/login", response_class=HTMLResponse)
 async def login_submit(
     request: Request,
+    response: Response, # <--- ADICIONADO PARA MANIPULAR OS COOKIES
     email: str = Form(""),
     senha: str = Form(""),
+    lembre_me: bool = Form(False), # <--- CAPTURA O CHECKBOX DO HTML
     next_url: str = Form("/"),
 ):
     if not APP_ENABLE_AUTH:
@@ -370,17 +401,39 @@ async def login_submit(
             status_code=401,
         )
 
+    # Limpa a sessão local antiga
     request.session.clear()
+    
+    # Define as variáveis normais de sessão do seu sistema
     request.session["authenticated"] = True
     request.session["user_email"] = str(dados_usuario.get("email") or email or "").strip()
     request.session["auth_source"] = str(dados_usuario.get("origem") or "keepedu")
-    return RedirectResponse(url=_destino_pos_login(next_url), status_code=303)
+    
+    # SE O OPERADOR MARCOU "LEMBRE-ME": Gera o token no MySQL e cria o Cookie seguro
+    if lembre_me and dados_usuario:
+        # Usamos um ID padrão (ex: 1) ou pegamos o id real se a API do KeepEdu retornar
+        usuario_id = dados_usuario.get("id") or 1 
+        gerenciar_lembre_me(response, usuario_id)
+
+    # Criamos a resposta de redirecionamento mantendo os cookies injetados
+    redirecionamento = RedirectResponse(url=_destino_pos_login(next_url), status_code=303)
+    return redirecionamento
 
 
 @router.get("/logout")
-async def logout(request: Request):
+async def logout(request: Request, response: Response):
+    # Verifica se existe o cookie de lembre-me e apaga do banco de dados
+    token_cookie = request.cookies.get("remember_token")
+    if token_cookie:
+        remover_token_banco(token_cookie)
+        
+    # Limpa a sessão local da memória do FastAPI
     request.session.clear()
-    return RedirectResponse(url="/login", status_code=303)
+    
+    # Cria a resposta limpando fisicamente o cookie do navegador
+    resposta = RedirectResponse(url="/login", status_code=303)
+    resposta.delete_cookie("remember_token")
+    return resposta
 
 
 @router.get("/bernoulli", response_class=HTMLResponse)
@@ -609,12 +662,38 @@ async def rota_download_csv(nome_avaliacao: str):
     return FileResponse(str(caminho), filename=f"{nome_avaliacao}_csv_final.csv", media_type="text/csv")
 
 
-@router.post("/importar-respostas-presenciais/{nome_avaliacao}")
-async def rota_importar_respostas_presenciais(nome_avaliacao: str, payload: ImportarRespostasPayload):
-    resultado = importar_respostas_presenciais(nome_avaliacao=nome_avaliacao, id_aval=payload.idAval, dia_aval=payload.diaAval, usuario_id=payload.usuario_id, id_aluno=payload.idAluno)
-    if resultado.get("status") == "erro": return JSONResponse(resultado, status_code=400)
-    return JSONResponse(resultado)
+@router.post("/importar-respostas-presenciais")
+async def rota_importar_respostas_presenciais(payload: ImportarRespostasPayload):
 
+    # Pegamos o nome que veio no payload ou usamos o idAval como fallback seguro
+    nome_lote = payload.nome_processamento or f"avaliacao_{payload.idAval}"
+
+    # PASSO 1 — Importa vetores/respostas
+    resultado = importar_respostas_presenciais(
+        nome_lote,
+        id_aval=payload.idAval,
+        dia_aval=payload.diaAval,
+        usuario_id=payload.usuario_id,
+        id_aluno=payload.idAluno
+    )
+
+    # Se deu erro nos vetores, já encerra
+    if resultado.get("status") == "erro":
+        return JSONResponse(resultado, status_code=400)
+
+    # PASSO 2 — Upload das imagens originais
+    resultado_imagens = importar_imagens_folha_resposta(
+        nome_processamento=nome_lote,
+        id_aval=payload.idAval
+    )
+
+    # Retorno final
+    return JSONResponse({
+        "status": "ok",
+        "vetores": resultado,
+        "imagens": resultado_imagens
+    })
+    
 
 @router.post("/importar-respostas-presenciais-ajax/{nome_avaliacao}")
 async def rota_importar_respostas_presenciais_ajax(nome_avaliacao: str, payload: ImportarRespostasPayload, background_tasks: BackgroundTasks):

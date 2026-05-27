@@ -1,0 +1,16 @@
+/* Container pai */
+.grid-container, .home-dashboard, .bernoulli-layout {
+    display: grid;
+    gap: 20px;
+    align-items: start; /* Alterado de 'stretch' para 'start' para evitar que os cards se estiquem verticalmente. */
+}
+
+.topbar {
+    min-height: 74px;
+    padding: 10px 22px;
+    background: linear-gradient(180deg, rgba(219, 229, 240, 0.98), rgba(205, 218, 233, 0.95));
+    border-bottom: 1px solid rgba(28, 57, 92, 0.14);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}

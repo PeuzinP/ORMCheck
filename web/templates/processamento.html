@@ -11,10 +11,9 @@
 <body class="keepedu-app-page">
     <header class="ke-header">
         <div class="ke-header-left">
-            <a class="ke-logo" href="/" aria-label="Abrir painel">
-                <span class="ke-logo-mark" aria-hidden="true"></span>
-                <span class="ke-logo-word">KeepEdu</span>
-            </a>
+            <a href="/" class="ke-logo" style="display: flex; align-items: center;">
+            <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
+        </a>
             <button class="ke-header-menu" type="button" aria-label="Menu">
                 <span></span>
             </button>
@@ -187,5 +186,20 @@
             </div>
         </main>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+                // Busca o botão de 3 traços e o container do layout
+                const menuBtn = document.querySelector(".ke-header-menu");
+                const shell = document.querySelector(".ke-shell");
+
+                if (menuBtn && shell) {
+                    menuBtn.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        // Injeta ou remove a classe que o CSS usa para encolher
+                        shell.classList.toggle("sidebar-collapsed");
+                    });
+                }
+            });
+    </script>
 </body>
 </html>

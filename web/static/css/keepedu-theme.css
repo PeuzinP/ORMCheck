@@ -214,10 +214,10 @@
 }
 
 .ke-nav-icon {
-    width: 20px;
+    width: 22px;
     text-align: center;
     color: inherit;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .ke-sidebar-panel {
@@ -410,6 +410,7 @@
 .keepedu-app-page .hero h1,
 .keepedu-app-page .home-hero-main h1,
 .keepedu-app-page .bernoulli-hero h1,
+.keepedu-app-page .home-hero-panel h2,
 .keepedu-app-page .section-head h2,
 .keepedu-app-page .card h2 {
     color: #49566a !important;
@@ -475,8 +476,6 @@
 }
 
 .keepedu-app-page .input-text,
-.keepedu-app-page .toolbar input,
-.keepedu-app-page .toolbar select,
 .keepedu-app-page .manual-form input,
 .keepedu-app-page .corner-toolbar select,
 .keepedu-app-page .field-block input[type="file"] {
@@ -487,8 +486,6 @@
 }
 
 .keepedu-app-page .input-text:focus,
-.keepedu-app-page .toolbar input:focus,
-.keepedu-app-page .toolbar select:focus,
 .keepedu-app-page .manual-form input:focus,
 .keepedu-app-page .corner-toolbar select:focus,
 .keepedu-app-page .field-block input[type="file"]:focus {
@@ -496,19 +493,32 @@
     box-shadow: 0 0 0 3px rgba(42, 140, 219, 0.12) !important;
 }
 
-.keepedu-app-page .home-hero,
-.keepedu-app-page .home-dashboard,
-.keepedu-app-page .bernoulli-layout,
-.keepedu-app-page .layout-correcao {
-    gap: 16px !important;
-}
-
 .keepedu-app-page .home-hero {
-    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    display: grid;
+    align-items: start;
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
 }
 
 .keepedu-app-page .home-dashboard {
     grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+}
+
+.keepedu-app-page .home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.keepedu-app-page .home-grid-col-main,
+.keepedu-app-page .home-grid-col-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.keepedu-app-page .home-history-card {
+    grid-column: 1 / -1; /* Faz o card de histórico ocupar as duas colunas */
 }
 
 .keepedu-app-page .home-hero-main,
@@ -523,6 +533,19 @@
 
 .keepedu-app-page .home-hero-panel {
     background: #ffffff !important;
+}
+
+.keepedu-app-page .home-hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.keepedu-app-page .home-flow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .keepedu-app-page .home-flow-item,
@@ -543,6 +566,18 @@
     border: 1px solid #d9e0e8 !important;
     border-radius: 4px !important;
     box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+}
+
+.keepedu-app-page .home-flow-item {
+    padding: 16px;
+}
+
+.keepedu-app-page .home-metric-card {
+    padding: 16px;
 }
 
 .keepedu-app-page .home-flow-item strong,
@@ -575,7 +610,6 @@
 
 .keepedu-app-page .section-badge,
 .keepedu-app-page .highlight-pill,
-.keepedu-app-page .home-history-tag,
 .keepedu-app-page .item-imagem-chip,
 .keepedu-app-page .item-imagem-pill,
 .keepedu-app-page .status-badge {
@@ -584,6 +618,9 @@
     border: 1px solid #d7e0ea !important;
     border-radius: 999px !important;
     box-shadow: none !important;
+    /* Ajuste para que o badge não force a largura do contêiner pai. */
+    white-space: normal !important; /* Permite quebra de linha se o texto for longo. */
+    text-align: center; /* Centraliza o texto caso ele quebre a linha. */
 }
 
 .keepedu-app-page .status-validado,
@@ -602,7 +639,6 @@
 }
 
 .keepedu-app-page .table-toolbar,
-.keepedu-app-page .toolbar,
 .keepedu-app-page .corner-toolbar {
     background: #f7f9fb !important;
     border: 1px solid #d7dce3 !important;
@@ -669,12 +705,29 @@
 }
 
 .keepedu-app-page .layout-correcao {
-    grid-template-columns: 318px 1fr;
+    /* A segunda coluna não deve crescer com base no seu conteúdo, forçando a rolagem interna. */
+    grid-template-columns: 318px minmax(0, 1fr);
+}
+
+.keepedu-app-page .layout-correcao {
+    display: grid;
+    grid-template-columns: 318px minmax(0, 1fr);
+    gap: 16px;
+
+    height: calc(100vh - 190px);
+    min-height: 0;
+}
+
+.keepedu-app-page .image-area img,
+.keepedu-app-page .image-area canvas {
+    max-width: none;
+    display: block;
 }
 
 .keepedu-app-page .sidebar,
 .keepedu-app-page .viewer {
     height: calc(100vh - 190px);
+    min-height: 0;
 }
 
 .keepedu-app-page .sidebar {
@@ -682,13 +735,24 @@
 }
 
 .keepedu-app-page .viewer {
-    overflow: hidden;
+    /* A rolagem foi movida para o .image-area para que a barra de ferramentas não role junto. */
+    /* O viewer agora organiza os elementos internos verticalmente. */
+    overflow: hidden; /* Garante que o viewer não cresça indefinidamente, corrigindo a rolagem infinita. */
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espaçamento entre a barra de ferramentas e a área da imagem */
+    padding: 16px;
 }
 
 .keepedu-app-page .image-area {
     background: #eceff4 !important;
     border: 1px solid #d7dde5 !important;
     border-radius: 4px !important;
+    /* Adicionado para conter a imagem e permitir rolagem interna */
+    position: relative;
+    overflow: auto; /* A rolagem acontece aqui agora */
+    flex-grow: 1; /* Faz a área da imagem ocupar o espaço restante */
+    min-height: 0; /* Necessário para que a rolagem funcione corretamente em um container flex */
 }
 
 .keepedu-app-page .event-log-empty,
@@ -957,8 +1021,7 @@
 
     .keepedu-app-page .home-hero,
     .keepedu-app-page .home-dashboard,
-    .keepedu-app-page .bernoulli-layout,
-    .keepedu-app-page .layout-correcao {
+    .keepedu-app-page .bernoulli-layout {
         grid-template-columns: 1fr !important;
     }
 
@@ -1033,26 +1096,12 @@
    CORREÇÃO: Fixar a Barra Lateral Permanentemente na Tela (Sem Rolagem)
    ========================================================================== */
 
-/* 1. Garante que o container pai ocupe toda a altura da tela sem criar rolagem dupla */
-.ke-shell {
-    height: calc(100vh - 70px); /* Desconta a altura exata da sua topbar ke-header */
-    overflow: hidden;           /* Impede a página inteira de rolar desordenadamente */
-}
-
-/* 2. Deixa a barra lateral estática e fixa no canto esquerdo */
 .ke-sidebar {
     position: sticky;
-    top: 0;
-    height: 100%;               /* Ocupa exatamente a altura do container pai */
-    overflow-y: auto;           /* Se o menu tiver muitos itens, ele rola apenas dentro dele mesmo */
-    flex: 0 0 212px;            /* Mantém a largura estável de 212px */
-}
-
-/* 3. Libera a rolagem (scroll) APENAS na área principal de dados (tabelas e painéis) */
-.ke-main {
-    height: 100%;
-    overflow-y: auto;           /* O scroll vertical agora acontece exclusivamente aqui */
-    box-sizing: border-box;
+    top: 70px; /* Altura do header */
+    height: calc(100vh - 70px); /* Preenche a altura da viewport abaixo do header */
+    overflow-y: auto; /* Permite que o conteúdo da sidebar role, se necessário */
+    align-self: start; /* Garante que o item do grid comece no topo */
 }
 
 /* ==========================================================================
@@ -1097,5 +1146,426 @@
 
 .ke-shell.sidebar-collapsed .ke-nav-icon {
     width: auto;
-    font-size: 16px;
+    font-size: 18px;
+}
+
+/* Nova linha horizontal para os blocos */
+.bernoulli-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Divide em 3 colunas iguais */
+    gap: 20px;
+    margin-top: 20px; /* Dá um respiro em relação ao bloco de cima */
+}
+
+/* Garante que os cards internos herdem o espaçamento e a borda padrão */
+.bernoulli-stats-row .bernoulli-meta-item.card {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.bernoulli-stats-row .bernoulli-meta-item strong {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    margin-bottom: 4px;
+}
+
+.bernoulli-stats-row .bernoulli-meta-item span {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Limita o crescimento vertical do console de logs */
+.ke-console-scroll {
+    max-height: 180px;          /* Altura limite para casar com o bloco da esquerda */
+    overflow-y: auto;           /* Cria a barra de rolagem vertical quando necessário */
+    background: #f8f9fa;        /* Fundo sutil de terminal */
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: monospace;     /* Fonte padrão para leitura de logs */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Deixa a barra de rolagem mais fina e moderna (padrão Webkit) */
+.ke-console-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.ke-console-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.ke-console-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+.ke-console-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+/* Define uma altura mínima para o card de conversão casar com o da direita */
+.keepedu-app-page .bernoulli-form-card {
+    min-height: 408px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Garante que os botões fiquem sempre colados na base do card */
+}
+.keepedu-app-page .bernoulli-form-card {
+    min-height: 408px; /* Altura exata para bater com o card da direita */
+}
+/* 1. Nivela a linha do meio: Altura do card de Conversão igualando o de Saída */
+.keepedu-app-page .bernoulli-form-card {
+    /* AJUSTE AQUI: Vá testando 480px, 490px, 500px até a linha ficar milimetricamente reta na sua tela */
+    min-height: 480px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Mantém os botões colados no rodapé do card */
+}
+
+/* 2. Nivela o rodapé: Altura do card de Processamento igualando o de Andamento */
+.keepedu-app-page .bernoulli-log-card {
+    /* AJUSTE AQUI: Mesma coisa, vá ajustando os pixels até a base empatar com o console */
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 3. Centraliza as 4 métricas (Linhas, RMB, etc.) no espaço que sobrar no card esquerdo */
+.keepedu-app-page .bernoulli-log-summary {
+    margin: auto 0;
+}
+/* =========================
+   FIX GLOBAL LAYOUT
+========================= */
+
+* {
+    box-sizing: border-box;
+}
+
+.page-content,
+.dashboard-grid,
+.main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    align-items: start;
+}
+
+.card,
+.panel,
+.dashboard-card {
+    background: #fff;
+    border: 1px solid #d9dee7;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.card-body,
+.panel-body {
+    padding: 24px;
+}
+
+.info-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 120px;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+.sidebar,
+.dashboard-sidebar {
+    width: 100%;
+}
+
+.content-area {
+    min-width: 0;
+}
+
+/* evita quebra visual */
+.row,
+.grid-row {
+    align-items: stretch;
+}
+
+/* ==========================================================================
+   CORREÇÃO: Limite de altura para a sidebar da tela de correção
+   ========================================================================== */
+.page-correcao .sidebar {
+    height: auto; /* Permite que o card encolha para o tamanho do seu conteúdo */
+    max-height: calc(100vh - 190px); /* Garante que ele não ultrapasse a altura do visualizador */
+    align-self: start; /* Impede que o card se estique verticalmente no grid */
+}
+
+/* ==========================================================================
+   CORREÇÃO: Quebra de linha para textos longos no cabeçalho do viewer
+   ========================================================================== */
+.page-correcao .viewer-header strong,
+.page-correcao .viewer-meta,
+.page-correcao .viewer-help {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal; /* Garante que o texto possa quebrar em múltiplas linhas */
+}
+
+/* =========================================
+   FIX DEFINITIVO TOOLBAR
+========================================= */
+
+section.toolbar-modern {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100% !important;
+
+    background: #fff !important;
+    border: 1px solid #dbe2ea !important;
+    border-radius: 10px !important;
+
+    overflow: hidden !important;
+}
+
+section.toolbar-modern > .toolbar-main {
+    display: flex !important;
+    flex-wrap: wrap !important;
+
+    align-items: flex-end !important;
+
+    gap: 16px !important;
+
+    width: 100% !important;
+
+    padding: 20px !important;
+}
+
+section.toolbar-modern .toolbar-group {
+    display: flex !important;
+    flex-direction: column !important;
+
+    gap: 8px !important;
+}
+
+section.toolbar-modern .search-group {
+    flex: 1 1 320px !important;
+}
+
+section.toolbar-modern .zoom-group {
+    width: 180px !important;
+    flex: 0 0 180px !important;
+}
+
+section.toolbar-modern .action-group {
+    width: 220px !important;
+    flex: 0 0 220px !important;
+}
+
+section.toolbar-modern input[type="text"] {
+    width: 100% !important;
+    height: 46px !important;
+
+    padding: 0 14px !important;
+
+    border: 1px solid #cfd7e2 !important;
+    border-radius: 8px !important;
+
+    background: #fff !important;
+}
+
+section.toolbar-modern select {
+    width: 100% !important;
+    height: 46px !important;
+}
+
+section.toolbar-modern .btn-primary {
+    width: 100% !important;
+    height: 46px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 8px !important;
+}
+
+section.toolbar-modern .toolbar-info {
+    width: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    gap: 10px !important;
+
+    padding-top: 8px !important;
+}
+
+section.toolbar-modern .toolbar-footer {
+    display: flex !important;
+
+    justify-content: space-between !important;
+    align-items: center !important;
+
+    padding: 14px 20px !important;
+
+    border-top: 1px solid #e2e8f0 !important;
+
+    background: #f8fafc !important;
+}
+
+/* ==========================================================================
+   HOME: Tabela de Histórico de Processamentos
+   ========================================================================== */
+.home-history-table-wrapper {
+    margin-top: 16px;
+    overflow-x: auto; /* Adiciona rolagem horizontal se a tabela for muito larga */
+}
+
+.home-history-table {
+    width: 100%;
+    min-width: 0 !important; /* Remove o min-width do .data-table genérico */
+    border-collapse: collapse; /* Remove espaços entre as células */
+}
+
+.home-history-table th,
+.home-history-table td {
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef2f7 !important; /* Borda mais sutil */
+    white-space: nowrap; /* Impede que o texto quebre */
+}
+
+.home-history-table th {
+    background: transparent !important; /* Remove fundo do header */
+    color: #8b95a4 !important;
+    font-size: 12px !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.home-history-table td strong {
+    display: block;
+    color: #49566a;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.home-history-table td small {
+    color: #788394;
+    font-size: 12px;
+}
+
+.home-history-table .btn-secondary {
+    min-height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.home-history-table tbody tr:hover td {
+    background: #f8fafc !important;
+}
+
+/* ==========================================================================
+   HOME: Paginação da Tabela de Histórico
+   ========================================================================== */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 10px 0;
+}
+
+.page-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #cfd7e2;
+    background: #ffffff;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #516071;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #eef3f8;
+    border-color: #b6c1d1;
+}
+
+.page-btn.active {
+    background: #2a8cdb;
+    border-color: #2a8cdb;
+    color: #ffffff;
+    cursor: default;
+}
+
+.page-btn:disabled {
+    background: #f1f3f5;
+    color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ==========================================================================
+   HOME: Alinhamento do painel de fluxo
+   ========================================================================== */
+.keepedu-app-page .home-hero-panel h2 {
+    margin-top: 0;
+    margin-bottom: 4px; /* Reduz o espaço após o título */
+    font-size: 29px; /* Tamanho alinhado ao h1 principal, com ajuste de +1px */
+}
+
+.keepedu-app-page .home-hero-panel p {
+    margin-top: 0;
+    margin-bottom: 10px; /* Reduz o espaço antes da lista de passos */
+    font-size: 28px; /* Tamanho alinhado ao h1 principal */
+}
+
+/* ==========================================================================
+   HOME: Ajuste de espaçamento no card "Antes de começar"
+   ========================================================================== */
+.keepedu-app-page .home-ops-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Define um espaçamento consistente entre os itens */
+    flex-grow: 1; /* Faz a lista crescer para preencher o espaço do card */
+    justify-content: space-around; /* Distribui os itens verticalmente */
+}
+
+.keepedu-app-page .home-ops-item {
+    height: auto; /* Remove a altura de 100% para que o item se ajuste ao seu conteúdo */
+    padding: 16px; /* Adiciona um preenchimento interno para consistência visual */
+    justify-content: center; /* Centraliza o conteúdo dentro do item */
+}
+
+/* ==========================================================================
+   HOME: Alinhamento dos painéis superiores
+   ========================================================================== */
+.keepedu-app-page .eyebrow,
+.keepedu-app-page .panel-kicker {
+    margin-bottom: 8px;
+}
+
+.keepedu-app-page .home-hero-main h1 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+.keepedu-app-page .home-hero-main p {
+    margin-top: 0;
 }

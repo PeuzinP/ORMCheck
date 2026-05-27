@@ -9,6 +9,11 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import RedirectResponse
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.responses import HTMLResponse
+
+
 
 from app.db import init_db, storage_usa_banco
 from app.routes import router
@@ -30,7 +35,6 @@ from app.settings import (
     garantir_pastas
 )
 
-
 garantir_pastas()
 setup_logging()
 logger = logging.getLogger("omrcheck.main")
@@ -49,7 +53,7 @@ class AutenticacaoWebMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        sessao = request.scope.get("session") or {}
+        sessao = request.session
         if bool(sessao.get("authenticated")):
             return await call_next(request)
 
@@ -73,8 +77,12 @@ class AutenticacaoWebMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(title="OMRCheck Web")
 
-app.add_middleware(GZipMiddleware, minimum_size=1024)
-app.add_middleware(AutenticacaoWebMiddleware)
+# AUTH PRIMEIRO
+app.add_middleware(
+    AutenticacaoWebMiddleware
+)
+
+# SESSION DEPOIS
 app.add_middleware(
     SessionMiddleware,
     secret_key=APP_SESSION_SECRET,
@@ -83,8 +91,17 @@ app.add_middleware(
     https_only=False,
 )
 
+# OUTROS
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1024
+)
+
 if APP_ALLOWED_HOSTS:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=APP_ALLOWED_HOSTS)
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=APP_ALLOWED_HOSTS
+    )
 
 app.mount(
     "/static",
@@ -142,6 +159,5 @@ async def registrar_inicio():
         APP_STORAGE_BACKEND,
         CAMINHO_JOBS
     )
-
-
+    
 app.include_router(router)

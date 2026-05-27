@@ -119,7 +119,6 @@ PASTA_BASE = _path_from_env("APP_BASE_DIR", BASE_DIR / "base")
 PASTA_ASSETS = _path_from_env("APP_ASSETS_DIR", BASE_DIR / "assets")
 
 CAMINHO_MODELO_CARTAO = PASTA_TEMPLATES_OMR / "modelo_cartao.xtmpl"
-CAMINHO_BASE_ALUNOS = PASTA_BASE / "alunos.csv"
 CAMINHO_ICONE = PASTA_ASSETS / "omrcheck.ico"
 CAMINHO_JOBS = PASTA_RUNTIME / "jobs.json"
 CAMINHO_LOG_APP = PASTA_LOGS / f"omrcheck-{APP_ENV}.log"

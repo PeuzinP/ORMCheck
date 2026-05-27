@@ -1,0 +1,99 @@
+.card {
+    background: linear-gradient(180deg, rgba(252, 254, 255, 0.98), rgba(236, 243, 250, 0.97));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column; /* Permite que o conteúdo interno cresça */
+}
+
+.btn-primary {
+    background: linear-gradient(180deg, #234c7d, #163759);
+    color: #ffffff;
+    min-height: 48px;
+    border-radius: 16px;
+    border: none;
+    font-weight: 800;
+}
+
+.input-text {
+    background: rgba(250, 252, 255, 0.98);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    height: 44px;
+}
+.home-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.home-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background-color: #ffffff;
+    border: 1px solid var(--border); /* Usando a sua variável de borda */
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.home-history-item:hover {
+    background-color: rgba(236, 243, 250, 0.4); /* Tom de azul sutil baseado no seu card */
+    border-color: #cbd5e1;
+}
+
+.home-history-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.home-history-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.home-history-meta strong {
+    font-size: 16px;
+    color: #1e293b;
+}
+
+.home-history-tag {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    background-color: #e2e8f0;
+    color: #475569;
+    border-radius: 4px;
+}
+
+.home-history-copy > span {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.home-history-action {
+    padding: 6px 16px;
+    background: linear-gradient(180deg, #234c7d, #163759); /* Combinando com o seu padrão de botão primary */
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.home-history-item:hover .home-history-action {
+    opacity: 0.9;
+}
+.home-history-item {
+    background-color: red !important;
+}

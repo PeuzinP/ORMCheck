@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Correção | OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=69">
-    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
+    <link rel="stylesheet" href="/static/css/main.css?v=2">
 </head>
 <body class="keepedu-app-page">
     <header class="ke-header">
         <div class="ke-header-left">
-            <a class="ke-logo" href="/" aria-label="Abrir painel">
-                <span class="ke-logo-mark" aria-hidden="true"></span>
-                <span class="ke-logo-word">KeepEdu</span>
-            </a>
+        <a href="/" class="ke-logo" style="display: flex; align-items: center;">
+            <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
+        </a>
             <button class="ke-header-menu" type="button" aria-label="Menu">
                 <span></span>
             </button>
@@ -89,30 +87,83 @@
                     <p>{{ nome_processamento }}</p>
                 </section>
 
-                <section class="card toolbar correcao-toolbar-card">
-                    <div>
-                        <label>Pesquisar</label>
-                        <input type="text" id="busca" placeholder="RA, imagem ou questão">
+                <section class="toolbar-modern">
+
+                    <div class="toolbar-main">
+
+                        <!-- PESQUISA -->
+                        <div class="toolbar-group search-group">
+                            <label for="busca">Pesquisar</label>
+
+                            <div class="input-icon">
+                                <i class="fa fa-search"></i>
+
+                                <input
+                                    type="text"
+                                    id="busca"
+                                    placeholder="RA, imagem ou questão"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- ZOOM -->
+                        <div class="toolbar-group zoom-group">
+                            <label for="zoom-select">Zoom</label>
+
+                            <select id="zoom-select">
+                                <option value="0.35">35%</option>
+                                <option value="0.45">45%</option>
+                                <option value="0.60">60%</option>
+                                <option value="0.75">75%</option>
+                                <option value="1">100%</option>
+                                <option value="1.25">125%</option>
+                                <option value="1.50">150%</option>
+                                <option value="fit-width" selected>
+                                    Adaptar à largura
+                                </option>
+                                <option value="fit-window">
+                                    Adaptar à janela
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- BOTÃO -->
+                        <div class="toolbar-group action-group">
+                            <button class="btn-primary" id="btn-salvar">
+                                <i class="fa fa-save"></i>
+                                Salvar marcações
+                            </button>
+                        </div>
+
+                        <!-- INFO -->
+                        <div class="toolbar-info">
+                            <i class="fa fa-info-circle"></i>
+
+                            <span>
+                                Use o zoom para visualizar melhor os detalhes da imagem.
+                            </span>
+                        </div>
+
                     </div>
 
-                    <div>
-                        <label>Zoom</label>
-                        <select id="zoom-select">
-                            <option value="0.35">35%</option>
-                            <option value="0.45">45%</option>
-                            <option value="0.60">60%</option>
-                            <option value="0.75">75%</option>
-                            <option value="1">100%</option>
-                            <option value="1.25">125%</option>
-                            <option value="1.50">150%</option>
-                            <option value="fit-width" selected>Adaptar à largura</option>
-                            <option value="fit-window">Adaptar à janela</option>
-                        </select>
+                    <!-- FOOTER -->
+                    <div class="toolbar-footer">
+
+                        <span class="toolbar-shortcut">
+                            Atalho:
+                            <strong>Ctrl + Scroll do mouse</strong>
+                        </span>
+
+                        <button
+                            class="btn-link"
+                            type="button"
+                            id="btn-reset-zoom"
+                        >
+                            Redefinir zoom
+                        </button>
+
                     </div>
 
-                    <button class="btn-primary" id="btn-salvar">
-                        Salvar marcações
-                    </button>
                 </section>
 
                 <section class="layout-correcao">
@@ -243,5 +294,20 @@
         window.NOME_PROCESSAMENTO = "{{ nome_processamento }}";
     </script>
     <script src="/static/js/correcao.js?v=50"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+                    // Busca o botão de 3 traços e o container do layout
+                    const menuBtn = document.querySelector(".ke-header-menu");
+                    const shell = document.querySelector(".ke-shell");
+
+                    if (menuBtn && shell) {
+                        menuBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            // Injeta ou remove a classe que o CSS usa para encolher
+                            shell.classList.toggle("sidebar-collapsed");
+                        });
+                    }
+                });
+    </script>
 </body>
 </html>

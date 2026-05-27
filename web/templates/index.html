@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <title>OMRCheck Web</title>
     <link rel="icon" type="image/jpeg" href="/assets/LogoPensar2.jpeg">
-    <link rel="stylesheet" href="/static/css/style.css?v=73">
-    <link rel="stylesheet" href="/static/css/keepedu-theme.css?v=1">
+    <link rel="stylesheet" href="/static/css/main.css?v=2">
 </head>
 <body class="keepedu-app-page">
     <header class="ke-header">
@@ -13,16 +12,15 @@
         <a href="/" class="ke-logo" style="display: flex; align-items: center;">
             <img src="/assets/logo-gestor-login.png" alt="KeepEdu" style="height: 32px; width: auto; object-fit: contain;">
         </a>
-
         <button class="ke-header-menu" aria-label="Recolher menu" style="margin-left: 10px;">
             <span></span>
         </button>
 
-        <div style="color: rgba(255, 255, 255, 0.85); font-size: 16px; margin-left: 12px; display: flex; align-items: center; cursor: pointer;">
+        <!-- <div style="color: rgba(255, 255, 255, 0.85); font-size: 16px; margin-left: 12px; display: flex; align-items: center; cursor: pointer;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
             </svg>
-        </div>
+        </div> -->
     </div>
 
     <div class="ke-header-right">
@@ -78,199 +76,168 @@
             </div>
 
             <div class="page page-home ke-page-content">
-        <section class="home-hero">
-            <div class="home-hero-main">
-                <span class="eyebrow">Início</span>
-                <h1>Central de processamento OMR</h1>
-                <p>Envie novos lotes, acompanhe a leitura em tempo real e retome os processamentos recentes no mesmo painel.</p>
-
-                <div class="home-hero-actions">
-                    <a class="btn-primary" href="#novo-processamento">Novo processamento</a>
-                    <a class="btn-secondary" href="/bernoulli">Simulado Bernoulli</a>
-                    <a class="btn-light" href="#processamentos-recentes">Ver histórico</a>
-                </div>
-
-                <div class="home-hero-metrics">
-                    <article class="home-metric-card">
-                        <span>Leitura</span>
-                        <strong>Template + auditoria</strong>
-                        <p>Leitura alinhada ao group010 do CSV.</p>
-                    </article>
-                    <article class="home-metric-card">
-                        <span>Correção</span>
-                        <strong>Ajuste manual assistido</strong>
-                        <p>Correção manual sem sair do lote.</p>
-                    </article>
-                    <article class="home-metric-card">
-                        <span>Saída</span>
-                        <strong>Compatível com KeepEdu</strong>
-                        <p>Saída pronta para seguir no fluxo.</p>
-                    </article>
-                </div>
-            </div>
-
-            <aside class="home-hero-side">
-                <div class="home-hero-panel">
-                    <span class="panel-kicker">Fluxo</span>
-                    <h2>Como funciona</h2>
-                    <p>Um fluxo simples para leitura, revisão e exportação do lote.</p>
-
-                    <div class="home-flow-list">
-                        <div class="home-flow-item">
-                            <strong>1. Importar imagens</strong>
-                            <span>Entrada em lote de .jpg, .jpeg e .png.</span>
+                <div class="home-grid">
+                    <div class="home-grid-col-main">
+                        <div class="home-hero-main">
+                            <span class="eyebrow">Início</span>
+                            <h1>Central de processamento OMR</h1>
+                            <p>Envie novos lotes, acompanhe a leitura em tempo real e retome os processamentos recentes no mesmo painel.</p>
+                            <div class="home-hero-actions">
+                                <a class="btn-primary" href="#novo-processamento">Novo processamento</a>
+                                <a class="btn-secondary" href="/bernoulli">Simulado Bernoulli</a>
+                                <a class="btn-light" href="#processamentos-recentes">Ver histórico</a>
+                            </div>
+                            <div class="home-hero-metrics">
+                                <article class="home-metric-card">
+                                    <span>Leitura</span>
+                                    <strong>Template + auditoria</strong>
+                                    <p>Leitura alinhada ao group010 do CSV.</p>
+                                </article>
+                                <article class="home-metric-card">
+                                    <span>Correção</span>
+                                    <strong>Ajuste manual assistido</strong>
+                                    <p>Correção manual sem sair do lote.</p>
+                                </article>
+                                <article class="home-metric-card">
+                                    <span>Saída</span>
+                                    <strong>Compatível com KeepEdu</strong>
+                                    <p>Saída pronta para seguir no fluxo.</p>
+                                </article>
+                            </div>
                         </div>
-                        <div class="home-flow-item">
-                            <strong>2. Processar</strong>
-                            <span>Leitura com progresso e eventos em tempo real.</span>
-                        </div>
-                        <div class="home-flow-item">
-                            <strong>3. Revisar</strong>
-                            <span>Correção visual dos cartões que pedirem atenção.</span>
-                        </div>
-                        <div class="home-flow-item">
-                            <strong>4. Validar e exportar</strong>
-                            <span>Concluir identificação e gerar a saída final.</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-        </section>
-
-        <section class="home-dashboard">
-                <section class="card upload-command-card" id="novo-processamento">
-                    <div class="section-head upload-command-head">
-                        <div>
-                            <span class="section-kicker">Novo processamento</span>
-                            <h2>Novo lote</h2>
-                        </div>
-                    </div>
-
-                    <p class="card-description">
-                        Selecione as imagens do cartão-resposta para iniciar uma nova leitura OMR.
-                    </p>
-
-                    <form id="form-processamento" class="form-grid upload-command-form" action="/processar-ajax" method="post" enctype="multipart/form-data">
-                        <div class="upload-picker">
-                            <input
-                                id="input-arquivos"
-                                type="file"
-                                name="arquivos"
-                                accept=".jpg,.jpeg,.png"
-                                multiple
-                                required
-                                hidden
-                            >
-
-                            <div id="upload-dropzone" class="upload-box upload-dropzone upload-dropzone-home" tabindex="0" role="button" aria-label="Selecionar arquivos dos cartões-resposta">
-                                <div class="upload-dropzone-copy">
-                                    <span>Adicionar imagens</span>
-                                <small>Arraste os cartões para cá ou clique para selecionar os arquivos do lote.</small>
+                        <section class="card upload-command-card" id="novo-processamento">
+                            <div class="section-head upload-command-head">
+                                <div>
+                                    <span class="section-kicker">Novo processamento</span>
+                                    <h2>Novo lote</h2>
                                 </div>
-
-                                <div class="upload-actions">
-                                    <button type="button" id="btn-escolher-arquivos" class="btn-secondary">
-                                        Escolher arquivos
-                                    </button>
-                                    <div class="upload-meta">
-                                        <strong id="upload-contagem">Nenhum arquivo selecionado</strong>
-                                        <p id="upload-resumo">Você pode enviar várias imagens de uma vez.</p>
+                            </div>
+                            <p class="card-description">
+                                Selecione as imagens do cartão-resposta para iniciar uma nova leitura OMR.
+                            </p>
+                            <form id="form-processamento" class="form-grid upload-command-form" action="/processar-ajax" method="post" enctype="multipart/form-data">
+                                <div class="upload-picker">
+                                    <input id="input-arquivos" type="file" name="arquivos" accept=".jpg,.jpeg,.png" multiple required hidden>
+                                    <div id="upload-dropzone" class="upload-box upload-dropzone upload-dropzone-home" tabindex="0" role="button" aria-label="Selecionar arquivos dos cartões-resposta">
+                                        <div class="upload-dropzone-copy">
+                                            <span>Adicionar imagens</span>
+                                            <small>Arraste os cartões para cá ou clique para selecionar os arquivos do lote.</small>
+                                        </div>
+                                        <div class="upload-actions">
+                                            <button type="button" id="btn-escolher-arquivos" class="btn-secondary">
+                                                Escolher arquivos
+                                            </button>
+                                            <div class="upload-meta">
+                                                <strong id="upload-contagem">Nenhum arquivo selecionado</strong>
+                                                <p id="upload-resumo">Você pode enviar várias imagens de uma vez.</p>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <div id="upload-lista" class="upload-lista" style="display: none;"></div>
                                 </div>
-                            </div>
-
-                            <div id="upload-lista" class="upload-lista" style="display: none;"></div>
-                        </div>
-
-                        <div class="upload-command-bottom">
-                            <div class="upload-command-footer">
-                                <button type="submit" class="btn-primary">
-                                    Iniciar processamento
-                                </button>
-                                <p class="upload-command-note">
-                                    O lote fica disponível no histórico assim que a leitura for iniciada.
-                                </p>
-                            </div>
-
-                            <section class="event-log-panel home-event-inline" id="event-log-panel">
-                                <div class="section-head event-log-head">
-                                    <div>
-                                        <span class="section-kicker">Monitoramento</span>
-                                        <h2>Eventos recentes</h2>
+                                <div class="upload-command-bottom">
+                                    <div class="upload-command-footer">
+                                        <button type="submit" class="btn-primary">
+                                            Iniciar processamento
+                                        </button>
+                                        <p class="upload-command-note">
+                                            O lote fica disponível no histórico assim que a leitura for iniciada.
+                                        </p>
                                     </div>
-                                    <span class="section-badge" id="event-log-badge">0 evento(s)</span>
+                                    <section class="event-log-panel home-event-inline" id="event-log-panel">
+                                        <div class="section-head event-log-head">
+                                            <div>
+                                                <span class="section-kicker">Monitoramento</span>
+                                                <h2>Eventos recentes</h2>
+                                            </div>
+                                            <span class="section-badge" id="event-log-badge">0 evento(s)</span>
+                                        </div>
+                                        <div class="event-log-list" id="event-log-list">
+                                            <div class="event-log-empty">
+                                                Nenhum evento de leitura ainda.
+                                            </div>
+                                        </div>
+                                    </section>
                                 </div>
-
-                                <div class="event-log-list" id="event-log-list">
-                                    <div class="event-log-empty">
-                                        Nenhum evento de leitura ainda.
+                                <div id="log-processamento" class="log-processamento log-processamento-home" style="display: none;">
+                                    <div class="log-topo">
+                                        <strong>Andamento do processamento</strong>
+                                        <span id="log-percentual">0%</span>
                                     </div>
+                                    <div class="log-summary" id="log-summary">
+                                        <div class="log-summary-item">
+                                            <span>Total</span>
+                                            <strong id="log-total-imagens">0</strong>
+                                        </div>
+                                        <div class="log-summary-item">
+                                            <span>Com erro</span>
+                                            <strong id="log-total-erros">0</strong>
+                                        </div>
+                                        <div class="log-summary-item">
+                                            <span>Manuais</span>
+                                            <strong id="log-total-manuais">0</strong>
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="log-barra" style="width: 0%;"></div>
+                                    </div>
+                                    <p id="log-mensagem">0% | Aguardando início...</p>
+                                    <p id="log-arquivo" class="muted"></p>
+                                    <div id="log-erro" class="erro-box" style="display: none;">
+                                        <strong>Erro:</strong>
+                                        <p id="log-erro-texto"></p>
+                                    </div>
+                                    <a id="abrir-processamento" class="btn-primary link-btn" href="#" style="display: none;">
+                                        Abrir lote processado
+                                    </a>
                                 </div>
-                            </section>
-                        </div>
-
-                        <div id="log-processamento" class="log-processamento log-processamento-home" style="display: none;">
-                            <div class="log-topo">
-                                <strong>Andamento do processamento</strong>
-                                <span id="log-percentual">0%</span>
-                            </div>
-
-                            <div class="log-summary" id="log-summary">
-                                <div class="log-summary-item">
-                                    <span>Total</span>
-                                    <strong id="log-total-imagens">0</strong>
-                                </div>
-                                <div class="log-summary-item">
-                                    <span>Com erro</span>
-                                    <strong id="log-total-erros">0</strong>
-                                </div>
-                                <div class="log-summary-item">
-                                    <span>Manuais</span>
-                                    <strong id="log-total-manuais">0</strong>
-                                </div>
-                            </div>
-
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="log-barra" style="width: 0%;"></div>
-                            </div>
-
-                            <p id="log-mensagem">0% | Aguardando início...</p>
-                            <p id="log-arquivo" class="muted"></p>
-
-                            <div id="log-erro" class="erro-box" style="display: none;">
-                                <strong>Erro:</strong>
-                                <p id="log-erro-texto"></p>
-                            </div>
-
-                            <a id="abrir-processamento" class="btn-primary link-btn" href="#" style="display: none;">
-                                Abrir lote processado
-                            </a>
-                        </div>
-                    </form>
-                </section>
-
-                <section class="home-ops-card home-checklist-card">
-                    <div class="home-ops-head">
-                        <span class="section-kicker">Checklist</span>
-                        <h2>Antes de começar</h2>
+                            </form>
+                        </section>
                     </div>
-
-                    <div class="home-ops-list">
-                        <div class="home-ops-item">
-                            <strong>Padronize o lote</strong>
-                            <p>Use imagens nítidas e mantenha a mesma prova agrupada.</p>
+                    <div class="home-grid-col-side">
+                        <div class="home-hero-panel">
+                            <span class="panel-kicker">Fluxo</span>
+                                    <h2>Como funciona o fluxo</h2>
+                            <div class="home-flow-list">
+                                <div class="home-flow-item">
+                                    <strong>1. Importar imagens</strong>
+                                    <span>Entrada em lote de .jpg, .jpeg e .png.</span>
+                                </div>
+                                <div class="home-flow-item">
+                                    <strong>2. Processar</strong>
+                                    <span>Leitura com progresso e eventos em tempo real.</span>
+                                </div>
+                                <div class="home-flow-item">
+                                    <strong>3. Revisar</strong>
+                                    <span>Correção visual dos cartões que pedirem atenção.</span>
+                                </div>
+                                <div class="home-flow-item">
+                                    <strong>4. Validar e exportar</strong>
+                                    <span>Concluir identificação e gerar a saída final.</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="home-ops-item">
-                            <strong>Acompanhe os eventos</strong>
-                            <p>Falhas e cartões problemáticos aparecem em tempo real.</p>
-                        </div>
-                        <div class="home-ops-item">
-                            <strong>Revise antes de exportar</strong>
-                            <p>Entre na correção sempre que houver erro de leitura.</p>
-                        </div>
+                        <section class="home-ops-card home-checklist-card">
+                            <div class="home-ops-head">
+                                <span class="section-kicker">Checklist</span>
+                                <h2>Antes de começar</h2>
+                            </div>
+                            <div class="home-ops-list">
+                                <div class="home-ops-item">
+                                    <strong>Padronize o lote</strong>
+                                    <p>Use imagens nítidas e mantenha a mesma prova agrupada.</p>
+                                </div>
+                                <div class="home-ops-item">
+                                    <strong>Acompanhe os eventos</strong>
+                                    <p>Falhas e cartões problemáticos aparecem em tempo real.</p>
+                                </div>
+                                <div class="home-ops-item">
+                                    <strong>Revise antes de exportar</strong>
+                                    <p>Entre na correção sempre que houver erro de leitura.</p>
+                                </div>
+                            </div>
+                        </section>
                     </div>
-                </section>
-
                 <section class="card home-history-card" id="processamentos-recentes">
                     <div class="section-head">
                         <div>
@@ -301,30 +268,36 @@
                                 <span id="home-history-info">Mostrando 0 de 0 lote(s)</span>
                             </div>
                         </div>
-                        <div class="home-history-list" id="home-history-list">
-                            {% for item in processamentos %}
-                                <a
-                                    class="home-history-item"
-                                    href="/processamento/{{ item.nome }}"
-                                    data-rotulo="{{ item.rotulo }}"
-                                    data-search="{{ (item.titulo ~ ' ' ~ item.rotulo ~ ' ' ~ item.data ~ ' ' ~ item.hora ~ ' Processamento realizado em ' ~ item.data ~ ' às ' ~ item.hora)|lower }}"
-                                >
-                                    <div class="home-history-copy">
-                                        <div class="home-history-meta">
-                                            <strong>{{ item.titulo }}</strong>
-                                            <span class="home-history-tag">{{ item.rotulo }}</span>
-                                        </div>
-                                        <span>Processamento realizado em {{ item.data }} às {{ item.hora }}.</span>
-                                    </div>
-                                    <span class="home-history-action">Abrir</span>
-                                </a>
-                            {% endfor %}
+                        <div class="table-wrapper home-history-table-wrapper">
+                            <table class="data-table home-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lote</th>
+                                        <th>Data</th>
+                                        <th>Status</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="home-history-tbody">
+                                    {% for item in processamentos %}
+                                        <tr class="home-history-row" data-rotulo="{{ item.rotulo }}" data-search="{{ (item.titulo ~ ' ' ~ item.rotulo ~ ' ' ~ item.data ~ ' ' ~ item.hora ~ ' Processamento realizado em ' ~ item.data ~ ' às ' ~ item.hora)|lower }}">
+                                            <td>
+                                                <strong>{{ item.titulo }}</strong>
+                                                <small>{{ item.hora }}</small>
+                                            </td>
+                                            <td>{{ item.data }}</td>
+                                            <td><span class="status-badge">{{ item.rotulo }}</span></td>
+                                            <td><a href="/processamento/{{ item.nome }}" class="btn-secondary">Abrir</a></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
+                        <div class="pagination-controls" id="home-history-pagination"></div>
                     {% else %}
                         <p class="muted">Nenhum processamento encontrado.</p>
                     {% endif %}
-                </section>
-        </section>
+                </section></div>
             </div>
         </main>
     </div>
@@ -350,10 +323,14 @@
         const eventLogList = document.getElementById("event-log-list");
         const eventLogBadge = document.getElementById("event-log-badge");
         const homeHistoryList = document.getElementById("home-history-list");
-        const homeHistoryItems = Array.from(document.querySelectorAll(".home-history-item"));
+        const homeHistoryItems = Array.from(document.querySelectorAll(".home-history-row"));
         const homeHistorySearch = document.getElementById("home-history-search");
         const homeHistoryFilter = document.getElementById("home-history-filter");
         const homeHistoryInfo = document.getElementById("home-history-info");
+        const homeHistoryPagination = document.getElementById("home-history-pagination");
+
+        let paginaAtual = 1;
+        const ITENS_POR_PAGINA = 10;
 
         function atualizarResumoProcessamento(resumo) {
             const dados = resumo || {};
@@ -469,6 +446,27 @@
             });
         }
 
+        function renderizarPaginacao(totalItens) {
+            if (!homeHistoryPagination) return;
+
+            const totalPaginas = Math.ceil(totalItens / ITENS_POR_PAGINA);
+            homeHistoryPagination.innerHTML = "";
+
+            if (totalPaginas <= 1) {
+                return;
+            }
+
+            let html = "";
+            html += `<button class="page-btn" data-page="anterior" ${paginaAtual === 1 ? 'disabled' : ''}>Anterior</button>`;
+
+            for (let i = 1; i <= totalPaginas; i++) {
+                html += `<button class="page-btn ${i === paginaAtual ? 'active' : ''}" data-page="${i}">${i}</button>`;
+            }
+
+            html += `<button class="page-btn" data-page="proxima" ${paginaAtual === totalPaginas ? 'disabled' : ''}>Próxima</button>`;
+            homeHistoryPagination.innerHTML = html;
+        }
+
         function aplicarFiltroHistorico() {
             if (!homeHistoryItems.length) {
                 return;
@@ -476,43 +474,76 @@
 
             const termo = (homeHistorySearch?.value || "").trim().toLowerCase();
             const filtro = (homeHistoryFilter?.value || "todos").trim().toLowerCase();
-            let totalVisiveis = 0;
 
-            homeHistoryItems.forEach((item) => {
+            const itensFiltrados = homeHistoryItems.filter(item => {
                 const texto = item.dataset.search || (item.textContent || "").toLowerCase();
                 const rotulo = (item.dataset.rotulo || "").trim().toLowerCase();
                 const combinaTexto = !termo || texto.includes(termo);
                 const combinaFiltro = filtro === "todos" || rotulo === filtro;
-                const visivel = combinaTexto && combinaFiltro;
-
-                item.style.display = visivel ? "" : "none";
-                if (visivel) {
-                    totalVisiveis += 1;
-                }
+                return combinaTexto && combinaFiltro;
             });
 
+            const totalFiltrados = itensFiltrados.length;
+            const totalPaginas = Math.ceil(totalFiltrados / ITENS_POR_PAGINA);
+
+            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas > 0 ? totalPaginas : 1;
+
+            const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+            const fim = inicio + ITENS_POR_PAGINA;
+            const itensDaPagina = itensFiltrados.slice(inicio, fim);
+
+            homeHistoryItems.forEach(item => item.style.display = 'none');
+            itensDaPagina.forEach(item => item.style.display = '');
+
             if (homeHistoryInfo) {
-                homeHistoryInfo.textContent = `Mostrando ${totalVisiveis} de ${homeHistoryItems.length} lote(s)`;
+                const fimReal = inicio + itensDaPagina.length;
+                homeHistoryInfo.textContent = `Mostrando ${totalFiltrados > 0 ? inicio + 1 : 0}–${fimReal} de ${totalFiltrados} lote(s)`;
             }
+            renderizarPaginacao(totalFiltrados);
         }
-
-        btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
-        homeHistorySearch?.addEventListener("input", aplicarFiltroHistorico);
-        homeHistoryFilter?.addEventListener("change", aplicarFiltroHistorico);
-
-        uploadDropzone?.addEventListener("click", (event) => {
-            if (event.target.closest("button")) {
-                return;
-            }
-
-            abrirSeletorArquivos();
-        });
 
         uploadDropzone?.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 abrirSeletorArquivos();
             }
+        });
+
+        btnEscolherArquivos?.addEventListener("click", abrirSeletorArquivos);
+
+        uploadDropzone?.addEventListener("click", (event) => {
+            if (event.target.closest("button")) {
+                return;
+            }
+            abrirSeletorArquivos();
+        });
+
+        homeHistorySearch?.addEventListener("input", () => {
+            paginaAtual = 1;
+            aplicarFiltroHistorico();
+        });
+
+        homeHistoryFilter?.addEventListener("change", () => {
+            paginaAtual = 1;
+            aplicarFiltroHistorico();
+        });
+
+        homeHistoryPagination?.addEventListener("click", (event) => {
+            const target = event.target.closest('.page-btn');
+            if (!target || target.disabled) return;
+
+            const pageAction = target.dataset.page;
+            const currentPage = paginaAtual;
+
+            if (pageAction === "anterior") {
+                paginaAtual--;
+            } else if (pageAction === "proxima") {
+                paginaAtual++;
+            } else {
+                paginaAtual = parseInt(pageAction, 10);
+            }
+
+            if (paginaAtual !== currentPage) aplicarFiltroHistorico();
         });
 
         inputArquivos?.addEventListener("change", () => {
