@@ -1,4 +1,5 @@
 import ast
+import secrets
 from urllib.parse import unquote
 from app.gerador_csv import gerar_csv_final, caminho_csv_final
 from app.bernoulli import transformar_vetor_keepedu_para_bernoulli, EXTENSOES_PLANILHA, PASTA_BERNOULLI
@@ -18,6 +19,11 @@ import json
 import os
 from html import escape
 from app.auth import gerenciar_lembre_me, verificar_autologin_cookie, remover_token_banco
+from app.auth import (
+    salvar_sessao_usuario,
+    obter_sessao_usuario,
+    remover_sessao_usuario
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(BASE_DIR)
@@ -273,7 +279,6 @@ def _executar_importacao_respostas_em_background(
             str(erro),
         )
 
-
 async def salvar_uploads_em_pasta(arquivos: list[UploadFile], pasta_upload):
     if len(arquivos) > MAX_UPLOAD_FILES:
         raise ValueError(
@@ -332,10 +337,12 @@ async def salvar_arquivo_upload(arquivo: UploadFile, pasta_destino):
     return destino
 
 
-@router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    processamentos = listar_processamentos_recentes()
-    return render_template(request, "index.html", {"processamentos": processamentos})
+@router.get("/")
+async def index():
+    return RedirectResponse(
+        url="/painel",
+        status_code=303
+    )
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -343,22 +350,44 @@ async def login_page(request: Request, next: str = "/"):
     if not APP_ENABLE_AUTH:
         return RedirectResponse(url="/", status_code=303)
         
-    # 1. Se o usuário já tiver uma sessão ativa na memória, joga direto para o painel
-    if request.session.get("authenticated"):
-        return RedirectResponse(url=_destino_pos_login(next), status_code=303)
+    usuario_id = request.session.get("usuario_id")
+    session_id = request.session.get("session_id")
+
+    if usuario_id and session_id:
+        sessao_banco = obter_sessao_usuario(usuario_id)
+
+        if (
+            sessao_banco
+            and sessao_banco.get("session_id") == session_id
+        ):
+            return RedirectResponse(
+                url=_destino_pos_login(next),
+                status_code=303
+            )
 
     # 2. FLUXO DO AUTO-LOGIN: Se não tiver sessão, checa o Cookie de "Lembre-me"
     usuario_id_valido = verificar_autologin_cookie(request)
     
     if usuario_id_valido:
-        # Recupera as credenciais do banco ou define os padrões para recriar a sessão
-        # (Como o login original usa o e-mail vindo do formulário, aqui recriamos o escopo)
+
+        session_id = secrets.token_hex(32)
+
         request.session["authenticated"] = True
-        request.session["user_email"] = "operador.lembrado@colegioproposito.com.br" # E-mail genérico ou recupere do banco se preferir
+        request.session["session_id"] = session_id
+        request.session["usuario_id"] = usuario_id_valido
+
+        salvar_sessao_usuario(
+            usuario_id_valido,
+            session_id
+        )
+
+        request.session["user_email"] = "operador.lembrado@colegioproposito.com.br"
         request.session["auth_source"] = "keepedu_remember"
-        
-        # Redireciona o usuário diretamente para o painel sem exibir a tela de login
-        return RedirectResponse(url=_destino_pos_login(next), status_code=303)
+
+        return RedirectResponse(
+            url=_destino_pos_login(next),
+            status_code=303
+        )
 
     # 3. Se não houver cookie ou o token estiver vencido, renderiza a tela normalmente
     return render_template(
@@ -402,21 +431,44 @@ async def login_submit(
         )
 
     # Limpa a sessão local antiga
+    # Limpa sessão antiga
     request.session.clear()
-    
-    # Define as variáveis normais de sessão do seu sistema
-    request.session["authenticated"] = True
-    request.session["user_email"] = str(dados_usuario.get("email") or email or "").strip()
-    request.session["auth_source"] = str(dados_usuario.get("origem") or "keepedu")
-    
-    # SE O OPERADOR MARCOU "LEMBRE-ME": Gera o token no MySQL e cria o Cookie seguro
-    if lembre_me and dados_usuario:
-        # Usamos um ID padrão (ex: 1) ou pegamos o id real se a API do KeepEdu retornar
-        usuario_id = dados_usuario.get("id") or 1 
-        gerenciar_lembre_me(response, usuario_id)
 
-    # Criamos a resposta de redirecionamento mantendo os cookies injetados
-    redirecionamento = RedirectResponse(url=_destino_pos_login(next_url), status_code=303)
+    # Gera session_id
+    import secrets
+    session_id = secrets.token_hex(32)
+
+    # Obtém usuário
+    usuario_id = dados_usuario.get("id") or 1
+
+    # Salva sessão
+    request.session["authenticated"] = True
+    request.session["session_id"] = session_id
+    request.session["usuario_id"] = usuario_id
+
+    request.session["user_email"] = str(
+        dados_usuario.get("email") or email or ""
+    ).strip()
+
+    request.session["auth_source"] = str(
+        dados_usuario.get("origem") or "keepedu"
+    )
+
+    # Salva no banco/cache
+    salvar_sessao_usuario(
+        usuario_id,
+        session_id
+    )
+    
+    redirecionamento = RedirectResponse(
+        url=_destino_pos_login(next_url),
+        status_code=303
+    )
+
+    if lembre_me and dados_usuario:
+        usuario_id = dados_usuario.get("id") or 1
+        gerenciar_lembre_me(redirecionamento, usuario_id)
+
     return redirecionamento
 
 
@@ -820,3 +872,13 @@ async def correcao(request: Request, nome_avaliacao: str):
         "nome_processamento": nome_limpo,
         "imagens_debug": imagens_debug
     })
+    
+@router.get("/painel", response_class=HTMLResponse)
+async def painel(request: Request):
+    processamentos = listar_processamentos_recentes()
+
+    return render_template(
+        request,
+        "index.html",
+        {"processamentos": processamentos}
+    )

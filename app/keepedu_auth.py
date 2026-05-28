@@ -62,17 +62,18 @@ def autenticar_keepedu(email: str, senha: str) -> tuple[bool, str, dict]:
     if not email or not senha:
         return False, "Informe e-mail e senha.", {}
 
-    if (
-        APP_BASIC_AUTH_USER
-        and APP_BASIC_AUTH_PASSWORD
-        and email == APP_BASIC_AUTH_USER
-        and senha == APP_BASIC_AUTH_PASSWORD
-    ):
-        return True, "", {
-            "email": email,
-            "origem": "local",
-        }
-
+    # if (
+    #     APP_BASIC_AUTH_USER
+    #     and APP_BASIC_AUTH_PASSWORD
+    #     and email == APP_BASIC_AUTH_USER
+    #     and senha == APP_BASIC_AUTH_PASSWORD
+    # ):
+    #     return True, "", {
+    #         "email": email,
+    #         "origem": "local",
+    #     }
+        
+    print("KEEPEDU_LOGIN_URL:", KEEPEDU_LOGIN_URL)
     if KEEPEDU_LOGIN_URL:
         payload = {
             "email": email,

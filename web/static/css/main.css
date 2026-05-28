@@ -7,3 +7,30 @@
 /* Integração das folhas de estilo principais */
 @import 'style.css';
 @import 'keepedu-theme.css';
+
+.ke-password-wrapper {
+    position: relative;
+}
+
+.ke-password-wrapper input {
+    padding-right: 50px;
+}
+
+.ke-password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ke-password-toggle:hover {
+    color: #000;
+}

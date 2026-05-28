@@ -6,12 +6,11 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import RedirectResponse
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import HTMLResponse
+from app.auth import obter_sessao_usuario
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 
@@ -40,63 +39,83 @@ setup_logging()
 logger = logging.getLogger("omrcheck.main")
 
 
-class AutenticacaoWebMiddleware(BaseHTTPMiddleware):
+from fastapi import FastAPI, Request
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import RedirectResponse
+
+# GZIP
+class AutenticacaoMiddleware(BaseHTTPMiddleware):
+
     async def dispatch(self, request: Request, call_next):
+
+        caminho = request.url.path
+
+        if caminho != "/":
+            caminho = caminho.rstrip("/")
+
+        rotas_livres = {
+            "/",
+            "/login",
+            "/logout",
+            "/healthz",
+            "/favicon.ico"
+        }
+
         if (
             not APP_ENABLE_AUTH
-            or request.url.path == "/healthz"
-            or request.url.path == "/login"
-            or request.url.path == "/logout"
-            or request.url.path == "/favicon.ico"
-            or request.url.path.startswith("/static/")
-            or request.url.path.startswith("/assets/")
+            or caminho in rotas_livres
+            or caminho.startswith("/static")
+            or caminho.startswith("/assets")
         ):
             return await call_next(request)
 
         sessao = request.session
-        if bool(sessao.get("authenticated")):
-            return await call_next(request)
 
-        aceita_json = "application/json" in str(request.headers.get("accept", "")).lower()
-        destino = str(request.url.path or "/")
-        if request.url.query:
-            destino = f"{destino}?{request.url.query}"
+        usuario_id = sessao.get("usuario_id")
+        session_id = sessao.get("session_id")
 
-        if aceita_json or request.url.path.startswith("/status-") or request.method.upper() != "GET":
-            return JSONResponse(
-                {
-                    "status": "erro",
-                    "mensagem": "Autenticação obrigatória. Faça login novamente.",
-                    "redirect": f"/login?next={quote(destino, safe='/=?&')}",
-                },
-                status_code=401,
+        if not usuario_id or not session_id:
+            return RedirectResponse(
+                url=f"/login?next={quote(caminho)}",
+                status_code=303
             )
 
-        return RedirectResponse(url=f"/login?next={quote(destino, safe='/=?&')}", status_code=303)
+        sessao_banco = obter_sessao_usuario(usuario_id)
+
+        if (
+            not sessao_banco
+            or sessao_banco != session_id
+        ):
+            request.session.clear()
+
+            return RedirectResponse(
+                url=f"/login?next={quote(caminho)}",
+                status_code=303
+            )
+
+        return await call_next(request)
 
 
 app = FastAPI(title="OMRCheck Web")
 
-# AUTH PRIMEIRO
+app.add_middleware(AutenticacaoMiddleware)
+
 app.add_middleware(
-    AutenticacaoWebMiddleware
+    GZipMiddleware,
+    minimum_size=1024
 )
 
-# SESSION DEPOIS
 app.add_middleware(
     SessionMiddleware,
     secret_key=APP_SESSION_SECRET,
     session_cookie=APP_SESSION_COOKIE_NAME,
     same_site="lax",
     https_only=False,
+    max_age=60 * 60 * 5
 )
 
-# OUTROS
-app.add_middleware(
-    GZipMiddleware,
-    minimum_size=1024
-)
-
+# HOSTS
 if APP_ALLOWED_HOSTS:
     app.add_middleware(
         TrustedHostMiddleware,

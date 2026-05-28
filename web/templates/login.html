@@ -10,15 +10,15 @@
 <body class="keepedu-auth-page">
     <header class="ke-auth-header" style="background: #ffffff;">
         <a class="ke-auth-brand" href="/login" aria-label="Abrir login" style="display: flex; align-items: center;">
-            <img src="/assets/logo-kee-login-preto.png" alt="KeepEdu" style="height: 60px; width: auto; object-fit: contain; filter: brightness(0);">
+            <img src="/assets/logo-kee-login-preto.png" alt="KeepEdu" style="height: 90px; width: auto; object-fit: contain; filter: brightness(0);">
         </a>
         <img src="/assets/logo-proposito-colored.png" alt="Colégio Propósito" style="height: 44px; width: auto; object-fit: contain;">
     </header>
 
     <main class="ke-auth-main">
         <section class="ke-auth-card">
-            <div style="text-align: center; margin-bottom: 30px;">
-            <img src="/assets/logo-kee-login-preto.png" alt="KeepEdu" style="height: 42px; width: auto; object-fit: contain; display: block; margin: 0 auto; filter: brightness(0);">
+            <div style="text-align: center; margin-bottom: 20px;">
+            <img src="/assets/logo-proposito-colored.png" alt="KeepEdu" style="height: 42px; width: auto; object-fit: contain; display: block; margin: 0 auto; filter: brightness(0);">
             </div>
             
             <h1>Portal do Gestor</h1>
@@ -34,14 +34,14 @@
                 <input type="hidden" name="next_url" value="{{ next_url }}">
 
                 <div class="ke-auth-field">
-                    <label for="login-email">E-mail do colaborador</label>
+                    <label for="login-email">E-mail:</label>
                     <div class="ke-auth-input">
                         <span>@</span>
                         <input
                             type="email"
                             id="login-email"
                             name="email"
-                            placeholder="programacao@pensaredu.com.br"
+                            placeholder="seunome@pensaredu.com.br"
                             value="{{ email_login }}"
                             autocomplete="username"
                             required
@@ -50,19 +50,29 @@
                 </div>
 
                 <div class="ke-auth-field">
-                    <label for="login-senha">Senha</label>
-                    <div class="ke-auth-input">
-                        <span>*</span>
-                        <input
-                            type="password"
-                            id="login-senha"
-                            name="senha"
-                            placeholder="Digite sua senha"
-                            autocomplete="current-password"
-                            required
-                        >
-                    </div>
+                <label for="login-senha">Senha:</label>
+
+                <div class="ke-auth-input ke-password-wrapper">
+                    <span>*</span>
+
+                    <input
+                        type="password"
+                        id="login-senha"
+                        name="senha"
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="ke-password-toggle"
+                        onclick="toggleSenha()"
+                    >
+                        👁
+                    </button>
                 </div>
+            </div>
 
                 <div class="ke-auth-row">
                     <label class="ke-remember-label">
@@ -87,5 +97,16 @@
             </div>
         </section>
     </main>
+    <script>
+    function toggleSenha() {
+        const input = document.getElementById("login-senha");
+
+        if (input.type === "password") {
+            input.type = "text";
+        } else {
+            input.type = "password";
+        }
+    }
+    </script>
 </body>
 </html>

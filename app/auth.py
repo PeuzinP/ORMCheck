@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import mysql.connector  # Ou o módulo que seu projeto usa para conectar (ex: SQLAlchemy)
 from fastapi import Request, Response
 from datetime import datetime, timedelta, timezone # <--- Importe o timezone
-
+from app.db import get_connection
 # ... (restante dos imports)
 
 def gerenciar_lembre_me(response: Response, usuario_id: int):
@@ -53,37 +53,6 @@ def obter_conexao_banco():
         password=senha_banco,
         database=os.getenv("DB_NAME", "omrcheck")
     )
-
-from datetime import datetime, timedelta, timezone # <--- Importe o timezone
-
-# ... (restante dos imports)
-
-def gerenciar_lembre_me(response: Response, usuario_id: int):
-    token = secrets.token_hex(32)
-    # Agora usamos timezone.utc para garantir que o datetime seja "aware"
-    expira_em = datetime.now(timezone.utc) + timedelta(days=DIAS_VALIDADE)
-    
-    conexao = obter_conexao_banco()
-    cursor = conexao.cursor()
-    try:
-        query = """
-            INSERT INTO tokens_lembre_me (usuario_id, token, expira_em) 
-            VALUES (%s, %s, %s);
-        """
-        cursor.execute(query, (usuario_id, token, expira_em))
-        conexao.commit()
-        
-        response.set_cookie(
-            key=COOKIE_NAME,
-            value=token,
-            expires=expira_em, # O Starlette agora aceitará este valor com UTC
-            httponly=True,
-            secure=False,
-            samesite="lax"
-        )
-    finally:
-        cursor.close()
-        conexao.close()
         
 def verificar_autologin_cookie(request: Request) -> int | None:
     """
@@ -126,3 +95,78 @@ def remover_token_banco(token: str):
     finally:
         cursor.close()
         conexao.close()
+        
+def salvar_sessao_usuario(usuario_id, session_id):
+
+    conn = obter_conexao_banco()
+    cursor = conn.cursor()
+
+    try:
+
+        # remove sessão antiga
+        cursor.execute("""
+            DELETE FROM sessoes_ativas
+            WHERE usuario_id = %s
+        """, (usuario_id,))
+
+        # cria nova sessão
+        cursor.execute("""
+            INSERT INTO sessoes_ativas (
+                usuario_id,
+                session_id
+            )
+            VALUES (%s, %s)
+        """, (
+            usuario_id,
+            session_id
+        ))
+
+        conn.commit()
+
+    finally:
+        cursor.close()
+        conn.close()
+        
+def obter_sessao_usuario(usuario_id):
+
+    conn = obter_conexao_banco()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        cursor.execute("""
+            SELECT session_id
+            FROM sessoes_ativas
+            WHERE usuario_id = %s
+            LIMIT 1
+        """, (usuario_id,))
+
+        resultado = cursor.fetchone()
+
+        if resultado:
+            return resultado["session_id"]
+
+        return None
+
+    finally:
+        cursor.close()
+        conn.close()
+        
+        
+def remover_sessao_usuario(usuario_id):
+
+    conn = obter_conexao_banco()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute("""
+            DELETE FROM sessoes_ativas
+            WHERE usuario_id = %s
+        """, (usuario_id,))
+
+        conn.commit()
+
+    finally:
+        cursor.close()
+        conn.close()

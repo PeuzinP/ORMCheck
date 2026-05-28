@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+import mysql.connector
 
 from app.settings import (
     APP_STORAGE_BACKEND,
@@ -75,3 +76,11 @@ def init_db():
     from app.db_models import JobModel  # noqa: F401
 
     Base.metadata.create_all(bind=ENGINE)
+    
+def get_connection():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="SUA_SENHA",
+        database="omrcheck"
+    )
